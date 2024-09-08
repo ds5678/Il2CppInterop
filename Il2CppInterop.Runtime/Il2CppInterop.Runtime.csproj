@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <PackageId>Il2CppInterop.Runtime</PackageId>
+    <PackageId>ds5678.Il2CppInterop.Runtime</PackageId>
     <Authors>knah, BepInEx et al.</Authors>
     <Description>Runtime tools for bridging .NET and Il2Cpp together</Description>
     <TargetFramework>net6.0</TargetFramework>
