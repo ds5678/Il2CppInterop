@@ -1,16 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net6.0;net9.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <PackAsTool>true</PackAsTool>
     <ToolCommandName>il2cppinterop</ToolCommandName>
     <PackageOutputPath>../bin/NuGet</PackageOutputPath>
     <PackageId>Il2CppInterop.CLI</PackageId>
     <Authors>BepInEx</Authors>
     <Description>CLI tool for generating managed proxy assemblies for Il2Cpp</Description>
     <Configurations>Debug;Release</Configurations>
-    <Platforms>AnyCPU</Platforms>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -24,5 +22,14 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0"/>
     <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta3.22114.1"/>
   </ItemGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0')) != true">
+    <PackAsTool>true</PackAsTool>
+    <Platforms>AnyCPU</Platforms>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net6.0;net9.0</TargetFrameworks>
     <Authors>BepInEx, knah et al.</Authors>
     <Description>Common API for Il2CppInterop packages</Description>
     <RootNamespace>Il2CppInterop.Common</RootNamespace>
