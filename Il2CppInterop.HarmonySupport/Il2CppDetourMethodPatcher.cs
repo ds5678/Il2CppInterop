@@ -357,7 +357,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         {
             il.Emit(OpCodes.Call, ManagedToIL2CPPStringMethodInfo);
         }
-        else if (!returnType.IsValueType && returnType.IsSubclassOf(typeof(Il2CppObjectBase)))
+        else if (!returnType.IsValueType && returnType.IsSubclassOf(typeof(Il2CppSystem.Object)))
         {
             il.Emit(OpCodes.Call, ObjectBaseToPtrMethodInfo);
         }
@@ -416,7 +416,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             {
                 il.Emit(OpCodes.Call, IL2CPPToManagedStringMethodInfo);
             }
-            else if (originalType.IsSubclassOf(typeof(Il2CppObjectBase)))
+            else if (originalType.IsSubclassOf(typeof(Il2CppSystem.Object)))
             {
                 EmitCreateIl2CppObject(originalType);
             }
