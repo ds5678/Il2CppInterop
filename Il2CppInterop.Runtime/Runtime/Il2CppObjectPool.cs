@@ -53,8 +53,11 @@ public static class Il2CppObjectPool
                     }
                 }
             }
-            s_cache[ptr] = new WeakReference<Il2CppObjectBase>(il2CppObjectBase);
-            il2CppObjectBase.pooledPtr = ptr;
+            if (!DisableCaching)
+            {
+                s_cache[ptr] = new WeakReference<Il2CppObjectBase>(il2CppObjectBase);
+                il2CppObjectBase.pooledPtr = ptr;
+            }
         }
 
         return newObj;
