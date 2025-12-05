@@ -6,7 +6,6 @@ using HarmonyLib.Public.Patching;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Startup;
@@ -14,7 +13,6 @@ using Microsoft.Extensions.Logging;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using MonoMod.Utils;
-using Detour = MonoMod.RuntimeDetour.Detour;
 using IDetour = Il2CppInterop.Runtime.Injection.IDetour;
 using ValueType = Il2CppSystem.ValueType;
 
@@ -67,8 +65,10 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
 
     private INativeMethodInfoStruct originalNativeMethodInfo;
 
+    private FieldInfo originalPointerField;
+
     /// <summary>
-    ///     Constructs a new instance of <see cref="MonoMod.RuntimeDetour.NativeDetour" /> method patcher.
+    ///     Constructs a new instance of <see cref="MonoMod.RuntimeDetour.Hook" /> method patcher.
     /// </summary>
     /// <param name="original"></param>
     public Il2CppDetourMethodPatcher(MethodBase original) : base(original) => Init();
@@ -80,7 +80,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         try
         {
             var methodField = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Original);
-
+            originalPointerField = methodField;
             if (methodField == null)
             {
                 var fieldInfoField =
@@ -121,7 +121,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     /// <inheritdoc />
     public override MethodBase DetourTo(MethodBase replacement)
     {
-        // // Unpatch an existing detour if it exists
+        // Unpatch an existing detour if it exists
         if (nativeDetour != null)
         {
             // Point back to the original method before we unpatch
@@ -150,10 +150,9 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
         nativeDetour.Apply();
         modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
-
-        var detour = new Detour(Original, managedHookedMethod);
-        detour.Apply();
-        DetourCache.Add(detour);
+        var hook = new Hook(Original, managedHookedMethod);
+        hook.Apply();
+        DetourCache.Add(hook);
 
         return managedHookedMethod;
     }
@@ -163,32 +162,32 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     {
         var dmd = new DynamicMethodDefinition(Original);
         dmd.Definition.Name = "UnhollowedWrapper_" + dmd.Definition.Name;
-        var cursor = new ILCursor(new ILContext(dmd.Definition));
 
+        // // Remove il2cpp_object_get_virtual_method
+        // if (cursor.TryGotoNext(x => x.MatchLdarg(0),
+        //         x => x.MatchCall(typeof(IL2CPP),
+        //             nameof(IL2CPP.Il2CppObjectToPtr)),
+        //         x => x.MatchLdsfld(out _),
+        //         x => x.MatchCall(typeof(IL2CPP),
+        //             nameof(IL2CPP.il2cpp_object_get_virtual_method))))
+        // {
+        //     cursor.RemoveRange(4);
+        // }
+        // else
+        // {
+        //     cursor.Goto(0)
+        //         .GotoNext(x =>
+        //             x.MatchLdsfld(Il2CppInteropUtils
+        //                 .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Original)))
+        //         .Remove();
+        // }
+        //
+        // // Replace original IL2CPPMethodInfo pointer with a modified one that points to the trampoline
+        // cursor
+        //     .Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, modifiedNativeMethodInfo.Pointer.ToInt64())
+        //     .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
 
-        // Remove il2cpp_object_get_virtual_method
-        if (cursor.TryGotoNext(x => x.MatchLdarg(0),
-                x => x.MatchCall(typeof(IL2CPP),
-                    nameof(IL2CPP.Il2CppObjectToPtr)),
-                x => x.MatchLdsfld(out _),
-                x => x.MatchCall(typeof(IL2CPP),
-                    nameof(IL2CPP.il2cpp_object_get_virtual_method))))
-        {
-            cursor.RemoveRange(4);
-        }
-        else
-        {
-            cursor.Goto(0)
-                .GotoNext(x =>
-                    x.MatchLdsfld(Il2CppInteropUtils
-                        .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Original)))
-                .Remove();
-        }
-
-        // Replace original IL2CPPMethodInfo pointer with a modified one that points to the trampoline
-        cursor
-            .Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, modifiedNativeMethodInfo.Pointer.ToInt64())
-            .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
+        originalPointerField.SetValue(null, modifiedNativeMethodInfo.Pointer);
 
         return dmd;
     }
