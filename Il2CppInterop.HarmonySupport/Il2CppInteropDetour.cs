@@ -1,43 +1,36 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
-using HarmonyLib;
-using HarmonyLib.Public.Patching;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
-using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
+using MonoMod.Core;
 using MonoMod.Utils;
-using IDetour = Il2CppInterop.Runtime.Injection.IDetour;
 using ValueType = Il2CppSystem.ValueType;
 
 namespace Il2CppInterop.HarmonySupport;
 
-internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
+internal sealed class Il2CppInteropDetour : ICoreDetour
 {
     private static readonly MethodInfo IL2CPPToManagedStringMethodInfo
-        = AccessTools.Method(typeof(IL2CPP),
-            nameof(IL2CPP.Il2CppStringToManaged));
+        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!;
 
     private static readonly MethodInfo ManagedToIL2CPPStringMethodInfo
-        = AccessTools.Method(typeof(IL2CPP),
-            nameof(IL2CPP.ManagedStringToIl2Cpp));
+        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!;
 
     private static readonly MethodInfo ObjectBaseToPtrMethodInfo
-        = AccessTools.Method(typeof(IL2CPP),
-            nameof(IL2CPP.Il2CppObjectToPtr));
+        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtr))!;
 
     private static readonly MethodInfo ObjectBaseToPtrNotNullMethodInfo
-        = AccessTools.Method(typeof(IL2CPP),
-            nameof(IL2CPP.Il2CppObjectToPtrNotNull));
+        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtrNotNull))!;
 
     private static readonly MethodInfo ReportExceptionMethodInfo
-        = AccessTools.Method(typeof(Il2CppDetourMethodPatcher), nameof(ReportException));
+        = typeof(Il2CppInteropDetour).GetMethod(nameof(ReportException), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     // Map each value type to correctly sized store opcode to prevent memory overwrite
     // Special case: bool is byte in Il2Cpp
@@ -57,138 +50,127 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
     };
 
     private static readonly List<object> DelegateCache = new();
-    private static readonly List<object> DetourCache = new();
 
-    private INativeMethodInfoStruct modifiedNativeMethodInfo;
+    internal readonly INativeMethodInfoStruct _nativeSourceClone;
+    private readonly Delegate _thunkDelegate;
 
-    private IDetour nativeDetour;
+    internal ICoreDetour? _detour;
+    internal ICoreNativeDetour? _nativeDetour;
+    internal ICoreDetour? _secondDetour;
 
-    private INativeMethodInfoStruct originalNativeMethodInfo;
+    public MethodBase Source { get; }
+    public INativeMethodInfoStruct NativeSource { get; }
+    public MethodBase Target { get; }
 
-    private FieldInfo originalPointerField;
+    public bool IsApplied { get; }
 
-    /// <summary>
-    ///     Constructs a new instance of <see cref="MonoMod.RuntimeDetour.Hook" /> method patcher.
-    /// </summary>
-    /// <param name="original"></param>
-    public Il2CppDetourMethodPatcher(MethodBase original) : base(original) => Init();
 
-    internal bool IsValid { get; private set; }
-
-    private void Init()
+    public Il2CppInteropDetour(MethodBase source, INativeMethodInfoStruct nativeSource, MethodBase target)
     {
+        Source = source;
+        NativeSource = nativeSource;
+        Target = target;
+
+        _nativeSourceClone = UnityVersionHandler.NewMethod();
+        unsafe
+        {
+            Buffer.MemoryCopy(NativeSource.MethodInfoPointer, _nativeSourceClone.MethodInfoPointer, UnityVersionHandler.MethodSize(), UnityVersionHandler.MethodSize());
+        }
+
+
+        // var thunk = GenerateNativeToManagedThunk((MethodInfo)Target).Generate();
+        // _thunkDelegate = thunk.CreateDelegate(DelegateTypeFactory.CreateDelegateType(thunk, CallingConvention.Cdecl));
+
         try
         {
-            var methodField = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Original);
-            originalPointerField = methodField;
-            if (methodField == null)
-            {
-                var fieldInfoField =
-                    Il2CppInteropUtils.GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(Original);
-
-                if (fieldInfoField != null)
-                {
-                    throw new
-                        Exception($"Method {Original.FullDescription()} is a field accessor, it can't be patched.");
-                }
-
-                // Generated method is probably unstripped, it can be safely handed to IL handler
-                return;
-            }
-
-            // Get the native MethodInfo struct for the target method
-            originalNativeMethodInfo =
-                UnityVersionHandler.Wrap((Il2CppMethodInfo*)(IntPtr)methodField.GetValue(null));
-
-            // Create a modified native MethodInfo struct, that will point towards the trampoline
-            modifiedNativeMethodInfo = UnityVersionHandler.NewMethod();
-            Buffer.MemoryCopy(originalNativeMethodInfo.Pointer.ToPointer(),
-                modifiedNativeMethodInfo.Pointer.ToPointer(), UnityVersionHandler.MethodSize(),
-                UnityVersionHandler.MethodSize());
-            IsValid = true;
+            var thunk = GenerateNativeToManagedThunk(Target).Generate();
+            var thunkDelegateType = DelegateSupport.GetOrCreateDelegateType(new DelegateSupport.MethodSignature((MethodInfo)source, !source.IsStatic), (MethodInfo)source);
+            _thunkDelegate = thunk.CreateDelegate(thunkDelegateType);
         }
         catch (Exception e)
         {
-            Logger.Instance.LogWarning(
-                "Failed to init IL2CPP patch backend for {Original}, using normal patch handlers: {ErrorMessage}",
-                Original.FullDescription(), e.Message);
+            Logger.Instance.LogError(e, "guh");
+            throw;
         }
     }
 
-    /// <inheritdoc />
-    public override DynamicMethodDefinition PrepareOriginal() => null;
-
-    /// <inheritdoc />
-    public override MethodBase DetourTo(MethodBase replacement)
+    private MethodBase GetUnsafeImplementation()
     {
-        // Unpatch an existing detour if it exists
-        if (nativeDetour != null)
+        var body = Source.GetMethodBody();
+        var methodModule = Source.DeclaringType.Assembly.Modules.Single();
+        foreach (var (opCode, opArg) in MiniIlParser.Decode(body.GetILAsByteArray()))
         {
-            // Point back to the original method before we unpatch
-            modifiedNativeMethodInfo.MethodPointer = originalNativeMethodInfo.MethodPointer;
-            nativeDetour.Dispose();
+            if (opCode != OpCodes.Call) continue;
+            var resolveMethod = methodModule.ResolveMethod((int)opArg);
+            if (!resolveMethod.Name.StartsWith("UnsafeImplementation_"))
+                continue;
+            return resolveMethod;
         }
 
-        // Generate a new DMD of the modified unhollowed method, and apply harmony patches to it
-        var copiedDmd = CopyOriginal();
-
-        HarmonyManipulator.Manipulate(copiedDmd.OriginalMethod, copiedDmd.OriginalMethod.GetPatchInfo(),
-            new ILContext(copiedDmd.Definition));
-
-        // Generate the MethodInfo instances
-        var managedHookedMethod = copiedDmd.Generate();
-        var unmanagedTrampolineMethod = GenerateNativeToManagedTrampoline(managedHookedMethod).Generate();
-
-        // Apply a detour from the unmanaged implementation to the patched harmony method
-        var unmanagedDelegateType = DelegateTypeFactory.instance.CreateDelegateType(unmanagedTrampolineMethod,
-            CallingConvention.Cdecl);
-
-        var unmanagedDelegate = unmanagedTrampolineMethod.CreateDelegate(unmanagedDelegateType);
-        DelegateCache.Add(unmanagedDelegate);
-
-        nativeDetour =
-            Il2CppInteropRuntime.Instance.DetourProvider.Create(originalNativeMethodInfo.MethodPointer, unmanagedDelegate);
-        nativeDetour.Apply();
-        modifiedNativeMethodInfo.MethodPointer = nativeDetour.OriginalTrampoline;
-        var hook = new Hook(Original, managedHookedMethod);
-        hook.Apply();
-        DetourCache.Add(hook);
-
-        return managedHookedMethod;
+        return null;
     }
 
-    /// <inheritdoc />
-    public override DynamicMethodDefinition CopyOriginal()
+    public void Apply()
     {
-        var dmd = new DynamicMethodDefinition(Original);
+        Logger.Instance.LogInformation(Source.Name);
+        if (NativeSource.MethodPointer == default)
+        {
+            Logger.Instance.LogWarning("Method pointer for {Source} was null", Source.Name);
+            return;
+        }
+
+        // Unpatch an existing detour if it exists
+        if (_nativeDetour != null)
+        { // Point back to the original method before we unpatch
+            _nativeSourceClone.MethodPointer = NativeSource.MethodPointer;
+            _nativeDetour.Dispose();
+        }
+        _secondDetour?.Dispose();
+
+        var unsafeImplementation = GetUnsafeImplementation();
+        _secondDetour = DetourFactory.Current.CreateDetour(unsafeImplementation, GetModifiedUnsafeImplementation(unsafeImplementation).Generate());
+        // _secondDetour.Apply();
+
+
+        _detour = DetourFactory.Current.CreateDetour(Source, Target);
+
+        _nativeDetour = DetourFactory.Current.CreateNativeDetour(NativeSource.MethodPointer, Marshal.GetFunctionPointerForDelegate(_thunkDelegate));
+        if (!_nativeDetour.HasOrigEntrypoint)
+        {
+            throw new Exception("HasOrigEntrypoint has to be true");
+        }
+        _nativeSourceClone.MethodPointer = _nativeDetour.OrigEntrypoint;
+    }
+
+    public void Undo()
+    {
+        _detour?.Undo();
+        _secondDetour?.Undo();
+        _nativeDetour?.Undo();
+    }
+
+    public void Dispose()
+    {
+        _detour?.Dispose();
+        _secondDetour?.Dispose();
+        _nativeDetour?.Dispose();
+
+        Marshal.FreeHGlobal(_nativeSourceClone.Pointer);
+    }
+
+    private DynamicMethodDefinition GetModifiedUnsafeImplementation(MethodBase method)
+    {
+        var dmd = new DynamicMethodDefinition(method);
         dmd.Definition.Name = "UnhollowedWrapper_" + dmd.Definition.Name;
-
-        // // Remove il2cpp_object_get_virtual_method
-        // if (cursor.TryGotoNext(x => x.MatchLdarg(0),
-        //         x => x.MatchCall(typeof(IL2CPP),
-        //             nameof(IL2CPP.Il2CppObjectToPtr)),
-        //         x => x.MatchLdsfld(out _),
-        //         x => x.MatchCall(typeof(IL2CPP),
-        //             nameof(IL2CPP.il2cpp_object_get_virtual_method))))
-        // {
-        //     cursor.RemoveRange(4);
-        // }
-        // else
-        // {
-        //     cursor.Goto(0)
-        //         .GotoNext(x =>
-        //             x.MatchLdsfld(Il2CppInteropUtils
-        //                 .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Original)))
-        //         .Remove();
-        // }
-        //
-        // // Replace original IL2CPPMethodInfo pointer with a modified one that points to the trampoline
-        // cursor
-        //     .Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, modifiedNativeMethodInfo.Pointer.ToInt64())
-        //     .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
-
-        originalPointerField.SetValue(null, modifiedNativeMethodInfo.Pointer);
-
+        var cursor = new ILCursor(new ILContext(dmd.Definition));
+        cursor.Goto(0)
+            .GotoNext(x =>
+                x.MatchLdsfld(Il2CppInteropUtils
+                    .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Source)))
+            .Remove();
+        cursor
+            .Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, _nativeSourceClone.Pointer.ToInt64())
+            .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
         return dmd;
     }
 
@@ -211,13 +193,18 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         return true;
     }
 
-    private DynamicMethodDefinition GenerateNativeToManagedTrampoline(MethodInfo targetManagedMethodInfo)
+    private static Type GetReturnType(MethodBase methodOrConstructor)
+    {
+        return methodOrConstructor is ConstructorInfo ? typeof(void) : ((MethodInfo)methodOrConstructor).ReturnType;
+    }
+
+    private DynamicMethodDefinition GenerateNativeToManagedThunk(MethodBase targetManagedMethodInfo)
     {
         // managedParams are the interop types used on the managed side
         // unmanagedParams are IntPtr references that are used by IL2CPP compiled assembly
         var paramStartIndex = 0;
 
-        var managedReturnType = AccessTools.GetReturnedType(Original);
+        var managedReturnType = GetReturnType(Source);
         var unmanagedReturnType = managedReturnType.NativeType();
 
         var returnSize = IntPtr.Size;
@@ -225,36 +212,37 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         var isReturnValueType = managedReturnType.IsSubclassOf(typeof(ValueType));
         if (isReturnValueType)
         {
-            returnSize = IL2CPP.GetIl2cppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedReturnType));
+            uint align = 0;
+            returnSize = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore.GetNativeClassPointer(managedReturnType), ref align);
         }
 
         var hasReturnBuffer = isReturnValueType && IsReturnBufferNeeded(returnSize);
         if (hasReturnBuffer)
-        // C compilers seem to return large structs by allocating a return buffer on caller's side and passing it as the first parameter
-        // TODO: Handle ARM
-        // TODO: Check if this applies to values other than structs
+            // C compilers seem to return large structs by allocating a return buffer on caller's side and passing it as the first parameter
+            // TODO: Handle ARM
+            // TODO: Check if this applies to values other than structs
         {
             unmanagedReturnType = typeof(IntPtr);
             paramStartIndex++;
         }
 
-        if (!Original.IsStatic)
+        if (!Source.IsStatic)
         {
             paramStartIndex++;
         }
 
-        var managedParams = Original.GetParameters().Select(x => x.ParameterType).ToArray();
+        var managedParams = Source.GetParameters().Select(x => x.ParameterType).ToArray();
         var unmanagedParams =
             new Type[managedParams.Length + paramStartIndex +
                      1]; // +1 for methodInfo at the end
 
         if (hasReturnBuffer)
-        // With GCC the return buffer seems to be the first param, same is likely with other compilers too
+            // With GCC the return buffer seems to be the first param, same is likely with other compilers too
         {
             unmanagedParams[0] = typeof(IntPtr);
         }
 
-        if (!Original.IsStatic)
+        if (!Source.IsStatic)
         {
             unmanagedParams[paramStartIndex - 1] = typeof(IntPtr);
         }
@@ -263,21 +251,26 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
         Array.Copy(managedParams.Select(TrampolineHelpers.NativeType).ToArray(), 0,
             unmanagedParams, paramStartIndex, managedParams.Length);
 
-        var dmd = new DynamicMethodDefinition("(il2cpp -> managed) " + Original.Name,
+        var dmd = new DynamicMethodDefinition("(il2cpp -> managed) " + Source.Name,
             unmanagedReturnType,
             unmanagedParams
         );
 
         var il = dmd.GetILGenerator();
+        // BEGIN LOG
+        il.Emit(OpCodes.Ldstr, $"[Trampoline] Enter: {targetManagedMethodInfo.Name}");
+        il.Emit(OpCodes.Call, typeof(Console).GetMethod(nameof(Console.WriteLine), new[] { typeof(string) }));
+        // END LOG
+
         il.BeginExceptionBlock();
 
         // Declare a list of variables to dereference back to the original pointers.
         // This is required due to the needed interop type conversions, so we can't directly pass some addresses as byref types
         var indirectVariables = new LocalBuilder[managedParams.Length];
 
-        if (!Original.IsStatic)
+        if (!Source.IsStatic)
         {
-            EmitConvertArgumentToManaged(il, paramStartIndex - 1, Original.DeclaringType, out _);
+            EmitConvertArgumentToManaged(il, paramStartIndex - 1, Source.DeclaringType, out _);
         }
 
         for (var i = 0; i < managedParams.Length; ++i)
@@ -337,7 +330,8 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
                 EmitConvertManagedTypeToIL2CPP(il, managedReturnType);
             }
         }
-
+        il.Emit(OpCodes.Ldstr, $"[Trampoline] Exit: {targetManagedMethodInfo.Name}");
+        il.Emit(OpCodes.Call, typeof(Console).GetMethod(nameof(Console.WriteLine), new[] { typeof(string) }));
         il.Emit(OpCodes.Ret);
 
         return dmd;
@@ -382,9 +376,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             // On x64, struct is always a pointer but it is a non-pointer on x86
             // We don't handle byref structs on x86 yet but we're yet to encounter those
             il.Emit(Environment.Is64BitProcess ? OpCodes.Ldarg : OpCodes.Ldarga_S, argIndex);
-            il.Emit(OpCodes.Call,
-                AccessTools.Method(typeof(IL2CPP),
-                    nameof(IL2CPP.il2cpp_value_box)));
+            il.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box)));
         }
         else
         {
@@ -409,8 +401,7 @@ internal unsafe class Il2CppDetourMethodPatcher : MethodPatcher
             il.Emit(OpCodes.Br_S, endLabel);
 
             il.MarkLabel(notNullLabel);
-            il.Emit(OpCodes.Call, AccessTools.Method(typeof(Il2CppObjectPool), nameof(Il2CppObjectPool.Get)));
-            il.Emit(OpCodes.Castclass, originalType);
+            il.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!.MakeGenericMethod(originalType));
 
             il.MarkLabel(endLabel);
         }
