@@ -252,7 +252,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         var methodInfoStore = initializationType.InjectFieldContext(
                                                 $"MethodInfoPtr_{index}",
                                                 appContext.SystemTypes.SystemIntPtrType,
-                                                FieldAttributes.Assembly | FieldAttributes.Static);
+                                                FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
                         method.MethodInfoField = methodInfoStore;
 
                         FieldAnalysisContext concreteMethodInfoStore = initializationType.GenericParameters.Count > 0
