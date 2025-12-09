@@ -257,11 +257,6 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
         );
 
         var il = dmd.GetILGenerator();
-        // BEGIN LOG
-        il.Emit(OpCodes.Ldstr, $"[Trampoline] Enter: {targetManagedMethodInfo.Name}");
-        il.Emit(OpCodes.Call, typeof(Console).GetMethod(nameof(Console.WriteLine), new[] { typeof(string) }));
-        // END LOG
-
         il.BeginExceptionBlock();
 
         // Declare a list of variables to dereference back to the original pointers.
@@ -330,8 +325,6 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
                 EmitConvertManagedTypeToIL2CPP(il, managedReturnType);
             }
         }
-        il.Emit(OpCodes.Ldstr, $"[Trampoline] Exit: {targetManagedMethodInfo.Name}");
-        il.Emit(OpCodes.Call, typeof(Console).GetMethod(nameof(Console.WriteLine), new[] { typeof(string) }));
         il.Emit(OpCodes.Ret);
 
         return dmd;
