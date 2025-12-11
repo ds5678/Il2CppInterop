@@ -266,9 +266,9 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         var hasReturnBuffer = isReturnValueType && IsReturnBufferNeeded(returnSize);
         if (hasReturnBuffer)
-            // C compilers seem to return large structs by allocating a return buffer on caller's side and passing it as the first parameter
-            // TODO: Handle ARM
-            // TODO: Check if this applies to values other than structs
+        // C compilers seem to return large structs by allocating a return buffer on caller's side and passing it as the first parameter
+        // TODO: Handle ARM
+        // TODO: Check if this applies to values other than structs
         {
             unmanagedReturnType = typeof(IntPtr);
             paramStartIndex++;
@@ -285,7 +285,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
                      1]; // +1 for methodInfo at the end
 
         if (hasReturnBuffer)
-            // With GCC the return buffer seems to be the first param, same is likely with other compilers too
+        // With GCC the return buffer seems to be the first param, same is likely with other compilers too
         {
             unmanagedParams[0] = typeof(IntPtr);
         }
