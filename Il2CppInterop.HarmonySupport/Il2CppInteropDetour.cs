@@ -62,14 +62,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
     public bool IsApplied => _nativeDetour?.IsApplied ?? false;
 
-
     public DynamicMethodDefinition SourceMethodCloneIL { get; private set; }
     public MethodInfo SourceMethodClone { get; private set; }
-
-
-    public DynamicMethodDefinition SourceMethodCloneIL { get; private set; }
-    public MethodInfo SourceMethodClone { get; private set; }
-
 
     public Il2CppInteropDetour(MethodBase source, INativeMethodInfoStruct nativeSource, MethodBase target)
     {
