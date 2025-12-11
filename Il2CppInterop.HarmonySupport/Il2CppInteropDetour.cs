@@ -4,18 +4,24 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
+using Il2CppSystem;
 using Microsoft.Extensions.Logging;
+using Mono.Cecil;
 using MonoMod.Cil;
 using MonoMod.Core;
 using MonoMod.Utils;
+using Array = System.Array;
+using Delegate = System.Delegate;
+using Exception = System.Exception;
+using IntPtr = System.IntPtr;
+using Type = System.Type;
 using ValueType = Il2CppSystem.ValueType;
 
 namespace Il2CppInterop.HarmonySupport;
 
-internal sealed class Il2CppInteropDetour : ICoreDetour
+internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 {
     private static readonly MethodInfo IL2CPPToManagedStringMethodInfo
         = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!;
@@ -49,20 +55,21 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
         [typeof(double)] = OpCodes.Stind_R8
     };
 
-    private static readonly List<object> DelegateCache = new();
-
     internal readonly INativeMethodInfoStruct _nativeSourceClone;
     private readonly Delegate _thunkDelegate;
 
     internal ICoreDetour? _detour;
     internal ICoreNativeDetour? _nativeDetour;
-    internal ICoreDetour? _secondDetour;
 
     public MethodBase Source { get; }
     public INativeMethodInfoStruct NativeSource { get; }
     public MethodBase Target { get; }
 
     public bool IsApplied { get; }
+
+
+    public DynamicMethodDefinition SourceMethodCloneIL { get; private set; }
+    public MethodInfo SourceMethodClone { get; private set; }
 
 
     public Il2CppInteropDetour(MethodBase source, INativeMethodInfoStruct nativeSource, MethodBase target)
@@ -77,9 +84,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
             Buffer.MemoryCopy(NativeSource.MethodInfoPointer, _nativeSourceClone.MethodInfoPointer, UnityVersionHandler.MethodSize(), UnityVersionHandler.MethodSize());
         }
 
-
-        // var thunk = GenerateNativeToManagedThunk((MethodInfo)Target).Generate();
-        // _thunkDelegate = thunk.CreateDelegate(DelegateTypeFactory.CreateDelegateType(thunk, CallingConvention.Cdecl));
+        SourceMethodCloneIL = CopyOriginal();
+        SourceMethodClone = SourceMethodCloneIL.Generate();
 
         try
         {
@@ -89,30 +95,96 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
         }
         catch (Exception e)
         {
-            Logger.Instance.LogError(e, "guh");
+            Logger.Instance.LogError(e, "Exception during generating native to managed thunk");
             throw;
         }
     }
 
-    private MethodBase GetUnsafeImplementation()
+    private DynamicMethodDefinition CopyOriginal()
     {
-        var body = Source.GetMethodBody();
-        var methodModule = Source.DeclaringType.Assembly.Modules.Single();
-        foreach (var (opCode, opArg) in MiniIlParser.Decode(body.GetILAsByteArray()))
+        try
         {
-            if (opCode != OpCodes.Call) continue;
-            var resolveMethod = methodModule.ResolveMethod((int)opArg);
-            if (!resolveMethod.Name.StartsWith("UnsafeImplementation_"))
-                continue;
-            return resolveMethod;
+            var dmd = new DynamicMethodDefinition(Source);
+            dmd.Definition.Name = "RuntimeModified_" + dmd.Definition.Name;
+
+            var cursor = new ILCursor(new ILContext(dmd.Definition));
+
+            foreach (var instr in cursor.Instrs)
+            {
+                if (instr.OpCode != Mono.Cecil.Cil.OpCodes.Call ||
+                    instr.Operand is not MethodReference methodRef)
+                    continue;
+
+                var name = methodRef.Name;
+
+                if (name.StartsWith("UnsafeInvoke_", StringComparison.Ordinal))
+                {
+                    instr.Operand = ProcessWrapper(methodRef, "UnsafeImplementation_");
+                }
+                else if (name.StartsWith("UnsafeConstruct", StringComparison.Ordinal))
+                {
+                    instr.Operand = ProcessWrapper(methodRef, "UnsafeConstructor");
+                }
+                else if (name.StartsWith("UnsafeImplementation_", StringComparison.Ordinal) || name.StartsWith("UnsafeConstructor", StringComparison.Ordinal))
+                {
+                    instr.Operand = ProcessPointerPatchedLeaf(methodRef);
+                }
+            }
+
+            return dmd;
+        }
+        catch (Exception e)
+        {
+            Logger.Instance.LogError(e, "Exception during creating runtime modified original");
+            throw;
+        }
+    }
+
+    private MethodInfo ProcessWrapper(MethodReference outerRef, string innerPrefix)
+    {
+        var dmd = CreateWrappedDMD(outerRef);
+        var cursor = new ILCursor(new ILContext(dmd.Definition));
+
+        foreach (var instr in cursor.Instrs)
+        {
+            if (instr.OpCode == Mono.Cecil.Cil.OpCodes.Call &&
+                instr.Operand is MethodReference inner &&
+                inner.Name.StartsWith(innerPrefix, StringComparison.Ordinal))
+            {
+                instr.Operand = ProcessPointerPatchedLeaf(inner);
+            }
         }
 
-        return null;
+        return dmd.Generate();
+    }
+    private MethodInfo ProcessPointerPatchedLeaf(MethodReference leafRef)
+    {
+        var dmd = CreateWrappedDMD(leafRef);
+        var cursor = new ILCursor(new ILContext(dmd.Definition));
+
+        cursor.Goto(0)
+            .GotoNext(x =>
+                x.MatchLdsfld(Il2CppInteropUtils
+                    .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Source)!))
+            .Remove();
+
+        long ptr = _nativeSourceClone.Pointer.ToInt64();
+
+        cursor.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, ptr)
+            .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
+
+        return dmd.Generate();
+    }
+
+    private DynamicMethodDefinition CreateWrappedDMD(MethodReference methodRef)
+    {
+        var dmd = new DynamicMethodDefinition(methodRef.ResolveReflection());
+        dmd.Definition.Name = "RuntimeModified_" + dmd.Definition.Name;
+        return dmd;
     }
 
     public void Apply()
     {
-        Logger.Instance.LogInformation(Source.Name);
         if (NativeSource.MethodPointer == default)
         {
             Logger.Instance.LogWarning("Method pointer for {Source} was null", Source.Name);
@@ -125,12 +197,6 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
             _nativeSourceClone.MethodPointer = NativeSource.MethodPointer;
             _nativeDetour.Dispose();
         }
-        _secondDetour?.Dispose();
-
-        var unsafeImplementation = GetUnsafeImplementation();
-        _secondDetour = DetourFactory.Current.CreateDetour(unsafeImplementation, GetModifiedUnsafeImplementation(unsafeImplementation).Generate());
-        // _secondDetour.Apply();
-
 
         _detour = DetourFactory.Current.CreateDetour(Source, Target);
 
@@ -145,33 +211,15 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
     public void Undo()
     {
         _detour?.Undo();
-        _secondDetour?.Undo();
         _nativeDetour?.Undo();
     }
 
     public void Dispose()
     {
         _detour?.Dispose();
-        _secondDetour?.Dispose();
         _nativeDetour?.Dispose();
 
         Marshal.FreeHGlobal(_nativeSourceClone.Pointer);
-    }
-
-    private DynamicMethodDefinition GetModifiedUnsafeImplementation(MethodBase method)
-    {
-        var dmd = new DynamicMethodDefinition(method);
-        dmd.Definition.Name = "UnhollowedWrapper_" + dmd.Definition.Name;
-        var cursor = new ILCursor(new ILContext(dmd.Definition));
-        cursor.Goto(0)
-            .GotoNext(x =>
-                x.MatchLdsfld(Il2CppInteropUtils
-                    .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Source)))
-            .Remove();
-        cursor
-            .Emit(Mono.Cecil.Cil.OpCodes.Ldc_I8, _nativeSourceClone.Pointer.ToInt64())
-            .Emit(Mono.Cecil.Cil.OpCodes.Conv_I);
-        return dmd;
     }
 
     // Tries to guess whether a function needs a return buffer for the return struct, in all cases except win64 it's undefined behaviour
@@ -258,7 +306,6 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
 
         var il = dmd.GetILGenerator();
         il.BeginExceptionBlock();
-
         // Declare a list of variables to dereference back to the original pointers.
         // This is required due to the needed interop type conversions, so we can't directly pass some addresses as byref types
         var indirectVariables = new LocalBuilder[managedParams.Length];
@@ -344,11 +391,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
 
     private static void EmitConvertManagedTypeToIL2CPP(ILGenerator il, Type returnType)
     {
-        if (returnType == typeof(string))
-        {
-            il.Emit(OpCodes.Call, ManagedToIL2CPPStringMethodInfo);
-        }
-        else if (!returnType.IsValueType && returnType.IsSubclassOf(typeof(Il2CppSystem.Object)))
+        if (!returnType.IsValueType && typeof(IObject).IsAssignableFrom(returnType))
         {
             il.Emit(OpCodes.Call, ObjectBaseToPtrMethodInfo);
         }
@@ -376,11 +419,6 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
             il.Emit(OpCodes.Ldarg_S, argIndex);
         }
 
-        if (managedParamType.IsValueType) // don't need to convert blittable types
-        {
-            return;
-        }
-
         void EmitCreateIl2CppObject(Type originalType)
         {
             var endLabel = il.DefineLabel();
@@ -394,18 +432,16 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
             il.Emit(OpCodes.Br_S, endLabel);
 
             il.MarkLabel(notNullLabel);
-            il.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!.MakeGenericMethod(originalType));
+            il.Emit(OpCodes.Call,
+                typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
 
+            il.Emit(OpCodes.Castclass, originalType);
             il.MarkLabel(endLabel);
         }
 
         void HandleTypeConversion(Type originalType)
         {
-            if (originalType == typeof(string))
-            {
-                il.Emit(OpCodes.Call, IL2CPPToManagedStringMethodInfo);
-            }
-            else if (originalType.IsSubclassOf(typeof(Il2CppSystem.Object)))
+            if (typeof(IObject).IsAssignableFrom(originalType) && !originalType.IsValueType)
             {
                 EmitCreateIl2CppObject(originalType);
             }
@@ -430,4 +466,5 @@ internal sealed class Il2CppInteropDetour : ICoreDetour
             HandleTypeConversion(managedParamType);
         }
     }
+
 }
