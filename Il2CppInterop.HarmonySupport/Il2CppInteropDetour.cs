@@ -23,11 +23,6 @@ namespace Il2CppInterop.HarmonySupport;
 
 internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 {
-    private static readonly MethodInfo IL2CPPToManagedStringMethodInfo
-        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppStringToManaged))!;
-
-    private static readonly MethodInfo ManagedToIL2CPPStringMethodInfo
-        = typeof(IL2CPP).GetMethod(nameof(IL2CPP.ManagedStringToIl2Cpp))!;
 
     private static readonly MethodInfo ObjectBaseToPtrMethodInfo
         = typeof(IL2CPP).GetMethod(nameof(IL2CPP.Il2CppObjectToPtr))!;
@@ -65,7 +60,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
     public INativeMethodInfoStruct NativeSource { get; }
     public MethodBase Target { get; }
 
-    public bool IsApplied { get; }
+    public bool IsApplied => _nativeDetour?.IsApplied ?? false;
 
 
     public DynamicMethodDefinition SourceMethodCloneIL { get; private set; }
