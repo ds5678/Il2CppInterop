@@ -33,7 +33,7 @@ public static class Il2CppInteropUtils
 
         int index = method.GetCustomAttribute<Il2CppMethodAttribute>()?.Index ?? -1;
 
-        if (index == -1)
+        if (index < 0)
         {
             var prop = declaringType
                 .GetProperties(BindingFlags.Instance | BindingFlags.Static |
@@ -44,19 +44,17 @@ public static class Il2CppInteropUtils
                 index = prop.GetCustomAttribute<Il2CppFieldAttribute>()?.Index ?? -1;
         }
 
-        if (index == -1)
+        if (index < 0)
             return null;
 
         return internalsType.GetField(prefix + index,
             BindingFlags.Static | BindingFlags.NonPublic);
     }
 
-
     public static FieldInfo? GetIl2CppMethodInfoPointerFieldForGeneratedMethod(MethodBase method)
     {
         return GetFieldInfoFromMethod(method, "MethodInfoPtr_");
     }
-
 
     public static FieldInfo? GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
     {
