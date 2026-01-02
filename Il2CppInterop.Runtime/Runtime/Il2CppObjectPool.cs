@@ -43,14 +43,6 @@ public static class Il2CppObjectPool
         var newObj = initializer((ObjectPointer)ptr);
         if (newObj is Object @object)
         {
-            unsafe
-            {
-                var nativeClassStruct = UnityVersionHandler.Wrap((Il2CppClass*)ownClass);
-                if (!nativeClassStruct.HasFinalize)
-                {
-                    Il2CppSystem.GC.ReRegisterForFinalize(@object);
-                }
-            }
             if (!DisableCaching)
             {
                 s_cache[ptr] = new WeakReference<Object>(@object);
