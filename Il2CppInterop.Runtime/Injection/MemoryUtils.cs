@@ -6,7 +6,7 @@ using System.Runtime.Versioning;
 using Il2CppInterop.Common.XrefScans;
 using TerraFX.Interop.Windows;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Runtime.Injection;
 
 internal class MemoryUtils
 {
