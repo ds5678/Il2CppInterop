@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Il2CppInterop.Common;
-using Il2CppInterop.Common.Extensions;
+using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
