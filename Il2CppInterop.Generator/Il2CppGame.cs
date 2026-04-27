@@ -38,15 +38,13 @@ public static class Il2CppGame
 
         var gameDirectory = Path.GetDirectoryName(gameExePath)!;
 
-        var GameDataPath = Path.Combine(gameDirectory, $"{gameExeName}_Data");
+        var GameDataPath = Path.Join(gameDirectory, $"{gameExeName}_Data");
 
-        var UnityPlayerPath = Path.Combine(gameDirectory, "UnityPlayer.dll");
+        var GameAssemblyPath = GetGameAssemblyPath(gameDirectory);
 
-        var GameAssemblyPath = Path.Combine(gameDirectory, "GameAssembly.dll");
+        var MetaDataPath = Path.Join(GameDataPath, "il2cpp_data", "Metadata", "global-metadata.dat");
 
-        var MetaDataPath = Path.Combine(GameDataPath, "il2cpp_data", "Metadata", "global-metadata.dat");
-
-        var UnityVersion = Cpp2IlApi.DetermineUnityVersion(UnityPlayerPath, GameDataPath);
+        var UnityVersion = Cpp2IlApi.DetermineUnityVersion(null, GameDataPath);
 
         Cpp2IlApi.InitializeLibCpp2Il(GameAssemblyPath, MetaDataPath, UnityVersion, false);
 
@@ -64,6 +62,17 @@ public static class Il2CppGame
         {
             cpp2IlProcessingLayer.Process(GetCurrentAppContext());
         }
+    }
+
+    private static string GetGameAssemblyPath(string gameDirectory)
+    {
+        foreach (var fileName in (ReadOnlySpan<string>)["GameAssembly.dll", "GameAssembly.dylib", "GameAssembly.so"])
+        {
+            var path = Path.Join(gameDirectory, fileName);
+            if (File.Exists(path))
+                return path;
+        }
+        throw new FileNotFoundException("Could not find GameAssembly binary in game directory.");
     }
 
     private static ApplicationAnalysisContext GetCurrentAppContext()
