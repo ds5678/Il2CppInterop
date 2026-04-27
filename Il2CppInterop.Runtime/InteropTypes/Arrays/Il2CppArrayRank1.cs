@@ -127,12 +127,12 @@ public sealed class Il2CppArrayRank1<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     [return: NotNullIfNotNull(nameof(array))]
     public static explicit operator Il2CppArrayRank1<T>?(T[]? array) => array is null ? null : new(array);
 
-    public static explicit operator Il2CppArrayRank1<T>?(ReadOnlySpan<T> span)
+    public static explicit operator Il2CppArrayRank1<T>(ReadOnlySpan<T> span)
     {
         return new Il2CppArrayRank1<T>(span);
     }
 
-    public static explicit operator Il2CppArrayRank1<T>?(Span<T> span)
+    public static explicit operator Il2CppArrayRank1<T>(Span<T> span)
     {
         return new Il2CppArrayRank1<T>(span);
     }
