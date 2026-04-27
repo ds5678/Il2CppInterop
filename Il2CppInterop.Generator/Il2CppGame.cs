@@ -3,6 +3,7 @@ using Cpp2IL.Core.Api;
 using Cpp2IL.Core.InstructionSets;
 using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2IL.Plugin.StrippedCodeRegSupport;
 using LibCpp2IL;
 
 namespace Il2CppInterop.Generator;
@@ -23,6 +24,8 @@ public static class Il2CppGame
         InstructionSetRegistry.RegisterInstructionSet<NewArmV8InstructionSet>(DefaultInstructionSets.ARM_V8);
 
         LibCpp2IlBinaryRegistry.RegisterBuiltInBinarySupport();
+
+        new StrippedCodeRegSupportPlugin().OnLoad();
     }
 
     public static void Process(string gameExePath, string outputFolder, Cpp2IlOutputFormat outputFormat, List<Cpp2IlProcessingLayer> processingLayers, KeyValuePair<string, string>[] extraData)
