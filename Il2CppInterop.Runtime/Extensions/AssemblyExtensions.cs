@@ -1,6 +1,8 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Linq;
+using System.Reflection;
 
-namespace Il2CppInterop.Common.Extensions;
+namespace Il2CppInterop.Runtime.Extensions;
 
 internal static class AssemblyExtensions
 {
