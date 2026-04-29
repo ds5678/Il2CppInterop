@@ -538,16 +538,18 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
             foreach (var il2CppType in appContext.Binary.AllTypes)
             {
                 var typeContext = injectedAssembly.ResolveIl2CppType(il2CppType);
-                if (InvalidTypeChecker.ContainsInvalidType(typeContext))
-                    continue;
-
-                if (InvalidConstraintChecker.ContainsInvalidConstraint(typeContext))
-                    continue;
 
                 if (typeContext is not ReferencedTypeAnalysisContext && typeContext.GenericParameters.Count > 0)
                     continue; // Skip open generics
 
+                if (InvalidTypeChecker.ContainsInvalidType(typeContext))
+                    continue;
+
                 typeContext = typeConverter.Replace(typeContext);
+
+                // Must happen after type conversion
+                if (InvalidConstraintChecker.ContainsInvalidConstraint(typeContext))
+                    continue;
 
                 if (!processedTypes.Add(typeContext))
                     continue;
@@ -600,6 +602,19 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         public override bool Visit(SentinelTypeAnalysisContext type) => true;
     }
 
+    /// <summary>
+    /// Unity uses System.Object as a type argument when it deduplicates generic instantiations.
+    /// However, that might violate the constraints, so we need to detect those cases and skip generating initialization code for them.
+    /// </summary>
+    /// <remarks>
+    /// This only checks for IObject because Object should have already been replaced.<br/>
+    ///
+    /// The fact that we need to check for these invalid constraints could indicate a major issue in the generated code. Either:<br/>
+    /// * The other instantiations don't exist in the Il2Cpp runtime (calling GetType() returns a type with object as the type argument).
+    ///   This would mean the types are unusable unless we remove the constraints.<br/>
+    /// * The other instantiations do exist in the Il2Cpp runtime, and we need to use Il2Cpp reflection to construct the .NET Core type.
+    ///   That is how System.__Canon works in .NET Core.
+    /// </remarks>
     private sealed class InvalidConstraintChecker : BooleanOrTypeVisitor
     {
         public static InvalidConstraintChecker Instance { get; } = new InvalidConstraintChecker();
@@ -612,11 +627,13 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         {
             for (var i = 0; i < type.GenericArguments.Count; i++)
             {
-                if (type.GenericArguments[i].KnownType is not KnownTypeCode.Il2CppSystem_Object and not KnownTypeCode.System_Object and not KnownTypeCode.Il2CppSystem_IObject)
+                if (!IsObject(type.GenericArguments[i]))
                     continue;
 
                 foreach (var constraint in type.GenericType.GenericParameters[i].ConstraintTypes)
                 {
+                    if (IsObject(constraint))
+                        continue;
                     if (!IsInjectedOrReference(constraint))
                         return true;
                 }
@@ -629,6 +646,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
             type = (type as GenericInstanceTypeAnalysisContext)?.GenericType ?? type;
 
             return type.IsInjected || type.DeclaringAssembly.IsReferenceAssembly;
+        }
+
+        private static bool IsObject(TypeAnalysisContext type)
+        {
+            return type.KnownType is KnownTypeCode.Il2CppSystem_IObject;
         }
     }
 }
