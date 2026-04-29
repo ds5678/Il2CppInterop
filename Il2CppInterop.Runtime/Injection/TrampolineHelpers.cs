@@ -61,25 +61,27 @@ internal static class TrampolineHelpers
             // ByReference types have no class, so we need this marker interface to identify them.
             return typeof(IntPtr);
         }
-        else
+        else if (typeof(IPointer).IsAssignableFrom(managedType))
         {
+            return typeof(IntPtr);
+        }
+        else if (managedType.IsValueType)
+        {
+            // Struct that's passed on the stack => handle as general struct
+
             var nativeClassPtr = Il2CppClassPointerStore.GetNativeClassPointer(managedType);
             if (nativeClassPtr == IntPtr.Zero)
             {
                 throw new NotSupportedException($"Type {managedType.FullName} is not an Il2Cpp type.");
             }
 
-            if (IL2CPP.il2cpp_class_is_valuetype(nativeClassPtr))
-            {
-                // Struct that's passed on the stack => handle as general struct
-                var fixedSize = IL2CPP.GetIl2cppValueSize(nativeClassPtr);
-                return GetFixedSizeStructType(fixedSize);
-            }
-            else
-            {
-                // General reference type
-                return typeof(IntPtr);
-            }
+            var fixedSize = IL2CPP.GetIl2cppValueSize(nativeClassPtr);
+            return GetFixedSizeStructType(fixedSize);
+        }
+        else
+        {
+            // General reference type
+            return typeof(IntPtr);
         }
     }
 }
