@@ -4,7 +4,7 @@ internal static class Program
 {
     internal static void Main(string[] args)
     {
-        // Directory that contains libil2cpp headers. Directory must contains subdirectories named after libil2cpp version.
+        // Directory that contains libil2cpp headers. Directory must contain libil2cpp subdirectories named with their unity version.
         var headersDirectory = args[0];
 
         // Directory to write managed struct wrapper sources to
