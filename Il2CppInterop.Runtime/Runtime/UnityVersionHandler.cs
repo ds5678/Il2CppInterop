@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using AssetRipper.Primitives;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly;
@@ -20,21 +21,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Runtime;
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-internal class ApplicableToUnityVersionsSinceAttribute : Attribute
-{
-    public ApplicableToUnityVersionsSinceAttribute(string startVersion)
-    {
-        StartVersion = startVersion;
-    }
-
-    public string StartVersion { get; }
-}
-
 public static class UnityVersionHandler
 {
     private static readonly Type[] InterfacesOfInterest;
-    private static readonly Dictionary<Type, List<(Version Version, object Handler)>> VersionedHandlers = new();
+    private static readonly Dictionary<Type, List<(UnityVersion Version, object Handler)>> VersionedHandlers = new();
     private static readonly Dictionary<Type, object> Handlers = new();
 
     internal static INativeAssemblyStructHandler assemblyStructHandler;
@@ -51,22 +41,22 @@ public static class UnityVersionHandler
 
     static UnityVersionHandler()
     {
-        var allTypes = GetAllTypesSafe();
+        var allTypes = typeof(UnityVersionHandler).Assembly.GetTypesSafe();
         var interfacesOfInterest = allTypes.Where(t =>
                 t.IsInterface && typeof(INativeStructHandler).IsAssignableFrom(t) && t != typeof(INativeStructHandler))
             .ToArray();
         InterfacesOfInterest = interfacesOfInterest;
 
-        foreach (var i in interfacesOfInterest) VersionedHandlers[i] = new List<(Version Version, object Handler)>();
+        foreach (var i in interfacesOfInterest) VersionedHandlers[i] = new List<(UnityVersion Version, object Handler)>();
 
         foreach (var handlerImpl in allTypes.Where(t =>
                      !t.IsAbstract && interfacesOfInterest.Any(i => i.IsAssignableFrom(t))))
             foreach (var startVersion in handlerImpl.GetCustomAttributes<ApplicableToUnityVersionsSinceAttribute>())
             {
-                var instance = Activator.CreateInstance(handlerImpl);
+                var instance = Activator.CreateInstance(handlerImpl)!;
                 foreach (var i in handlerImpl.GetInterfaces())
                     if (interfacesOfInterest.Contains(i))
-                        VersionedHandlers[i].Add((Version.Parse(startVersion.StartVersion), instance));
+                        VersionedHandlers[i].Add((UnityVersion.Parse(startVersion.StartVersion), instance));
             }
 
         foreach (var handlerList in VersionedHandlers.Values)
@@ -96,10 +86,10 @@ public static class UnityVersionHandler
                 break;
             }
 
-        HasGetMethodFromReflection = unityVersion > new Version(2018, 1, 0);
-        IsMetadataV29OrHigher = unityVersion >= new Version(2021, 2, 0);
+        HasGetMethodFromReflection = unityVersion.GreaterThanOrEquals(2018, 2, 0, UnityVersionType.Beta, 6);
+        IsMetadataV29OrHigher = unityVersion.GreaterThanOrEquals(2021, 2, 0);
 
-        HasShimForGetMethod = unityVersion >= new Version(2020, 3, 41) || IsMetadataV29OrHigher;
+        HasShimForGetMethod = unityVersion.GreaterThanOrEquals(2020, 3, 41) || IsMetadataV29OrHigher;
 
         assemblyStructHandler = GetHandler<INativeAssemblyStructHandler>();
         assemblyNameStructHandler = GetHandler<INativeAssemblyNameStructHandler>();
@@ -122,11 +112,6 @@ public static class UnityVersionHandler
         Logger.Instance.LogError("No direct for {TypeFullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere", typeof(T).FullName, Il2CppInteropRuntime.Instance.UnityVersion);
 
         throw new ApplicationException("No handler");
-    }
-
-    private static Type[] GetAllTypesSafe()
-    {
-        return typeof(UnityVersionHandler).Assembly.GetTypesSafe();
     }
 
     //Assemblies
