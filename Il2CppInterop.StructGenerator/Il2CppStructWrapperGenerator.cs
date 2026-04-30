@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
+using AssetRipper.Primitives;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 using Il2CppInterop.StructGenerator.Resources;
-using Il2CppInterop.StructGenerator.Utilities;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.StructGenerator;
@@ -100,7 +100,7 @@ public static class Il2CppStructWrapperGenerator
             Directory.Delete(options.OutputDirectory, true);
         Directory.CreateDirectory(options.OutputDirectory);
         foreach (var (libil2CppDir, version) in Directory.GetDirectories(options.HeadersDirectory)
-                     .Select(x => (x, new UnityVersion(Path.GetFileName(x)))).OrderBy(x => x.Item2))
+                     .Select(x => (x, UnityVersion.Parse(Path.GetFileName(x)))).OrderBy(x => x.Item2))
         {
             var classInternalsPath = Path.Combine(libil2CppDir, "il2cpp-class-internals.h");
             if (!File.Exists(classInternalsPath))
@@ -191,7 +191,7 @@ public static class Il2CppStructWrapperGenerator
             foreach (var kvp2 in kvp.Value.Where(kvp2 => last is null || last != kvp2.Value))
             {
                 kvp2.Value.HandlerGenerator.HandlerClass.Attributes.Add(
-                    $"ApplicableToUnityVersionsSince(\"{kvp2.Key.ToStringShort()}\")");
+                    $"ApplicableToUnityVersionsSince(\"{kvp2.Key.ToStringWithoutType()}\")");
                 last = kvp2.Value;
             }
         }
