@@ -3,7 +3,7 @@ using Il2CppInterop.Common;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
-public unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>, IPointer
+public readonly unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>>, IPointer
     where T : IIl2CppType<T>
 {
     private readonly void* _pointer = pointer;
