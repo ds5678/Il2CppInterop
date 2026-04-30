@@ -2,7 +2,7 @@
 
 public abstract class Il2CppMemberAttribute : Attribute
 {
-    public string? Name { get; set; }
+    public string? Name { get; init; }
     private protected Il2CppMemberAttribute()
     {
     }
