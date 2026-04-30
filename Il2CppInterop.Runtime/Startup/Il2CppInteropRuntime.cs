@@ -1,4 +1,4 @@
-﻿using System;
+﻿using AssetRipper.Primitives;
 using Il2CppInterop.Common.Host;
 using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection;
@@ -15,7 +15,7 @@ public sealed class Il2CppInteropRuntime : BaseHost
 
     public static Il2CppInteropRuntime Instance => GetInstance<Il2CppInteropRuntime>();
 
-    public Version UnityVersion { get; private init; } = null!;
+    public UnityVersion UnityVersion { get; private init; }
 
     public IDetourProvider DetourProvider { get; private init; } = null!;
 
