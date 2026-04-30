@@ -31,7 +31,7 @@ public static class ByReference
         return new ByReference<U>((byte*)byReference.ToPointer() + offset);
     }
 }
-public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>, IByReference
+public readonly unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>, IByReference
     where T : IIl2CppType<T>
 {
     private readonly void* _pointer = pointer;
@@ -85,7 +85,7 @@ public unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByReference<T>>
     public static explicit operator ByReference<T>(IntPtr value) => new(value.ToPointer());
     public static explicit operator IntPtr(ByReference<T> pointer) => new(pointer._pointer);
 
-    public Span<byte> AsSpan()
+    public readonly Span<byte> AsSpan()
     {
         return new Span<byte>(_pointer, T.Size);
     }
