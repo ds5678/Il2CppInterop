@@ -11,14 +11,18 @@ public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2Cpp
     /// </summary>
     static abstract int Size { get; }
     /// <summary>
-    /// The name of the assembly that the type is defined in
+    /// The file name of the assembly that the type is defined in
     /// </summary>
     static virtual string AssemblyName
     {
         get
         {
             var result = typeof(TSelf).Assembly.GetName().Name;
-            return string.IsNullOrEmpty(result) ? "Assembly-CSharp.dll" : result;
+            return string.IsNullOrEmpty(result)
+                ? "Assembly-CSharp.dll"
+                : result.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                    ? result
+                    : $"{result}.dll";
         }
     }
     /// <summary>
