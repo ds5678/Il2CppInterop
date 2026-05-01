@@ -13,7 +13,7 @@ public record Il2CppStructWrapperGeneratorOptions(
     ILogger? Logger
 );
 
-public static class Il2CppStructWrapperGenerator
+public static partial class Il2CppStructWrapperGenerator
 {
     private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
     internal static ILogger? Logger { get; set; }
@@ -21,9 +21,12 @@ public static class Il2CppStructWrapperGenerator
     private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
         UnityVersion unityVersion, CppClass[] classes)
     {
-        if (Config.ClassForcedIgnores.Contains(@class.Name)) return null;
-        if (Config.ClassRenames.TryGetValue(@class.Name, out var rename)) @class.Name = rename;
-        if (!Config.ClassToGenerator.TryGetValue(@class.Name, out var generatorType)) return null;
+        if (Config.ClassForcedIgnores.Contains(@class.Name))
+            return null;
+        if (Config.ClassRenames.TryGetValue(@class.Name, out var rename))
+            @class.Name = rename;
+        if (!Config.ClassToGenerator.TryGetValue(@class.Name, out var generatorType))
+            return null;
         if (!typeof(VersionSpecificGenerator).IsAssignableFrom(generatorType))
             throw new Exception($"{@class.Name} has an invalid generator");
 
@@ -39,11 +42,8 @@ public static class Il2CppStructWrapperGenerator
         {
             var cppField = generator.NativeStructGenerator.CppClass.Fields.Single(x => x.Name == field.Name);
 
-            CppClass? typeClass = null;
-            if (cppField.Type is CppClass)
-                typeClass = (CppClass)cppField.Type;
-            if (cppField.Type is CppTypedef typeDef && typeDef.ElementType is CppClass)
-                typeClass = (CppClass)typeDef.ElementType;
+            var typeClass = cppField.Type as CppClass ?? (cppField.Type as CppTypedef)?.ElementType as CppClass;
+
             if (typeClass != null)
             {
                 var gen = VisitClass(typeClass, metadataVersion, unityVersion, classes);
@@ -81,7 +81,7 @@ public static class Il2CppStructWrapperGenerator
                      .Select(x => (x, UnityVersion.Parse(Path.GetFileNameWithoutExtension(x)))).OrderBy(x => x.Item2))
         {
             var headerText = File.ReadAllText(headerPath);
-            var metadataMatch = Regex.Match(headerText, @"const int METADATA_VERSION = ([0-9]+);");
+            var metadataMatch = MetadataVersionRegex.Match(headerText);
 
             int metadataVersion;
             if (metadataMatch.Success)
@@ -94,48 +94,9 @@ public static class Il2CppStructWrapperGenerator
                 continue;
             }
 
-            const string HeaderPrefix = """
-                #line 1 "Prefix.h"
-                typedef int int32_t;
-                typedef unsigned int uint32_t;
-                typedef short int16_t;
-                typedef unsigned short uint16_t;
-                typedef char int8_t;
-                typedef unsigned char uint8_t;
-                typedef long long int64_t;
-                typedef unsigned long long uint64_t;
-                typedef long intptr_t;
-                typedef unsigned long uintptr_t;
-                """;
-
-            string processedHeaderText;
-            if (headerText.Contains("struct ParameterInfo", StringComparison.Ordinal))
-            {
-                processedHeaderText = $"""
-                    {HeaderPrefix}
-                    #line 1 "Header.h"
-                    {headerText}
-                    """;
-            }
-            else
-            {
-                // ParameterInfo was removed in v27, but we add it back in manually.
-                processedHeaderText = $$"""
-                    {{HeaderPrefix}}
-                    #line 1 "ParameterInfo.h"
-                    typedef struct Il2CppType Il2CppType;
-                    typedef struct ParameterInfo
-                    {
-                        const Il2CppType* parameter_type;
-                    } ParameterInfo;
-                    #line 1 "Header.h"
-                    {{headerText.Replace("const Il2CppType** parameters;", "const ParameterInfo* parameters;")}}
-                    """;
-            }
-
             if (!SGenerators.ContainsKey(metadataVersion))
                 SGenerators[metadataVersion] = new List<VersionSpecificGenerator>();
-            var compilation = CppParser.Parse(processedHeaderText,
+            var compilation = CppParser.Parse(ProcessHeaderText(headerText),
                 new CppParserOptions
                 {
                     ParserKind = CppParserKind.Cpp,
@@ -189,8 +150,8 @@ public static class Il2CppStructWrapperGenerator
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
             var generatorOutputDir =
-                Path.Combine(options.OutputDirectory,
-                    generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty));
+                Path.Join(options.OutputDirectory,
+                    generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null));
             if (!Directory.Exists(generatorOutputDir))
                 Directory.CreateDirectory(generatorOutputDir);
             CodeGenFile file = new()
@@ -209,10 +170,57 @@ public static class Il2CppStructWrapperGenerator
             };
             foreach (var extraUsing in generator.ExtraUsings)
                 file.Usings.Add(extraUsing);
-            file.WriteTo(Path.Combine(generatorOutputDir,
-                $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", string.Empty)}.cs"));
+            file.WriteTo(Path.Join(generatorOutputDir,
+                $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", null)}.cs"));
         }
 
         Logger = null;
     }
+
+    private static string ProcessHeaderText(string headerText)
+    {
+        const string HeaderPrefix = """
+            #line 1 "Prefix.h"
+            typedef int int32_t;
+            typedef unsigned int uint32_t;
+            typedef short int16_t;
+            typedef unsigned short uint16_t;
+            typedef char int8_t;
+            typedef unsigned char uint8_t;
+            typedef long long int64_t;
+            typedef unsigned long long uint64_t;
+            typedef long intptr_t;
+            typedef unsigned long uintptr_t;
+            """;
+
+        string processedHeaderText;
+        if (headerText.Contains("struct ParameterInfo", StringComparison.Ordinal))
+        {
+            processedHeaderText = $"""
+                {HeaderPrefix}
+                #line 1 "Header.h"
+                {headerText}
+                """;
+        }
+        else
+        {
+            // ParameterInfo was removed in v27, but we add it back in manually.
+            processedHeaderText = $$"""
+                {{HeaderPrefix}}
+                #line 1 "ParameterInfo.h"
+                typedef struct Il2CppType Il2CppType;
+                typedef struct ParameterInfo
+                {
+                    const Il2CppType* parameter_type;
+                } ParameterInfo;
+                #line 1 "Header.h"
+                {{headerText.Replace("const Il2CppType** parameters;", "const ParameterInfo* parameters;")}}
+                """;
+        }
+
+        return processedHeaderText;
+    }
+
+    [GeneratedRegex(@"const int METADATA_VERSION = ([0-9]+);")]
+    private static partial Regex MetadataVersionRegex { get; }
 }
