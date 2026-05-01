@@ -4,17 +4,13 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
 {
     [ApplicableToUnityVersionsSince("2018.3.0")]
-    internal class NativeParameterInfoStructHandler_24_0 : INativeParameterInfoStructHandler
+    internal unsafe class _InfoStructHandler_24_0 : INativeParameterInfoStructHandler
     {
-        public unsafe int Size()
+        public int Size() => sizeof(Il2CppParameterInfo_24_0);
+        public INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* ptr)
         {
-            return sizeof(Il2CppParameterInfo_24_0);
-        }
-
-        public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoPointer)
-        {
-            if ((IntPtr)paramInfoPointer == IntPtr.Zero) return null;
-            return new NativeParameterInfoStructWrapper((IntPtr)paramInfoPointer);
+            if (ptr == null) return null;
+            return new NativeStructWrapper((IntPtr)ptr);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -26,28 +22,25 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             public Il2CppTypeStruct* parameter_type; // const
         }
 
-        internal unsafe class NativeParameterInfoStructWrapper : INativeParameterInfoStruct
+        internal class NativeStructWrapper : INativeParameterInfoStruct
         {
-            public NativeParameterInfoStructWrapper(IntPtr pointer)
-            {
-                Pointer = pointer;
-            }
-
-            private Il2CppParameterInfo_24_0* NativeParameter => (Il2CppParameterInfo_24_0*)Pointer;
+            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
 
             public IntPtr Pointer { get; }
+
+            private Il2CppParameterInfo_24_0* _ => (Il2CppParameterInfo_24_0*)Pointer;
 
             public Il2CppParameterInfo* ParameterInfoPointer => (Il2CppParameterInfo*)Pointer;
 
             public bool HasNamePosToken => true;
 
-            public ref IntPtr Name => ref NativeParameter->name;
+            public ref IntPtr Name => ref _->name;
 
-            public ref int Position => ref NativeParameter->position;
+            public ref int Position => ref _->position;
 
-            public ref uint Token => ref NativeParameter->token;
+            public ref uint Token => ref _->token;
 
-            public ref Il2CppTypeStruct* ParameterType => ref NativeParameter->parameter_type;
+            public ref Il2CppTypeStruct* ParameterType => ref _->parameter_type;
         }
     }
 }
