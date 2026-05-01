@@ -7,5 +7,5 @@ internal class CodeGenConstructor : CodeGenMethod
     {
     }
 
-    public override string Declaration => $"{Protection.ToString().ToLower()} {Keywords}{Type}";
+    public override string Declaration => $"{Protection.ToCSharpString()} {Keywords}{Type}";
 }

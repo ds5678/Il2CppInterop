@@ -1,4 +1,4 @@
-namespace Il2CppInterop.StructGenerator.CodeGen;
+﻿namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal abstract class CodeGenElement
 {
@@ -19,19 +19,22 @@ internal abstract class CodeGenElement
     public string Indent => new(' ', (IndentAmount - 1) * 4);
     public string IndentInner => new(' ', IndentAmount * 4);
 
-    private List<string> KeywordList
+    public string Keywords
     {
         get
         {
-            var list = new List<string>();
-            if (IsStatic) list.Add("static");
-            if (IsUnsafe) list.Add("unsafe");
-            return list;
+            if (IsStatic)
+            {
+                return IsUnsafe ? "static unsafe " : "static ";
+            }
+            else
+            {
+                return IsUnsafe ? "unsafe " : string.Empty;
+            }
         }
     }
 
-    public string Keywords => KeywordList.Count > 0 ? $"{string.Join(' ', KeywordList)} " : string.Empty;
-    public virtual string Declaration => $"{Protection.ToString().ToLower()} {Keywords}{Type} {Name}";
+    public virtual string Declaration => $"{Protection.ToCSharpString()} {Keywords}{Type} {Name}";
 
     public virtual string Build()
     {

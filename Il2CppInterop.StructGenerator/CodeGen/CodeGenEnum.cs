@@ -29,7 +29,8 @@ internal class CodeGenEnum : CodeGenElement
     public override string Build()
     {
         StringBuilder builder = new(base.Build());
-        if (UnderlyingType != EnumUnderlyingType.Int) builder.Append($" : {UnderlyingType.ToString().ToLower()}");
+        if (UnderlyingType != EnumUnderlyingType.Int)
+            builder.Append($" : {UnderlyingType.ToCSharpString()}");
         builder.AppendLine();
         builder.AppendLine($"{Indent}{{");
         foreach (var element in Elements)
