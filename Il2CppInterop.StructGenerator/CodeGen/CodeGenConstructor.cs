@@ -1,6 +1,4 @@
-﻿using Il2CppInterop.StructGenerator.CodeGen.Enums;
-
-namespace Il2CppInterop.StructGenerator.CodeGen;
+﻿namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenConstructor : CodeGenMethod
 {
