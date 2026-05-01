@@ -1,6 +1,6 @@
 ﻿namespace Il2CppInterop.StructGenerator.CodeGen;
 
-internal class CodeGenStruct : CodeGenClass
+internal sealed class CodeGenStruct : CodeGenType
 {
     public CodeGenStruct(ElementProtection protection, string name) : base(protection, name)
     {
