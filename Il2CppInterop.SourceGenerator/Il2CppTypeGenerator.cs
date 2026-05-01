@@ -34,7 +34,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                     var assemblyName = injectedTypeAttr.NamedArguments
                         .FirstOrDefault(a => a.Key == "Assembly")
                         .Value.Value as string;
-                    return TypeModel.FromNode((INamedTypeSymbol)ctx.TargetSymbol, assemblyName, ct);
+                    return TypeModel.FromSymbol((INamedTypeSymbol)ctx.TargetSymbol, assemblyName, ct);
                 })
             .Where(static m => m is not null);
 
@@ -59,7 +59,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         }
 
         EmitPartialType(writer, model);
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
         EmitInternalsClass(writer, model);
 
         if (model.Namespace is not null)
@@ -100,9 +100,9 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         if (model.TypeKind == TypeKind.Struct)
         {
             EmitValueTypeBridgeMethods(writer);
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
             EmitValueTypeInstanceInterfaceMembers(writer, model);
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
         foreach (var member in model.Members)
         {
@@ -113,20 +113,20 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             else
                 EmitManagedProperty(writer, member);
 
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
         if (model.NeedsObjectPointerConstructor)
         {
             EmitConstructor(writer, model);
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
 
         if (model.FinalizerMethodNames.Count > 0 || model.Members.Any(m => m.Kind == MemberKind.Managed))
         {
             EmitFinalizer(writer, model);
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
             EmitLogErrorFinalizer(writer);
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
 
         EmitStaticInterfaceMembers(writer, model);
@@ -146,7 +146,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine("return this.Equals((object)obj);");
         writer.Indent--;
         writer.WriteLine("}");
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
 
         writer.WriteLine("[global::Il2CppInterop.Common.Attributes.Il2CppMethod(Name = \"GetHashCode\")]");
         writer.WriteLine("public global::Il2CppSystem.Int32 GetIl2CppHashCode()");
@@ -155,7 +155,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine("return this.GetHashCode();");
         writer.Indent--;
         writer.WriteLine("}");
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
 
         writer.WriteLine("[global::Il2CppInterop.Common.Attributes.Il2CppMethod(Name = \"ToString\")]");
         writer.WriteLine("public global::Il2CppSystem.String ToIl2CppString()");
@@ -172,10 +172,10 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.Indent++;
         writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer;");
         writer.Indent--;
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
 
         writer.WriteLine("readonly int global::Il2CppSystem.IValueType.Size => Il2CppInternals.Size;");
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
 
         writer.WriteLine("readonly void global::Il2CppSystem.IValueType.WriteToSpan(global::System.Span<byte> span) =>");
         writer.Indent++;
@@ -223,7 +223,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.Indent--;
         writer.WriteLine("}");
 
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
 
         // Public partial property
         var accessPrefix = member.Accessibility is { } a ? a.GetAccessibilityKeyword() + " " : "";
@@ -314,7 +314,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         if (model.TypeKind == TypeKind.Struct)
         {
             writer.WriteLine($"static int global::Il2CppInterop.Common.IIl2CppType<{tn}>.Size => Il2CppInternals.Size;");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
 
             // ReadFromSpan — constructs via object initializer, one field per offset
             writer.WriteLine($"static {tn} global::Il2CppInterop.Common.IIl2CppType<{tn}>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)");
@@ -331,7 +331,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine("#nullable restore");
             writer.Indent--;
             writer.WriteLine("}");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
 
             // WriteToSpan — one WriteToSpanAtOffset call per field
             writer.WriteLine($"static void global::Il2CppInterop.Common.IIl2CppType<{tn}>.WriteToSpan({tn} value, global::System.Span<byte> span)");
@@ -341,15 +341,15 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                 writer.WriteLine($"global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.WriteToSpanAtOffset(value.{member.Name}, span, Il2CppInternals.FieldOffset_{member.Index});");
             writer.Indent--;
             writer.WriteLine("}");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
         else
         {
             writer.WriteLine($"static int global::Il2CppInterop.Common.IIl2CppType<{tn}>.Size => nint.Size;");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
 
             writer.WriteLine($"nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{tn}>.NativeClassPointer;");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
 
             writer.WriteLine($"static {tn}? global::Il2CppInterop.Common.IIl2CppType<{tn}>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)");
             writer.WriteLine("{");
@@ -357,7 +357,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"return global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.ReadReference<{tn}>(span);");
             writer.Indent--;
             writer.WriteLine("}");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
 
             writer.WriteLine($"static void global::Il2CppInterop.Common.IIl2CppType<{tn}>.WriteToSpan({tn}? value, global::System.Span<byte> span)");
             writer.WriteLine("{");
@@ -365,13 +365,13 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine("global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.WriteReference(value, span);");
             writer.Indent--;
             writer.WriteLine("}");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
 
         if (!string.IsNullOrEmpty(model.AssemblyName))
         {
             writer.WriteLine($"static string global::Il2CppInterop.Common.IIl2CppType<{tn}>.AssemblyName => \"{model.AssemblyName}\";");
-            writer.WriteLine();
+            writer.WriteLineNoTabs();
         }
 
         writer.WriteLine($"static {tn}()");
@@ -401,7 +401,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             else
                 writer.WriteLine($"public static readonly int FieldOffset_{member.Index}; // {member.Name}");
         }
-        writer.WriteLine();
+        writer.WriteLineNoTabs();
         writer.WriteLine("static Il2CppInternals()");
         writer.WriteLine("{");
         writer.Indent++;

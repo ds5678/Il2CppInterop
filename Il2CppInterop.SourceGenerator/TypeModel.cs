@@ -17,16 +17,10 @@ internal sealed record TypeModel(
     bool IsAbstract
 )
 {
-    internal static TypeModel? FromNode(INamedTypeSymbol node, string? assemblyName, CancellationToken ct)
+    internal static TypeModel? FromSymbol(INamedTypeSymbol node, string? assemblyName, CancellationToken ct)
     {
 
-        var typeKind = node.TypeKind switch
-        {
-            TypeKind.Struct    => TypeKind.Struct,
-            TypeKind.Interface => TypeKind.Interface,
-            TypeKind.Class     => TypeKind.Class,
-            _                  => TypeKind.Unknown,
-        };
+        var typeKind = node.TypeKind;
 
         switch (typeKind)
         {
@@ -94,7 +88,7 @@ internal sealed record TypeModel(
                 IsStatic: property.IsStatic));
         }
 
-        var finalizerMethods = ImmutableArray<string>.Empty;
+        IReadOnlyList<string> finalizerMethods = [];
         var needsObjectPointerConstructor = false;
 
         if (typeKind == TypeKind.Class)
@@ -108,7 +102,7 @@ internal sealed record TypeModel(
                         m.ReturnsVoid &&
                         m.GetAttributes().Any(a =>
                             a.AttributeClass.IsType("Il2CppFinalizerAttribute", ["Il2CppInterop", "Common", "Attributes"])))
-                    .Select(m => m.Name).ToImmutableArray()
+                    .Select(m => m.Name)
             ];
 
             needsObjectPointerConstructor = !node.GetMembers()
