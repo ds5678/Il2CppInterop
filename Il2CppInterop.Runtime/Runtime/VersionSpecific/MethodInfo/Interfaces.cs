@@ -1,29 +1,30 @@
 using System;
 
-namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
-
-public interface INativeMethodInfoStructHandler : INativeStructHandler
+namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
-    INativeMethodInfoStruct CreateNewStruct();
-    unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer);
-}
+    public interface INativeMethodInfoStructHandler : INativeStructHandler
+    {
+        INativeMethodInfoStruct CreateNewStruct();
+        unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer);
+    }
 
-public interface INativeMethodInfoStruct : INativeStruct
-{
-    unsafe Il2CppMethodInfo* MethodInfoPointer { get; }
-    ref IntPtr Name { get; }
-    ref ushort Slot { get; }
-    ref IntPtr MethodPointer { get; }
+    public interface INativeMethodInfoStruct : INativeStruct
+    {
+        unsafe Il2CppMethodInfo* MethodInfoPointer { get; }
+        ref IntPtr Name { get; }
+        ref ushort Slot { get; }
+        ref IntPtr MethodPointer { get; }
 
-    ref IntPtr VirtualMethodPointer { get; }
-    unsafe ref Il2CppClass* Class { get; }
-    ref IntPtr InvokerMethod { get; }
-    unsafe ref Il2CppTypeStruct* ReturnType { get; }
-    ref Il2CppMethodFlags Flags { get; }
-    ref byte ParametersCount { get; }
-    unsafe ref Il2CppParameterInfo* Parameters { get; }
-    ref uint Token { get; }
-    bool IsGeneric { get; set; }
-    bool IsInflated { get; set; }
-    bool IsMarshalledFromNative { get; set; }
+        ref IntPtr VirtualMethodPointer { get; }
+        unsafe ref Il2CppClass* Class { get; }
+        ref IntPtr InvokerMethod { get; }
+        unsafe ref Il2CppTypeStruct* ReturnType { get; }
+        ref Il2CppMethodFlags Flags { get; }
+        ref byte ParametersCount { get; }
+        unsafe ref Il2CppParameterInfo* Parameters { get; }
+        ref uint Token { get; }
+        bool IsGeneric { get; set; }
+        bool IsInflated { get; set; }
+        bool IsMarshalledFromNative { get; set; }
+    }
 }
