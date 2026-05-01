@@ -40,23 +40,19 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         if (ctx.TargetSymbol is not INamedTypeSymbol type)
             return null;
 
-        string typeKeyword;
-        switch (ctx.TargetNode)
+        var typeKind = ctx.TargetNode switch
         {
-            case StructDeclarationSyntax:
-                typeKeyword = "struct";
-                break;
-            case InterfaceDeclarationSyntax:
-                typeKeyword = "interface";
-                break;
-            case ClassDeclarationSyntax:
-                typeKeyword = "class";
-                break;
-            default:
-                return null;
-        }
+            StructDeclarationSyntax    => TypeKind.Struct,
+            InterfaceDeclarationSyntax => TypeKind.Interface,
+            ClassDeclarationSyntax     => TypeKind.Class,
+            _                          => TypeKind.Unknown,
+        };
 
-        if (typeKeyword == "class" && type.BaseType?.SpecialType == SpecialType.System_Object)
+        if (typeKind == TypeKind.Unknown)
+            return null;
+
+        // Reference-type-only filter from the original class generator: skip plain `: object`.
+        if (typeKind == TypeKind.Class && type.BaseType?.SpecialType == SpecialType.System_Object)
             return null;
 
         var injectedTypeAttr = ctx.Attributes[0];
@@ -67,7 +63,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         var members = ImmutableArray.CreateBuilder<MemberModel>();
         var index = 0;
 
-        if (typeKeyword == "struct")
+        if (typeKind == TypeKind.Struct)
         {
             foreach (var field in type.GetMembers().OfType<IFieldSymbol>())
             {
@@ -124,7 +120,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         var finalizerMethods = ImmutableArray<string>.Empty;
         var needsObjectPointerConstructor = false;
 
-        if (typeKeyword != "struct")
+        if (typeKind != TypeKind.Struct)
         {
             finalizerMethods = [
                 ..type.GetMembers()
@@ -150,7 +146,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                 ? null
                 : type.ContainingNamespace.ToDisplayString(),
             TypeName: type.Name,
-            TypeKeyword: typeKeyword,
+            TypeKind: typeKind,
             AssemblyName: assemblyName,
             Members: new EquatableArray<MemberModel>(members),
             FinalizerMethodNames: new EquatableArray<string>(finalizerMethods),
@@ -198,7 +194,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
         writer.WriteLine("[global::Il2CppInterop.Common.Attributes.Il2CppType(typeof(Il2CppInternals))]");
 
-        if (model.TypeKeyword == "struct")
+        if (model.TypeKind == TypeKind.Struct)
         {
             writer.WriteLine($"{access} partial struct {model.TypeName} :");
             writer.Indent++;
@@ -210,13 +206,13 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         }
         else
         {
-            writer.WriteLine($"{access} partial {model.TypeKeyword} {model.TypeName} : global::Il2CppInterop.Common.IIl2CppType<{model.TypeName}>");
+            writer.WriteLine($"{access} partial {model.TypeKind.GetTypeKeyword()} {model.TypeName} : global::Il2CppInterop.Common.IIl2CppType<{model.TypeName}>");
         }
 
         writer.WriteLine("{");
         writer.Indent++;
 
-        if (model.TypeKeyword == "struct")
+        if (model.TypeKind == TypeKind.Struct)
         {
             EmitValueTypeBridgeMethods(writer);
             writer.WriteLine();
@@ -237,7 +233,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                 writer.WriteLine();
             }
 
-            if (model.TypeKeyword != "interface")
+            if (model.TypeKind != TypeKind.Interface)
             {
                 if (model.NeedsObjectPointerConstructor)
                 {
@@ -262,7 +258,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine("}");
     }
 
-    // -------------------------- Value-type-only emit --------------------------
+    #region Value-type-only emit
 
     private static void EmitValueTypeBridgeMethods(IndentedTextWriter writer)
     {
@@ -310,7 +306,9 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.Indent--;
     }
 
-    // ----------------------- Class/interface-only emit ------------------------
+    #endregion
+
+    #region Class/interface-only emit
 
     private static void EmitStaticIl2CppProperty(IndentedTextWriter writer, MemberModel member)
     {
@@ -429,12 +427,14 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine("partial void LogErrorIl2CppFinalize(global::System.Exception exception);");
     }
 
-    // ------------------------------ Shared emit -------------------------------
+    #endregion
+
+    #region Shared emit
 
     private static void EmitStaticInterfaceMembers(IndentedTextWriter writer, TypeModel model)
     {
         var tn = model.TypeName;
-        var isValueType = model.TypeKeyword == "struct";
+        var isValueType = model.TypeKind == TypeKind.Struct;
 
         if (isValueType)
         {
@@ -509,7 +509,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
     private static void EmitInternalsClass(IndentedTextWriter writer, TypeModel model)
     {
-        var isValueType = model.TypeKeyword == "struct";
+        var isValueType = model.TypeKind == TypeKind.Struct;
 
         writer.WriteLine("file static class Il2CppInternals");
         writer.WriteLine("{");
@@ -568,25 +568,5 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.Indent--;
         writer.WriteLine("}");
     }
+    #endregion
 }
-
-internal sealed record TypeModel(
-    string? Namespace,
-    string TypeName,
-    string TypeKeyword, // "class", "struct", or "interface"
-    string? AssemblyName,
-    EquatableArray<MemberModel> Members,
-    EquatableArray<string> FinalizerMethodNames,
-    bool NeedsObjectPointerConstructor,
-    Accessibility DeclaredAccessibility,
-    bool IsAbstract);
-
-internal readonly record struct MemberModel(
-    string Name,
-    string Type,
-    MemberKind Kind,
-    int Index,
-    Accessibility? Accessibility,
-    bool IsStatic);
-
-internal enum MemberKind { Il2Cpp, Managed }

@@ -18,6 +18,14 @@ public static class Utils
         _                                 => "public",
     };
 
+    internal static string GetTypeKeyword(this TypeKind kind) => kind switch
+    {
+        TypeKind.Class     => "class",
+        TypeKind.Struct    => "struct",
+        TypeKind.Interface => "interface",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
+
     extension(INamedTypeSymbol? symbol)
     {
         public bool IsType(string name, ReadOnlySpan<string> namespaceParts) =>
