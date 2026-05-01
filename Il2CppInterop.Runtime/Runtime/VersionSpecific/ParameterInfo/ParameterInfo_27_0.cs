@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo;
 
 [ApplicableToUnityVersionsSince("2021.2.0")]
-internal class NativeParameterInfoStructHandler_27_3 : INativeParameterInfoStructHandler
+internal class NativeParameterInfoStructHandler_27_0 : INativeParameterInfoStructHandler
 {
     public unsafe int Size()
     {
-        return sizeof(Il2CppParameterInfo_27_3);
+        return sizeof(Il2CppParameterInfo_27_0);
     }
 
     public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoPointer)
@@ -21,7 +21,7 @@ internal class NativeParameterInfoStructHandler_27_3 : INativeParameterInfoStruc
 
     //Doesn't actually exist; just using this for type pointer storage in MethodInfo 27_3 +
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct Il2CppParameterInfo_27_3
+    internal unsafe struct Il2CppParameterInfo_27_0
     {
         public Il2CppTypeStruct* parameter_type;
     }
@@ -33,7 +33,7 @@ internal class NativeParameterInfoStructHandler_27_3 : INativeParameterInfoStruc
             Pointer = pointer;
         }
 
-        private Il2CppParameterInfo_27_3* NativeParameter => (Il2CppParameterInfo_27_3*)Pointer;
+        private Il2CppParameterInfo_27_0* NativeParameter => (Il2CppParameterInfo_27_0*)Pointer;
 
         public IntPtr Pointer { get; }
 

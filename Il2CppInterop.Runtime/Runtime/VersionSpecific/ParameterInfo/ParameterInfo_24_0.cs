@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo;
 
 [ApplicableToUnityVersionsSince("2018.3.0")]
-internal class NativeParameterInfoStructHandler_24_1 : INativeParameterInfoStructHandler
+internal class NativeParameterInfoStructHandler_24_0 : INativeParameterInfoStructHandler
 {
     public unsafe int Size()
     {
-        return sizeof(Il2CppParameterInfo_24_1);
+        return sizeof(Il2CppParameterInfo_24_0);
     }
 
     public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoPointer)
@@ -20,7 +20,7 @@ internal class NativeParameterInfoStructHandler_24_1 : INativeParameterInfoStruc
     public bool HasNamePosToken => true;
 
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct Il2CppParameterInfo_24_1
+    internal unsafe struct Il2CppParameterInfo_24_0
     {
         public IntPtr name; // const char*
         public int position;
@@ -35,7 +35,7 @@ internal class NativeParameterInfoStructHandler_24_1 : INativeParameterInfoStruc
             Pointer = pointer;
         }
 
-        private Il2CppParameterInfo_24_1* NativeParameter => (Il2CppParameterInfo_24_1*)Pointer;
+        private Il2CppParameterInfo_24_0* NativeParameter => (Il2CppParameterInfo_24_0*)Pointer;
 
         public IntPtr Pointer { get; }
 
