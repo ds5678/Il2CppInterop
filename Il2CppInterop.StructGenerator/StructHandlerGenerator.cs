@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.CodeGen.Enums;
 
 namespace Il2CppInterop.StructGenerator;
 
