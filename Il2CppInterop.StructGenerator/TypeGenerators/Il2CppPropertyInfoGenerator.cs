@@ -15,22 +15,20 @@ internal class Il2CppPropertyInfoGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativePropertyInfoStruct";
     protected override string NativeStub => "Il2CppPropertyInfo";
 
-    protected override List<CodeGenField>? WrapperFields => null;
-
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "PropertyInfoPointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" }
-    };
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        }
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("IntPtr", "Name", new[] { "name" }),
-        new ByRefWrapper("Il2CppClass*", "Parent", new[] { "parent" }),
-        new ByRefWrapper("Il2CppMethodInfo*", "Get", new[] { "get" }),
-        new ByRefWrapper("Il2CppMethodInfo*", "Set", new[] { "set" }),
-        new ByRefWrapper("uint", "Attrs", new[] { "attrs" })
-    };
-
-    protected override List<BitfieldAccessor>? BitfieldAccessors => null;
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("Il2CppClass*", "Parent", ["parent"]),
+        new ByRefWrapper("Il2CppMethodInfo*", "Get", ["get"]),
+        new ByRefWrapper("Il2CppMethodInfo*", "Set", ["set"]),
+        new ByRefWrapper("uint", "Attrs", ["attrs"])
+    ];
 }

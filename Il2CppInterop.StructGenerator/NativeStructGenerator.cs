@@ -16,13 +16,13 @@ internal class NativeStructGenerator
         FillStruct();
     }
 
-    public List<CodeGenField> FieldsToImport { get; } = new();
+    public List<CodeGenField> FieldsToImport { get; } = [];
     public CodeGenStruct NativeStruct { get; }
     public CppClass CppClass { get; }
 
     private void FillStruct()
     {
-        List<CodeGenEnum> bitfields = new();
+        List<CodeGenEnum> bitfields = [];
         CodeGenEnum? lastBitfield = null;
         var bitfieldNextBit = 0;
 

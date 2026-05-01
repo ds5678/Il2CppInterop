@@ -23,7 +23,7 @@ internal class CodeGenEnum : CodeGenElement
         _ => throw new Exception("exhausted enum")
     };
 
-    public List<CodeGenEnumElement> Elements { get; } = new();
+    public List<CodeGenEnumElement> Elements { get; } = [];
 
     public override void Build(IndentedTextWriter writer)
     {

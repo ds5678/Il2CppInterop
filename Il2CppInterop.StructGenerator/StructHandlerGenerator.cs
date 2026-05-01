@@ -6,7 +6,7 @@ namespace Il2CppInterop.StructGenerator;
 internal class StructHandlerGenerator
 {
     public StructHandlerGenerator(string name, string handlerInterface, string nativeInterface, string nativeStub,
-        NativeStructGenerator nativeStructGen, List<CodeGenParameter>? parameterOverride = null,
+        NativeStructGenerator nativeStructGen, IEnumerable<CodeGenParameter>? parameterOverride = null,
         Action<IndentedTextWriter>? extraBodyProvider = null)
     {
         NativeGenerator = nativeStructGen;

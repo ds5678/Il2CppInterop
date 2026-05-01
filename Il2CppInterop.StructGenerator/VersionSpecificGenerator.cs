@@ -43,13 +43,13 @@ internal abstract class VersionSpecificGenerator
     protected abstract string NativeStub { get; }
 
     protected virtual string[]? DependsOnClasses { get; }
-    protected virtual List<CodeGenParameter>? CreateNewParameters => null;
+    protected virtual IEnumerable<CodeGenParameter>? CreateNewParameters => null;
     protected virtual string? SizeOverride => null;
 
-    protected abstract List<CodeGenField>? WrapperFields { get; }
-    protected abstract List<CodeGenProperty>? WrapperProperties { get; }
-    protected abstract List<ByRefWrapper>? ByRefWrappers { get; }
-    protected abstract List<BitfieldAccessor>? BitfieldAccessors { get; }
+    protected virtual IEnumerable<CodeGenField>? WrapperFields => null;
+    protected virtual IEnumerable<CodeGenProperty>? WrapperProperties => null;
+    protected virtual IEnumerable<ByRefWrapper>? ByRefWrappers => null;
+    protected virtual IEnumerable<BitfieldAccessor>? BitfieldAccessors => null;
 
     protected virtual Action<IndentedTextWriter>? CreateNewExtraBody => null;
 
@@ -57,8 +57,8 @@ internal abstract class VersionSpecificGenerator
     public NativeStructGenerator NativeStructGenerator { get; }
     public StructHandlerGenerator HandlerGenerator { get; }
     public StructWrapperGenerator WrapperGenerator { get; }
-    public HashSet<UnityVersion> ApplicableVersions { get; } = new();
-    public HashSet<string> ExtraUsings { get; } = new();
+    public HashSet<UnityVersion> ApplicableVersions { get; } = [];
+    public HashSet<string> ExtraUsings { get; } = [];
 
     public void AddExtraUsing(string @using)
     {
@@ -68,11 +68,11 @@ internal abstract class VersionSpecificGenerator
 
     public void SetupElements()
     {
-        List<CodeGenProperty> properties = new()
-        {
+        List<CodeGenProperty> properties =
+        [
             new CodeGenProperty($"{NativeStructGenerator.NativeStruct.Name}*", ElementProtection.Private, "_")
             { ImmediateGet = $"({NativeStructGenerator.NativeStruct.Name}*)Pointer" }
-        };
+        ];
         var wrapperProperties = WrapperProperties;
         if (wrapperProperties != null) properties.AddRange(wrapperProperties);
         WrapperGenerator.ImplementProperties(properties);

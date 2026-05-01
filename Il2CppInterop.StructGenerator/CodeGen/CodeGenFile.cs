@@ -5,8 +5,8 @@ namespace Il2CppInterop.StructGenerator.CodeGen;
 internal class CodeGenFile
 {
     public string? Namespace { get; set; }
-    public List<CodeGenElement> Elements { get; } = new();
-    public List<string> Usings { get; } = new();
+    public List<CodeGenElement> Elements { get; } = [];
+    public List<string> Usings { get; } = [];
 
     private void Build(IndentedTextWriter writer)
     {

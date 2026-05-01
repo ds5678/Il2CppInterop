@@ -8,7 +8,7 @@ namespace Il2CppInterop.StructGenerator;
 
 public static partial class Il2CppStructWrapperGenerator
 {
-    private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
+    private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = [];
     internal static ILogger? Logger { get; set; }
 
     private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
@@ -88,7 +88,7 @@ public static partial class Il2CppStructWrapperGenerator
             }
 
             if (!SGenerators.ContainsKey(metadataVersion))
-                SGenerators[metadataVersion] = new List<VersionSpecificGenerator>();
+                SGenerators[metadataVersion] = [];
             var compilation = CppParser.Parse(ProcessHeaderText(headerText),
                 new CppParserOptions
                 {
@@ -115,12 +115,11 @@ public static partial class Il2CppStructWrapperGenerator
         }
 
         Logger?.LogInformation("Building version specific classes");
-        Dictionary<Type, Dictionary<UnityVersion, VersionSpecificGenerator>> versionToGeneratorLookup = new();
+        Dictionary<Type, Dictionary<UnityVersion, VersionSpecificGenerator>> versionToGeneratorLookup = [];
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
             if (!versionToGeneratorLookup.ContainsKey(generator.GetType()))
-                versionToGeneratorLookup[generator.GetType()] =
-                    new Dictionary<UnityVersion, VersionSpecificGenerator>();
+                versionToGeneratorLookup[generator.GetType()] = [];
 
             foreach (var version in generator.ApplicableVersions)
                 versionToGeneratorLookup[generator.GetType()][version] = generator;
@@ -142,15 +141,11 @@ public static partial class Il2CppStructWrapperGenerator
 
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
-            var generatorOutputDir =
-                Path.Join(options.OutputDirectory,
-                    generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null));
-            if (!Directory.Exists(generatorOutputDir))
-                Directory.CreateDirectory(generatorOutputDir);
+            var generatorOutputDirectory = Path.Join(options.OutputDirectory, generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null));
+            Directory.CreateDirectory(generatorOutputDirectory);
             CodeGenFile file = new()
             {
-                Namespace =
-                    $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty)}",
+                Namespace = $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
                 Usings =
                 {
                     "System",
@@ -161,10 +156,8 @@ public static partial class Il2CppStructWrapperGenerator
                     generator.HandlerGenerator.HandlerClass
                 }
             };
-            foreach (var extraUsing in generator.ExtraUsings)
-                file.Usings.Add(extraUsing);
-            file.WriteTo(Path.Join(generatorOutputDir,
-                $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", null)}.cs"));
+            file.Usings.AddRange(generator.ExtraUsings);
+            file.WriteTo(Path.Join(generatorOutputDirectory, $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", null)}.cs"));
         }
 
         Logger = null;

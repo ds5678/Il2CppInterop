@@ -15,12 +15,12 @@ internal class Il2CppAssemblyGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativeAssemblyStruct";
     protected override string NativeStub => "Il2CppAssembly";
 
-    protected override List<CodeGenField>? WrapperFields => null;
-
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override List<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "AssemblyPointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" },
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        },
         new CodeGenProperty("INativeAssemblyNameStruct", ElementProtection.Public, "Name")
         {
             GetMethod = new CodeGenMethod("INativeAssemblyNameStruct", ElementProtection.Private, "get")
@@ -32,12 +32,10 @@ internal class Il2CppAssemblyGenerator : VersionSpecificGenerator
                 ImmediateReturn = $"_->aname = *({GetNativeField("aname")!.Type}*)Name.AssemblyNamePointer"
             }
         }
-    };
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("Il2CppImage*", "Image", new[] { "image" }, addNotSupportedIfNotExist: true)
-    };
-
-    protected override List<BitfieldAccessor>? BitfieldAccessors => null;
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("Il2CppImage*", "Image", ["image"], addNotSupportedIfNotExist: true)
+    ];
 }
