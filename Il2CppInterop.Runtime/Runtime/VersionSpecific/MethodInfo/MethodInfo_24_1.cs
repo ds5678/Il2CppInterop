@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
-    [ApplicableToUnityVersionsSince("2018.3.0")]
+    [ApplicableToUnityVersionsSince("2018.1.0f1")]
     public unsafe class NativeMethodInfoStructHandler_24_1 : INativeMethodInfoStructHandler
     {
         public int Size() => sizeof(Il2CppMethodInfo_24_1);
@@ -28,6 +28,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
             public Il2CppParameterInfo* parameters;
             public void* runtime_data;
             public void* generic_data;
+            public int customAttributeIndex;
             public uint token;
             public ushort flags;
             public ushort iflags;

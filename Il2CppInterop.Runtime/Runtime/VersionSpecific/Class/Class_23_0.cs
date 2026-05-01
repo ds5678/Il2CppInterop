@@ -69,7 +69,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public ushort interfaces_count;
             public ushort interface_offsets_count;
             public byte typeHierarchyDepth;
-            public byte genericRecursionDepth;
             public byte rank;
             public byte minimumAlignment;
             public byte packingSize;

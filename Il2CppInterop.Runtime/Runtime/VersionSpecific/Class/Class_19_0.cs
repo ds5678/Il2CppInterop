@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("5.3.2")]
+    [ApplicableToUnityVersionsSince("5.3.1p3")]
     public unsafe class NativeClassStructHandler_19_0 : INativeClassStructHandler
     {
         public int Size() => sizeof(Il2CppClass_19_0);

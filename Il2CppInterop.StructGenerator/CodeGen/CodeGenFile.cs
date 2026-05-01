@@ -35,6 +35,6 @@ internal class CodeGenFile
 
     public void WriteTo(string path)
     {
-        File.WriteAllText(path, Build());
+        File.WriteAllText(path, Build().Replace("\r", null));
     }
 }

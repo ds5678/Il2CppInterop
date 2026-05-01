@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
-    [ApplicableToUnityVersionsSince("5.3.2")]
+    [ApplicableToUnityVersionsSince("5.3.1p3")]
     public unsafe class NativeImageStructHandler_19_0 : INativeImageStructHandler
     {
         public int Size() => sizeof(Il2CppImage_19_0);

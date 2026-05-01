@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
-    [ApplicableToUnityVersionsSince("2018.3.0")]
+    [ApplicableToUnityVersionsSince("2018.1.0b5")]
     public unsafe class NativeImageStructHandler_24_3 : INativeImageStructHandler
     {
         public int Size() => sizeof(Il2CppImage_24_3);
@@ -27,8 +27,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             public uint typeCount;
             public int exportedTypeStart;
             public uint exportedTypeCount;
-            public int customAttributeStart;
-            public uint customAttributeCount;
             public int entryPointIndex;
             public void* nameToClassHashTable;
             public uint token;

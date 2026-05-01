@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
-    [ApplicableToUnityVersionsSince("2023.2.0")]
+    [ApplicableToUnityVersionsSince("2023.2.0a22")]
     public unsafe class NativeMethodInfoStructHandler_29_2 : INativeMethodInfoStructHandler
     {
         public int Size() => sizeof(Il2CppMethodInfo_29_2);
@@ -26,7 +26,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
             public byte* name;
             public Il2CppClass* klass;
             public Il2CppTypeStruct* return_type;
-            public Il2CppTypeStruct** parameters;
+            public Il2CppParameterInfo* parameters;
             public void* runtime_data;
             public void* generic_data;
             public uint token;
@@ -67,7 +67,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
             public ref Il2CppTypeStruct* ReturnType => ref _->return_type;
             public ref Il2CppMethodFlags Flags => ref *(Il2CppMethodFlags*)&_->flags;
             public ref byte ParametersCount => ref _->parameters_count;
-            public ref Il2CppParameterInfo* Parameters => ref *(Il2CppParameterInfo**)&_->parameters;
+            public ref Il2CppParameterInfo* Parameters => ref _->parameters;
             public ref uint Token => ref _->token;
             public bool IsGeneric
             {

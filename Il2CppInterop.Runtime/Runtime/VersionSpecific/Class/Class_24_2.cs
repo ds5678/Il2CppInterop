@@ -76,37 +76,35 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public Bitfield1 _bitfield1;
             internal enum Bitfield0 : byte
             {
-                BIT_initialized_and_no_error = 0,
-                initialized_and_no_error = (1 << BIT_initialized_and_no_error),
-                BIT_valuetype = 1,
+                BIT_valuetype = 0,
                 valuetype = (1 << BIT_valuetype),
-                BIT_initialized = 2,
+                BIT_initialized = 1,
                 initialized = (1 << BIT_initialized),
-                BIT_enumtype = 3,
+                BIT_enumtype = 2,
                 enumtype = (1 << BIT_enumtype),
-                BIT_is_generic = 4,
+                BIT_is_generic = 3,
                 is_generic = (1 << BIT_is_generic),
-                BIT_has_references = 5,
+                BIT_has_references = 4,
                 has_references = (1 << BIT_has_references),
-                BIT_init_pending = 6,
+                BIT_init_pending = 5,
                 init_pending = (1 << BIT_init_pending),
-                BIT_size_inited = 7,
+                BIT_size_inited = 6,
                 size_inited = (1 << BIT_size_inited),
+                BIT_has_finalize = 7,
+                has_finalize = (1 << BIT_has_finalize),
             }
 
             internal enum Bitfield1 : byte
             {
-                BIT_has_finalize = 0,
-                has_finalize = (1 << BIT_has_finalize),
-                BIT_has_cctor = 1,
+                BIT_has_cctor = 0,
                 has_cctor = (1 << BIT_has_cctor),
-                BIT_is_blittable = 2,
+                BIT_is_blittable = 1,
                 is_blittable = (1 << BIT_is_blittable),
-                BIT_is_import_or_windows_runtime = 3,
+                BIT_is_import_or_windows_runtime = 2,
                 is_import_or_windows_runtime = (1 << BIT_is_import_or_windows_runtime),
-                BIT_is_vtable_initialized = 4,
+                BIT_is_vtable_initialized = 3,
                 is_vtable_initialized = (1 << BIT_is_vtable_initialized),
-                BIT_has_initialization_error = 5,
+                BIT_has_initialization_error = 4,
                 has_initialization_error = (1 << BIT_has_initialization_error),
             }
 
@@ -178,8 +176,8 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             }
             public bool HasFinalize
             {
-                get => this.CheckBit(_bitfield1offset, (int)Il2CppClass_24_2.Bitfield1.BIT_has_finalize);
-                set => this.SetBit(_bitfield1offset, (int)Il2CppClass_24_2.Bitfield1.BIT_has_finalize, value);
+                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_24_2.Bitfield0.BIT_has_finalize);
+                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_24_2.Bitfield0.BIT_has_finalize, value);
             }
             public bool IsVtableInitialized
             {
@@ -188,8 +186,8 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             }
             public bool InitializedAndNoError
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_24_2.Bitfield0.BIT_initialized_and_no_error);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_24_2.Bitfield0.BIT_initialized_and_no_error, value);
+                get => true;
+                set { }
             }
         }
 

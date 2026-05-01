@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("2020.2.0")]
+    [ApplicableToUnityVersionsSince("2020.3.20")]
     public unsafe class NativeClassStructHandler_27_0 : INativeClassStructHandler
     {
         public int Size() => sizeof(Il2CppClass_27_0);
@@ -49,7 +49,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public uint initializationExceptionGCHandle;
             public uint cctor_started;
             public uint cctor_finished;
-            public IntPtr cctor_thread;
+            public ulong cctor_thread;
             public Il2CppMetadataGenericContainerHandle genericContainerHandle;
             public uint instance_size;
             public uint actualSize;
@@ -92,23 +92,25 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 has_references = (1 << BIT_has_references),
                 BIT_init_pending = 6,
                 init_pending = (1 << BIT_init_pending),
-                BIT_size_inited = 7,
-                size_inited = (1 << BIT_size_inited),
+                BIT_size_init_pending = 7,
+                size_init_pending = (1 << BIT_size_init_pending),
             }
 
             internal enum Bitfield1 : byte
             {
-                BIT_has_finalize = 0,
+                BIT_size_inited = 0,
+                size_inited = (1 << BIT_size_inited),
+                BIT_has_finalize = 1,
                 has_finalize = (1 << BIT_has_finalize),
-                BIT_has_cctor = 1,
+                BIT_has_cctor = 2,
                 has_cctor = (1 << BIT_has_cctor),
-                BIT_is_blittable = 2,
+                BIT_is_blittable = 3,
                 is_blittable = (1 << BIT_is_blittable),
-                BIT_is_import_or_windows_runtime = 3,
+                BIT_is_import_or_windows_runtime = 4,
                 is_import_or_windows_runtime = (1 << BIT_is_import_or_windows_runtime),
-                BIT_is_vtable_initialized = 4,
+                BIT_is_vtable_initialized = 5,
                 is_vtable_initialized = (1 << BIT_is_vtable_initialized),
-                BIT_has_initialization_error = 5,
+                BIT_has_initialization_error = 6,
                 has_initialization_error = (1 << BIT_has_initialization_error),
             }
 
@@ -175,8 +177,8 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             }
             public bool SizeInited
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppClass_27_0.Bitfield0.BIT_size_inited);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppClass_27_0.Bitfield0.BIT_size_inited, value);
+                get => this.CheckBit(_bitfield1offset, (int)Il2CppClass_27_0.Bitfield1.BIT_size_inited);
+                set => this.SetBit(_bitfield1offset, (int)Il2CppClass_27_0.Bitfield1.BIT_size_inited, value);
             }
             public bool HasFinalize
             {

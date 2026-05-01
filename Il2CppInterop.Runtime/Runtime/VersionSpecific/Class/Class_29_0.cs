@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("2021.2.0")]
+    [ApplicableToUnityVersionsSince("2021.2.0b13")]
     public unsafe class NativeClassStructHandler_29_0 : INativeClassStructHandler
     {
         public int Size() => sizeof(Il2CppClass_29_0);
@@ -49,7 +49,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public uint initializationExceptionGCHandle;
             public uint cctor_started;
             public uint cctor_finished_or_no_cctor;
-            public IntPtr cctor_thread;
+            public ulong cctor_thread;
             public Il2CppMetadataGenericContainerHandle genericContainerHandle;
             public uint instance_size;
             public uint actualSize;

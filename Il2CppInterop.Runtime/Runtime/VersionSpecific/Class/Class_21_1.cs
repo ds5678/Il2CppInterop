@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("5.4.4")]
+    [ApplicableToUnityVersionsSince("5.3.5p3")]
     public unsafe class NativeClassStructHandler_21_1 : INativeClassStructHandler
     {
         public int Size() => sizeof(Il2CppClass_21_1);
@@ -69,7 +69,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public ushort interfaces_count;
             public ushort interface_offsets_count;
             public byte typeHierarchyDepth;
-            public byte genericRecursionDepth;
             public byte rank;
             public byte minimumAlignment;
             public byte packingSize;

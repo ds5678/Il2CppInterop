@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
 {
-    [ApplicableToUnityVersionsSince("2018.1.0")]
+    [ApplicableToUnityVersionsSince("2018.1.0b5")]
     public unsafe class NativeAssemblyNameStructHandler_24_0 : INativeAssemblyNameStructHandler
     {
         public int Size() => sizeof(Il2CppAssemblyName_24_0);
