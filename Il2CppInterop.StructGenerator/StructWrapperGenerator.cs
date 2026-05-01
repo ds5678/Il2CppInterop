@@ -12,11 +12,11 @@ internal class StructWrapperGenerator
         };
         WrapperClass.Methods.Add(new CodeGenConstructor("NativeStructWrapper", ElementProtection.Public)
         {
-            Parameters = { new CodeGenParameter("IntPtr", "ptr") },
+            Parameters = { new CodeGenParameter("nint", "ptr") },
             ImmediateReturn = "Pointer = ptr"
         });
 
-        WrapperClass.Properties.Add(new CodeGenProperty("IntPtr", ElementProtection.Public, "Pointer")
+        WrapperClass.Properties.Add(new CodeGenProperty("nint", ElementProtection.Public, "Pointer")
         {
             EmptyGet = true
         });

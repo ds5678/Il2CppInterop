@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
@@ -9,7 +8,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
         public int Size() => sizeof(Il2CppAssembly_20_0);
         public INativeAssemblyStruct CreateNewStruct()
         {
-            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size());
             Il2CppAssembly_20_0* _ = (Il2CppAssembly_20_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,7 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
         public INativeAssemblyStruct Wrap(Il2CppAssembly* ptr)
         {
             if (ptr == null) return null;
-            return new NativeStructWrapper((IntPtr)ptr);
+            return new NativeStructWrapper((nint)ptr);
         }
         internal unsafe struct Il2CppAssembly_20_0
         {
@@ -29,8 +28,8 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
         }
         internal class NativeStructWrapper : INativeAssemblyStruct
         {
-            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
-            public IntPtr Pointer { get; }
+            public NativeStructWrapper(nint ptr) => Pointer = ptr;
+            public nint Pointer { get; }
             private Il2CppAssembly_20_0* _ => (Il2CppAssembly_20_0*)Pointer;
             public Il2CppAssembly* AssemblyPointer => (Il2CppAssembly*)Pointer;
             public INativeAssemblyNameStruct Name
@@ -38,7 +37,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
                 get => UnityVersionHandler.Wrap((Il2CppAssemblyName*)&_->aname);
                 set => _->aname = *(NativeAssemblyNameStructHandler_16_0.Il2CppAssemblyName_16_0*)Name.AssemblyNamePointer;
             }
-            public ref Il2CppImage* Image => throw new NotSupportedException();
+            public ref Il2CppImage* Image => throw new System.NotSupportedException();
         }
     }
 }

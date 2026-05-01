@@ -29,7 +29,7 @@ internal class Il2CppParameterInfoGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Name", ["name"], addNotSupportedIfNotExist: true),
+        new ByRefWrapper("nint", "Name", ["name"], addNotSupportedIfNotExist: true),
         new ByRefWrapper("int", "Position", ["position"], addNotSupportedIfNotExist: true),
         new ByRefWrapper("uint", "Token", ["token"], addNotSupportedIfNotExist: true),
         new ByRefWrapper("Il2CppTypeStruct*", "ParameterType", ["parameter_type"]),

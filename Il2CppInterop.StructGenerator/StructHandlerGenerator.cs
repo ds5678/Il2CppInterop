@@ -23,7 +23,7 @@ internal class StructHandlerGenerator
         {
             MethodBodyBuilder = writer =>
             {
-                writer.Write("IntPtr ptr = Marshal.AllocHGlobal(");
+                writer.Write("nint ptr = Marshal.AllocHGlobal(");
                 if (SizeProviderOverride != null)
                     writer.WriteLine($"{SizeProviderOverride});");
                 else
@@ -44,7 +44,7 @@ internal class StructHandlerGenerator
             MethodBodyBuilder = writer =>
             {
                 writer.WriteLine("if (ptr == null) return null;");
-                writer.WriteLine("return new NativeStructWrapper((IntPtr)ptr);");
+                writer.WriteLine("return new NativeStructWrapper((nint)ptr);");
             }
         });
     }

@@ -144,7 +144,6 @@ public static partial class Il2CppStructWrapperGenerator
                 Namespace = $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
                 Usings =
                 {
-                    "System",
                     "System.Runtime.InteropServices"
                 },
                 Elements =

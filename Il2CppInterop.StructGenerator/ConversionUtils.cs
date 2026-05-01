@@ -66,12 +66,12 @@ internal static class ConversionUtils
         ["uint32_t"] = "uint",
         ["int64_t"] = "long",
         ["uint64_t"] = "ulong",
-        ["intptr_t"] = "IntPtr",
-        ["uintptr_t"] = "UIntPtr",
-        ["size_t"] = "IntPtr",
+        ["intptr_t"] = "nint",
+        ["uintptr_t"] = "nuint",
+        ["size_t"] = "nint",
 
         ["unsigned int"] = "uint",
-        ["unsigned long"] = "UIntPtr",
+        ["unsigned long"] = "nuint",
         ["unsigned long long"] = "ulong",
     };
 

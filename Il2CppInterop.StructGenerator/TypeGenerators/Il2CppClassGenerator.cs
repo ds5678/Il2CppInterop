@@ -32,7 +32,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         {
             writer.WriteLine("Marshal.FreeHGlobal(ptr);");
             writer.WriteLine(
-                $"throw new NotSupportedException(\"The native struct '{NativeStructGenerator.NativeStruct.Name}' has a vtable field which is not currently supported!\");");
+                $"throw new System.NotSupportedException(\"The native struct '{NativeStructGenerator.NativeStruct.Name}' has a vtable field which is not currently supported!\");");
             return;
         }
 
@@ -61,9 +61,9 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
             byvalArg.ImmediateGet += "_->byval_arg)";
             thisArg.ImmediateGet += "_->this_arg)";
             return [
-                new CodeGenProperty("IntPtr", ElementProtection.Public, "VTable")
+                new CodeGenProperty("nint", ElementProtection.Public, "VTable")
                 {
-                    ImmediateGet = $"IntPtr.Add(Pointer, sizeof({NativeStructGenerator.NativeStruct.Name}))"
+                    ImmediateGet = $"nint.Add(Pointer, sizeof({NativeStructGenerator.NativeStruct.Name}))"
                 },
                 new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "ClassPointer")
                 {
@@ -105,8 +105,8 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         new ByRefWrapper("ushort", "MethodCount", ["method_count"]),
         new ByRefWrapper("ushort", "FieldCount", ["field_count"]),
         new ByRefWrapper("Il2CppClassAttributes", "Flags", ["flags"]),
-        new ByRefWrapper("IntPtr", "Name", ["name"]),
-        new ByRefWrapper("IntPtr", "Namespace", ["namespaze"]),
+        new ByRefWrapper("nint", "Name", ["name"]),
+        new ByRefWrapper("nint", "Namespace", ["namespaze"]),
         new ByRefWrapper("Il2CppImage*", "Image", ["image"]),
         new ByRefWrapper("Il2CppClass*", "Parent", ["parent"]),
         new ByRefWrapper("Il2CppClass*", "ElementClass", ["element_class"]),

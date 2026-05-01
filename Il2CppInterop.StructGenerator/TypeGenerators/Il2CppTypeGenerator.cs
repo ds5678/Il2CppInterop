@@ -25,7 +25,7 @@ internal class Il2CppTypeGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Data", ["data"]),
+        new ByRefWrapper("nint", "Data", ["data"]),
         new ByRefWrapper("ushort", "Attrs", ["attrs"]),
         new ByRefWrapper("Il2CppTypeEnum", "Type", ["type"])
     ];

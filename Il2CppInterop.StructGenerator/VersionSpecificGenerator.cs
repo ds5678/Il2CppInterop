@@ -90,7 +90,7 @@ internal abstract class VersionSpecificGenerator
                     {
                         if (wrapper.AddNotSupported)
                         {
-                            property.ImmediateGet = "throw new NotSupportedException()";
+                            property.ImmediateGet = "throw new System.NotSupportedException()";
                             WrapperGenerator.WrapperClass.Properties.Add(property);
                         }
 

@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
@@ -8,7 +7,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         public int Size() => sizeof(Il2CppImage_24_4);
         public INativeImageStruct CreateNewStruct()
         {
-            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size());
             Il2CppImage_24_4* _ = (Il2CppImage_24_4*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -16,7 +15,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         public INativeImageStruct Wrap(Il2CppImage* ptr)
         {
             if (ptr == null) return null;
-            return new NativeStructWrapper((IntPtr)ptr);
+            return new NativeStructWrapper((nint)ptr);
         }
         internal unsafe struct Il2CppImage_24_4
         {
@@ -36,15 +35,15 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         }
         internal class NativeStructWrapper : INativeImageStruct
         {
-            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
-            public IntPtr Pointer { get; }
+            public NativeStructWrapper(nint ptr) => Pointer = ptr;
+            public nint Pointer { get; }
             private Il2CppImage_24_4* _ => (Il2CppImage_24_4*)Pointer;
             public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
             public bool HasNameNoExt => true;
             public ref Il2CppAssembly* Assembly => ref _->assembly;
             public ref byte Dynamic => ref _->dynamic;
-            public ref IntPtr Name => ref *(IntPtr*)&_->name;
-            public ref IntPtr NameNoExt => ref *(IntPtr*)&_->nameNoExt;
+            public ref nint Name => ref *(nint*)&_->name;
+            public ref nint NameNoExt => ref *(nint*)&_->nameNoExt;
         }
     }
 }

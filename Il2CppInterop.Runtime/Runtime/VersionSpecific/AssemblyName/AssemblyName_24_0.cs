@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
 {
@@ -8,7 +7,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
         public int Size() => sizeof(Il2CppAssemblyName_24_0);
         public INativeAssemblyNameStruct CreateNewStruct()
         {
-            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size());
             Il2CppAssemblyName_24_0* _ = (Il2CppAssemblyName_24_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -16,7 +15,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
         public INativeAssemblyNameStruct Wrap(Il2CppAssemblyName* ptr)
         {
             if (ptr == null) return null;
-            return new NativeStructWrapper((IntPtr)ptr);
+            return new NativeStructWrapper((nint)ptr);
         }
         internal unsafe struct Il2CppAssemblyName_24_0
         {
@@ -35,13 +34,13 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
         }
         internal class NativeStructWrapper : INativeAssemblyNameStruct
         {
-            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
-            public IntPtr Pointer { get; }
+            public NativeStructWrapper(nint ptr) => Pointer = ptr;
+            public nint Pointer { get; }
             private Il2CppAssemblyName_24_0* _ => (Il2CppAssemblyName_24_0*)Pointer;
             public Il2CppAssemblyName* AssemblyNamePointer => (Il2CppAssemblyName*)Pointer;
-            public ref IntPtr Name => ref *(IntPtr*)&_->name;
-            public ref IntPtr Culture => ref *(IntPtr*)&_->culture;
-            public ref IntPtr PublicKey => ref *(IntPtr*)&_->public_key;
+            public ref nint Name => ref *(nint*)&_->name;
+            public ref nint Culture => ref *(nint*)&_->culture;
+            public ref nint PublicKey => ref *(nint*)&_->public_key;
             public ref int Major => ref _->major;
             public ref int Minor => ref _->minor;
             public ref int Build => ref _->build;

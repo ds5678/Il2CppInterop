@@ -25,7 +25,7 @@ internal class Il2CppEventInfoGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("nint", "Name", ["name"]),
         new ByRefWrapper("Il2CppTypeStruct*", "EventType", ["eventType"]),
         new ByRefWrapper("Il2CppClass*", "Parent", ["parent"]),
         new ByRefWrapper("Il2CppMethodInfo*", "Add", ["add"]),
