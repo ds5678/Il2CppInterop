@@ -45,8 +45,8 @@ public static partial class Il2CppStructWrapperGenerator
                     $"{gen.HandlerGenerator.HandlerClass.Name}.{gen.NativeStructGenerator.NativeStruct.Name}";
                 generator.NativeStructGenerator.FieldsToImport.Remove(field);
                 if (Config.ClassToGenerator.ContainsKey(gen.NativeStructGenerator.CppClass.Name))
-                    generator.AddExtraUsing(
-                        $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{gen.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", string.Empty)}");
+                    generator.ExtraUsings.Add(
+                        $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{gen.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}");
             }
         }
 
