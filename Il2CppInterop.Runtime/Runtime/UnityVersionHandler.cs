@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using AssetRipper.Primitives;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Extensions;
@@ -246,7 +247,19 @@ public static class UnityVersionHandler
     //Parameters
     public static unsafe Il2CppParameterInfo*[] NewMethodParameterArray(int count)
     {
-        return parameterInfoStructHandler.CreateNewParameterInfoArray(count);
+        if (count == 0)
+            return [];
+
+        var elementSize = parameterInfoStructHandler.Size();
+        var totalSize = elementSize * count;
+        var startPointer = Marshal.AllocHGlobal(totalSize);
+        new Span<byte>(startPointer.ToPointer(), totalSize).Clear();
+        var result = new Il2CppParameterInfo*[count];
+        for (var i = 0; i < count; i++)
+        {
+            result[i] = (Il2CppParameterInfo*)(startPointer + i * elementSize);
+        }
+        return result;
     }
 
     public static unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* parameterInfo)
@@ -256,7 +269,8 @@ public static class UnityVersionHandler
 
     public static unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* parameterInfo, int index)
     {
-        return parameterInfoStructHandler.Wrap(parameterInfo, index);
+        var address = (nint)parameterInfo + index * parameterInfoStructHandler.Size();
+        return parameterInfoStructHandler.Wrap((Il2CppParameterInfo*)address);
     }
 
     public static bool ParameterInfoHasNamePosToken()
