@@ -25,7 +25,7 @@ internal class Il2CppPropertyInfoGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("nint", "Name", ["name"]),
         new ByRefWrapper("Il2CppClass*", "Parent", ["parent"]),
         new ByRefWrapper("Il2CppMethodInfo*", "Get", ["get"]),
         new ByRefWrapper("Il2CppMethodInfo*", "Set", ["set"]),

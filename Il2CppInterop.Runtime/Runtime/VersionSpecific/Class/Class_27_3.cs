@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
@@ -9,7 +8,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
         public int Size() => sizeof(Il2CppClass_27_3);
         public INativeClassStruct CreateNewStruct(int vTableSlots)
         {
-            IntPtr ptr = Marshal.AllocHGlobal(Size() + sizeof(VirtualInvokeData) * vTableSlots);
+            nint ptr = Marshal.AllocHGlobal(Size() + sizeof(VirtualInvokeData) * vTableSlots);
             Il2CppClass_27_3* _ = (Il2CppClass_27_3*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,7 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
         public INativeClassStruct Wrap(Il2CppClass* ptr)
         {
             if (ptr == null) return null;
-            return new NativeStructWrapper((IntPtr)ptr);
+            return new NativeStructWrapper((nint)ptr);
         }
         internal unsafe struct Il2CppClass_27_3
         {
@@ -113,12 +112,12 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
         }
         internal class NativeStructWrapper : INativeClassStruct
         {
-            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
+            public NativeStructWrapper(nint ptr) => Pointer = ptr;
             private static int _bitfield0offset = Marshal.OffsetOf<Il2CppClass_27_3>(nameof(Il2CppClass_27_3._bitfield0)).ToInt32();
             private static int _bitfield1offset = Marshal.OffsetOf<Il2CppClass_27_3>(nameof(Il2CppClass_27_3._bitfield1)).ToInt32();
-            public IntPtr Pointer { get; }
+            public nint Pointer { get; }
             private Il2CppClass_27_3* _ => (Il2CppClass_27_3*)Pointer;
-            public IntPtr VTable => IntPtr.Add(Pointer, sizeof(Il2CppClass_27_3));
+            public nint VTable => nint.Add(Pointer, sizeof(Il2CppClass_27_3));
             public Il2CppClass* ClassPointer => (Il2CppClass*)Pointer;
             public INativeTypeStruct ByValArg => UnityVersionHandler.Wrap((Il2CppTypeStruct*)&_->byval_arg);
             public INativeTypeStruct ThisArg => UnityVersionHandler.Wrap((Il2CppTypeStruct*)&_->this_arg);
@@ -132,8 +131,8 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public ref ushort MethodCount => ref _->method_count;
             public ref ushort FieldCount => ref _->field_count;
             public ref Il2CppClassAttributes Flags => ref *(Il2CppClassAttributes*)&_->flags;
-            public ref IntPtr Name => ref *(IntPtr*)&_->name;
-            public ref IntPtr Namespace => ref *(IntPtr*)&_->namespaze;
+            public ref nint Name => ref *(nint*)&_->name;
+            public ref nint Namespace => ref *(nint*)&_->namespaze;
             public ref Il2CppImage* Image => ref _->image;
             public ref Il2CppClass* Parent => ref _->parent;
             public ref Il2CppClass* ElementClass => ref _->element_class;

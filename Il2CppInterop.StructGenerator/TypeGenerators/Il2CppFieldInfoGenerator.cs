@@ -25,7 +25,7 @@ internal class Il2CppFieldInfoGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("nint", "Name", ["name"]),
         new ByRefWrapper("Il2CppTypeStruct*", "Type", ["type"]),
         new ByRefWrapper("Il2CppClass*", "Parent", ["parent"]),
         new ByRefWrapper("int", "Offset", ["offset"])

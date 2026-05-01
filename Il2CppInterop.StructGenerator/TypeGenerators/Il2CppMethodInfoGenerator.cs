@@ -25,12 +25,12 @@ internal class Il2CppMethodInfoGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("nint", "Name", ["name"]),
         new ByRefWrapper("ushort", "Slot", ["slot"]),
-        new ByRefWrapper("IntPtr", "MethodPointer", ["methodPointer", "method"]),
-        new ByRefWrapper("IntPtr", "VirtualMethodPointer", ["virtualMethodPointer", "methodPointer", "method"]),
+        new ByRefWrapper("nint", "MethodPointer", ["methodPointer", "method"]),
+        new ByRefWrapper("nint", "VirtualMethodPointer", ["virtualMethodPointer", "methodPointer", "method"]),
         new ByRefWrapper("Il2CppClass*", "Class", ["declaring_type", "klass"]),
-        new ByRefWrapper("IntPtr", "InvokerMethod", ["invoker_method"]),
+        new ByRefWrapper("nint", "InvokerMethod", ["invoker_method"]),
         new ByRefWrapper("Il2CppTypeStruct*", "ReturnType", ["return_type"]),
         new ByRefWrapper("Il2CppMethodFlags", "Flags", ["flags"]),
         new ByRefWrapper("byte", "ParametersCount", ["parameters_count"]),

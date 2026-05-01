@@ -32,8 +32,8 @@ internal class Il2CppImageGenerator : VersionSpecificGenerator
     [
         new ByRefWrapper("Il2CppAssembly*", "Assembly", ["assembly"], addNotSupportedIfNotExist: true),
         new ByRefWrapper("byte", "Dynamic", ["dynamic"], makeDummyIfNotExist: true),
-        new ByRefWrapper("IntPtr", "Name", ["name"]),
-        new ByRefWrapper("IntPtr", "NameNoExt", ["nameNoExt"], addNotSupportedIfNotExist: true)
+        new ByRefWrapper("nint", "Name", ["name"]),
+        new ByRefWrapper("nint", "NameNoExt", ["nameNoExt"], addNotSupportedIfNotExist: true)
     ];
 
     protected override Action<IndentedTextWriter>? CreateNewExtraBody => writer =>

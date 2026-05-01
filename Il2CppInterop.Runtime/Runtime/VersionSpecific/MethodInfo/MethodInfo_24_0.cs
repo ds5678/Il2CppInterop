@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
@@ -8,7 +7,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
         public int Size() => sizeof(Il2CppMethodInfo_24_0);
         public INativeMethodInfoStruct CreateNewStruct()
         {
-            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size());
             Il2CppMethodInfo_24_0* _ = (Il2CppMethodInfo_24_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -16,7 +15,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
         public INativeMethodInfoStruct Wrap(Il2CppMethodInfo* ptr)
         {
             if (ptr == null) return null;
-            return new NativeStructWrapper((IntPtr)ptr);
+            return new NativeStructWrapper((nint)ptr);
         }
         internal unsafe struct Il2CppMethodInfo_24_0
         {
@@ -47,17 +46,17 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
         }
         internal class NativeStructWrapper : INativeMethodInfoStruct
         {
-            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
+            public NativeStructWrapper(nint ptr) => Pointer = ptr;
             private static int _bitfield0offset = Marshal.OffsetOf<Il2CppMethodInfo_24_0>(nameof(Il2CppMethodInfo_24_0._bitfield0)).ToInt32();
-            public IntPtr Pointer { get; }
+            public nint Pointer { get; }
             private Il2CppMethodInfo_24_0* _ => (Il2CppMethodInfo_24_0*)Pointer;
             public Il2CppMethodInfo* MethodInfoPointer => (Il2CppMethodInfo*)Pointer;
-            public ref IntPtr Name => ref *(IntPtr*)&_->name;
+            public ref nint Name => ref *(nint*)&_->name;
             public ref ushort Slot => ref _->slot;
-            public ref IntPtr MethodPointer => ref *(IntPtr*)&_->methodPointer;
-            public ref IntPtr VirtualMethodPointer => ref *(IntPtr*)&_->methodPointer;
+            public ref nint MethodPointer => ref *(nint*)&_->methodPointer;
+            public ref nint VirtualMethodPointer => ref *(nint*)&_->methodPointer;
             public ref Il2CppClass* Class => ref _->klass;
-            public ref IntPtr InvokerMethod => ref *(IntPtr*)&_->invoker_method;
+            public ref nint InvokerMethod => ref *(nint*)&_->invoker_method;
             public ref Il2CppTypeStruct* ReturnType => ref _->return_type;
             public ref Il2CppMethodFlags Flags => ref *(Il2CppMethodFlags*)&_->flags;
             public ref byte ParametersCount => ref _->parameters_count;

@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
@@ -8,7 +7,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         public int Size() => sizeof(Il2CppImage_24_0);
         public INativeImageStruct CreateNewStruct()
         {
-            IntPtr ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size());
             Il2CppImage_24_0* _ = (Il2CppImage_24_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -16,7 +15,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         public INativeImageStruct Wrap(Il2CppImage* ptr)
         {
             if (ptr == null) return null;
-            return new NativeStructWrapper((IntPtr)ptr);
+            return new NativeStructWrapper((nint)ptr);
         }
         internal unsafe struct Il2CppImage_24_0
         {
@@ -32,16 +31,16 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         }
         internal class NativeStructWrapper : INativeImageStruct
         {
-            public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
+            public NativeStructWrapper(nint ptr) => Pointer = ptr;
             private byte _dynamicDummy;
-            public IntPtr Pointer { get; }
+            public nint Pointer { get; }
             private Il2CppImage_24_0* _ => (Il2CppImage_24_0*)Pointer;
             public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
             public bool HasNameNoExt => false;
-            public ref Il2CppAssembly* Assembly => throw new NotSupportedException();
+            public ref Il2CppAssembly* Assembly => throw new System.NotSupportedException();
             public ref byte Dynamic => ref _dynamicDummy;
-            public ref IntPtr Name => ref *(IntPtr*)&_->name;
-            public ref IntPtr NameNoExt => throw new NotSupportedException();
+            public ref nint Name => ref *(nint*)&_->name;
+            public ref nint NameNoExt => throw new System.NotSupportedException();
         }
     }
 }

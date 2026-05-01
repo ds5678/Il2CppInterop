@@ -25,9 +25,9 @@ internal class Il2CppAssemblyNameGenerator : VersionSpecificGenerator
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
     [
-        new ByRefWrapper("IntPtr", "Name", ["name", "nameIndex"]),
-        new ByRefWrapper("IntPtr", "Culture", ["culture", "cultureIndex"]),
-        new ByRefWrapper("IntPtr", "PublicKey", ["public_key", "publicKeyIndex"]),
+        new ByRefWrapper("nint", "Name", ["name", "nameIndex"]),
+        new ByRefWrapper("nint", "Culture", ["culture", "cultureIndex"]),
+        new ByRefWrapper("nint", "PublicKey", ["public_key", "publicKeyIndex"]),
         new ByRefWrapper("int", "Major", ["major"]),
         new ByRefWrapper("int", "Minor", ["minor"]),
         new ByRefWrapper("int", "Build", ["build"]),
