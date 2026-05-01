@@ -11,38 +11,13 @@ internal class NativeParameterInfoStructHandler_24_1 : INativeParameterInfoStruc
         return sizeof(Il2CppParameterInfo_24_1);
     }
 
-    public unsafe Il2CppParameterInfo*[] CreateNewParameterInfoArray(int paramCount)
-    {
-        var ptr = (Il2CppParameterInfo_24_1*)Marshal.AllocHGlobal(Marshal.SizeOf<Il2CppParameterInfo_24_1>() *
-                                                                   paramCount);
-        var res = new Il2CppParameterInfo*[paramCount];
-        for (var i = 0; i < paramCount; i++)
-        {
-            ptr[i] = default;
-            res[i] = (Il2CppParameterInfo*)&ptr[i];
-        }
-
-        return res;
-    }
-
     public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoPointer)
     {
         if ((IntPtr)paramInfoPointer == IntPtr.Zero) return null;
         return new NativeParameterInfoStructWrapper((IntPtr)paramInfoPointer);
     }
 
-    public unsafe INativeParameterInfoStruct? Wrap(Il2CppParameterInfo* paramInfoListBegin, int index)
-    {
-        if ((IntPtr)paramInfoListBegin == IntPtr.Zero) return null;
-        return new NativeParameterInfoStructWrapper((IntPtr)paramInfoListBegin +
-                                                    Marshal.SizeOf<Il2CppParameterInfo_24_1>() * index);
-    }
-
     public bool HasNamePosToken => true;
-
-#if DEBUG
-    public string GetName() => "NativeParameterInfoStructHandler_24_1";
-#endif
 
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct Il2CppParameterInfo_24_1
