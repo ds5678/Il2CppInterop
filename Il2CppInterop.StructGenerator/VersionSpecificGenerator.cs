@@ -32,6 +32,7 @@ internal abstract class VersionSpecificGenerator
         HandlerGenerator.HandlerClass.NestedElements.Add(WrapperGenerator.WrapperClass);
     }
 
+    public abstract string CppClassName { get; }
     protected abstract string HandlerName { get; }
     protected abstract string HandlerInterface { get; }
     protected abstract string NativeInterface { get; }

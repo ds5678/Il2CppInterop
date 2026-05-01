@@ -17,17 +17,12 @@ public static partial class Il2CppStructWrapperGenerator
             return null;
         if (Config.ClassRenames.TryGetValue(@class.Name, out var rename))
             @class.Name = rename;
-        if (!Config.ClassToGenerator.TryGetValue(@class.Name, out var generatorType))
+        if (!Config.ClassNames.Contains(@class.Name))
             return null;
-        if (!typeof(VersionSpecificGenerator).IsAssignableFrom(generatorType))
-            throw new Exception($"{@class.Name} has an invalid generator");
-
         var existingVersionGeneratorCount =
-            SGenerators[metadataVersion].Count(x => x.GetType() == generatorType);
-        var existingGenerators =
-            SGenerators.Values.SelectMany(x => x).Where(x => x.GetType() == generatorType).ToList();
-        var generator = (VersionSpecificGenerator)Activator.CreateInstance(generatorType,
-            $"{metadataVersion}_{existingVersionGeneratorCount}", @class)!;
+            SGenerators[metadataVersion].Count(x => x.CppClassName == @class.Name);
+        if (!Config.TryCreateGenerator(@class, $"{metadataVersion}_{existingVersionGeneratorCount}", out var generator))
+            return null;
 
         foreach (var field in generator.NativeStructGenerator.FieldsToImport.ToList())
         {
@@ -43,19 +38,22 @@ public static partial class Il2CppStructWrapperGenerator
                 field.FieldType =
                     $"{gen.HandlerGenerator.HandlerClass.Name}.{gen.NativeStructGenerator.NativeStruct.Name}";
                 generator.NativeStructGenerator.FieldsToImport.Remove(field);
-                if (Config.ClassToGenerator.ContainsKey(gen.NativeStructGenerator.CppClass.Name))
+                if (Config.ClassNames.Contains(gen.NativeStructGenerator.CppClass.Name))
                     generator.ExtraUsings.Add(
                         $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{gen.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}");
             }
         }
-
         generator.SetupElements();
+
+        var existingGenerators = SGenerators.Values.SelectMany(x => x).Where(x => x.CppClassName == generator.CppClassName);
         foreach (var existingGenerator in existingGenerators)
+        {
             if (existingGenerator.NativeStructGenerator.NativeStruct == generator.NativeStructGenerator.NativeStruct)
             {
                 existingGenerator.ApplicableVersions.Add(unityVersion);
                 return existingGenerator;
             }
+        }
 
         generator.ApplicableVersions.Add(unityVersion);
         SGenerators[metadataVersion].Add(generator);

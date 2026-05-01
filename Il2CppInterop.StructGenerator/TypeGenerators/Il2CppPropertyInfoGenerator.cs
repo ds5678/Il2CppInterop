@@ -9,6 +9,7 @@ internal class Il2CppPropertyInfoGenerator : VersionSpecificGenerator
     {
     }
 
+    public override string CppClassName => "Il2CppPropertyInfo";
     protected override string HandlerName => "NativePropertyInfoStructHandler";
     protected override string HandlerInterface => "INativePropertyInfoStructHandler";
     protected override string NativeInterface => "INativePropertyInfoStruct";
