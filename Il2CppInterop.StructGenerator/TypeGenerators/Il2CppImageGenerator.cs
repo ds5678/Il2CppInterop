@@ -6,8 +6,7 @@ namespace Il2CppInterop.StructGenerator.TypeGenerators;
 
 internal class Il2CppImageGenerator : VersionSpecificGenerator
 {
-    public Il2CppImageGenerator(string metadataSuffix, CppClass nativeClass,
-        Func<string, CppClass>? dependencyResolver = null) : base(metadataSuffix, nativeClass, dependencyResolver)
+    public Il2CppImageGenerator(string metadataSuffix, CppClass nativeClass) : base(metadataSuffix, nativeClass)
     {
     }
 

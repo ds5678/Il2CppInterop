@@ -11,8 +11,7 @@ public static partial class Il2CppStructWrapperGenerator
     private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = [];
     internal static ILogger? Logger { get; set; }
 
-    private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
-        UnityVersion unityVersion, CppClass[] classes)
+    private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion, UnityVersion unityVersion)
     {
         if (Config.ClassForcedIgnores.Contains(@class.Name))
             return null;
@@ -28,8 +27,7 @@ public static partial class Il2CppStructWrapperGenerator
         var existingGenerators =
             SGenerators.Values.SelectMany(x => x).Where(x => x.GetType() == generatorType).ToList();
         var generator = (VersionSpecificGenerator)Activator.CreateInstance(generatorType,
-            $"{metadataVersion}_{existingVersionGeneratorCount}", @class,
-            new Func<string, CppClass>(dependencyName => { return classes.Single(x => x.Name == dependencyName); }))!;
+            $"{metadataVersion}_{existingVersionGeneratorCount}", @class)!;
 
         foreach (var field in generator.NativeStructGenerator.FieldsToImport.ToList())
         {
@@ -39,8 +37,9 @@ public static partial class Il2CppStructWrapperGenerator
 
             if (typeClass != null)
             {
-                var gen = VisitClass(typeClass, metadataVersion, unityVersion, classes);
-                if (gen == null) continue;
+                var gen = VisitClass(typeClass, metadataVersion, unityVersion);
+                if (gen == null)
+                    continue;
                 field.FieldType =
                     $"{gen.HandlerGenerator.HandlerClass.Name}.{gen.NativeStructGenerator.NativeStruct.Name}";
                 generator.NativeStructGenerator.FieldsToImport.Remove(field);
@@ -106,10 +105,9 @@ public static partial class Il2CppStructWrapperGenerator
             var actualVersion = version.Major == previousVersion.Major && version.Minor == previousVersion.Minor && version.Build == previousVersion.Build
                 ? version
                 : new UnityVersion(version.Major, version.Minor, version.Build);
-            var classes = compilation.Classes.ToArray();
-            foreach (var @class in classes)
+            foreach (var @class in compilation.Classes)
             {
-                VisitClass(@class, metadataVersion, actualVersion, classes);
+                VisitClass(@class, metadataVersion, actualVersion);
             }
             previousVersion = version;
         }

@@ -6,8 +6,7 @@ namespace Il2CppInterop.StructGenerator.TypeGenerators;
 
 internal class Il2CppClassGenerator : VersionSpecificGenerator
 {
-    public Il2CppClassGenerator(string metadataSuffix, CppClass nativeClass,
-        Func<string, CppClass>? dependencyResolver = null) : base(metadataSuffix, nativeClass, dependencyResolver)
+    public Il2CppClassGenerator(string metadataSuffix, CppClass nativeClass) : base(metadataSuffix, nativeClass)
     {
         var lastField = NativeStructGenerator.NativeStruct.Fields[^1];
         if (lastField.Name == "vtable")
