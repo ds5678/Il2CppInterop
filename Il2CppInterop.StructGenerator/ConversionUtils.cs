@@ -76,12 +76,12 @@ internal static class ConversionUtils
     };
 
     private static readonly string[] SInvalidNames =
-    {
+    [
         "object",
         "class",
         "struct",
         "base"
-    };
+    ];
 
     public static string GetName(CppField field)
     {

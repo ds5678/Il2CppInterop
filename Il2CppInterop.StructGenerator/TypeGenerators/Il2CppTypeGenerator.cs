@@ -14,26 +14,27 @@ internal class Il2CppTypeGenerator : VersionSpecificGenerator
     protected override string HandlerInterface => "INativeTypeStructHandler";
     protected override string NativeInterface => "INativeTypeStruct";
     protected override string NativeStub => "Il2CppTypeStruct";
-    protected override List<CodeGenField>? WrapperFields => null;
 
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "TypePointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" }
-    };
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        }
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("IntPtr", "Data", new[] { "data" }),
-        new ByRefWrapper("ushort", "Attrs", new[] { "attrs" }),
-        new ByRefWrapper("Il2CppTypeEnum", "Type", new[] { "type" })
-    };
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("IntPtr", "Data", ["data"]),
+        new ByRefWrapper("ushort", "Attrs", ["attrs"]),
+        new ByRefWrapper("Il2CppTypeEnum", "Type", ["type"])
+    ];
 
-    protected override List<BitfieldAccessor>? BitfieldAccessors => new()
-    {
+    protected override IReadOnlyList<BitfieldAccessor>? BitfieldAccessors =>
+    [
         new BitfieldAccessor("ByRef", "byref"),
         new BitfieldAccessor("Pinned", "pinned"),
         // maybe throw if not exist
         new BitfieldAccessor("ValueType", "valuetype", defaultGetter: "false")
-    };
+    ];
 }

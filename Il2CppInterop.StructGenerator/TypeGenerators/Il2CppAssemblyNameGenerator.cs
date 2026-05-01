@@ -15,25 +15,21 @@ internal class Il2CppAssemblyNameGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativeAssemblyNameStruct";
     protected override string NativeStub => "Il2CppAssemblyName";
 
-    protected override List<CodeGenField>? WrapperFields => null;
-
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "AssemblyNamePointer")
         { ImmediateGet = $"({NativeStub}*)Pointer" }
-    };
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("IntPtr", "Name", new[] { "name", "nameIndex" }),
-        new ByRefWrapper("IntPtr", "Culture", new[] { "culture", "cultureIndex" }),
-        new ByRefWrapper("IntPtr", "PublicKey", new[] { "public_key", "publicKeyIndex" }),
-        new ByRefWrapper("int", "Major", new[] { "major" }),
-        new ByRefWrapper("int", "Minor", new[] { "minor" }),
-        new ByRefWrapper("int", "Build", new[] { "build" }),
-        new ByRefWrapper("int", "Revision", new[] { "revision" }),
-        new ByRefWrapper("ulong", "PublicKeyToken", new[] { "public_key_token", "publicKeyToken" })
-    };
-
-    protected override List<BitfieldAccessor>? BitfieldAccessors => null;
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("IntPtr", "Name", ["name", "nameIndex"]),
+        new ByRefWrapper("IntPtr", "Culture", ["culture", "cultureIndex"]),
+        new ByRefWrapper("IntPtr", "PublicKey", ["public_key", "publicKeyIndex"]),
+        new ByRefWrapper("int", "Major", ["major"]),
+        new ByRefWrapper("int", "Minor", ["minor"]),
+        new ByRefWrapper("int", "Build", ["build"]),
+        new ByRefWrapper("int", "Revision", ["revision"]),
+        new ByRefWrapper("ulong", "PublicKeyToken", ["public_key_token", "publicKeyToken"])
+    ];
 }

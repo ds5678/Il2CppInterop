@@ -11,7 +11,7 @@ internal class CodeGenMethod : CodeGenElement
 
     public override string Type { get; }
 
-    public List<CodeGenParameter> Parameters { get; } = new();
+    public List<CodeGenParameter> Parameters { get; } = [];
     public Action<IndentedTextWriter>? MethodBodyBuilder { get; set; } = null;
     public string? ImmediateReturn { get; set; } = null;
 

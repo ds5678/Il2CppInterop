@@ -9,12 +9,12 @@ internal class CodeGenClass : CodeGenElement
     }
 
     public override string Type => "class";
-    public List<string> InterfaceNames { get; } = new();
-    public List<string> Attributes { get; } = new();
-    public List<CodeGenMethod> Methods { get; } = new();
-    public List<CodeGenField> Fields { get; } = new();
-    public List<CodeGenProperty> Properties { get; } = new();
-    public List<CodeGenElement> NestedElements { get; } = new();
+    public List<string> InterfaceNames { get; } = [];
+    public List<string> Attributes { get; } = [];
+    public List<CodeGenMethod> Methods { get; } = [];
+    public List<CodeGenField> Fields { get; } = [];
+    public List<CodeGenProperty> Properties { get; } = [];
+    public List<CodeGenElement> NestedElements { get; } = [];
 
     public override void Build(IndentedTextWriter writer)
     {

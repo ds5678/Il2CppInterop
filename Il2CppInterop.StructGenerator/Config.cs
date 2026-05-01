@@ -8,11 +8,11 @@ internal static class Config
     /// NOTE: Ignores are handled BEFORE renames
     /// </summary>
     public static readonly string[] ClassForcedIgnores =
-    {
+    [
         // Ignore the reflection structs
         "Il2CppPropertyInfo",
         "Il2CppMethodInfo"
-    };
+    ];
 
     public static readonly Dictionary<string, string> ClassRenames = new()
     {

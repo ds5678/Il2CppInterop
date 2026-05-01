@@ -15,33 +15,33 @@ internal class Il2CppMethodInfoGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativeMethodInfoStruct";
     protected override string NativeStub => "Il2CppMethodInfo";
 
-    protected override List<CodeGenField>? WrapperFields => null;
-
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "MethodInfoPointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" }
-    };
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        }
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("IntPtr", "Name", new[] { "name" }),
-        new ByRefWrapper("ushort", "Slot", new[] { "slot" }),
-        new ByRefWrapper("IntPtr", "MethodPointer", new[] { "methodPointer", "method" }),
-        new ByRefWrapper("IntPtr", "VirtualMethodPointer", new[] { "virtualMethodPointer", "methodPointer", "method" }),
-        new ByRefWrapper("Il2CppClass*", "Class", new[] { "declaring_type", "klass" }),
-        new ByRefWrapper("IntPtr", "InvokerMethod", new[] { "invoker_method" }),
-        new ByRefWrapper("Il2CppTypeStruct*", "ReturnType", new[] { "return_type" }),
-        new ByRefWrapper("Il2CppMethodFlags", "Flags", new[] { "flags" }),
-        new ByRefWrapper("byte", "ParametersCount", new[] { "parameters_count" }),
-        new ByRefWrapper("Il2CppParameterInfo*", "Parameters", new[] { "parameters" }),
-        new ByRefWrapper("uint", "Token", new[] { "token" }, addNotSupportedIfNotExist: true)
-    };
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("ushort", "Slot", ["slot"]),
+        new ByRefWrapper("IntPtr", "MethodPointer", ["methodPointer", "method"]),
+        new ByRefWrapper("IntPtr", "VirtualMethodPointer", ["virtualMethodPointer", "methodPointer", "method"]),
+        new ByRefWrapper("Il2CppClass*", "Class", ["declaring_type", "klass"]),
+        new ByRefWrapper("IntPtr", "InvokerMethod", ["invoker_method"]),
+        new ByRefWrapper("Il2CppTypeStruct*", "ReturnType", ["return_type"]),
+        new ByRefWrapper("Il2CppMethodFlags", "Flags", ["flags"]),
+        new ByRefWrapper("byte", "ParametersCount", ["parameters_count"]),
+        new ByRefWrapper("Il2CppParameterInfo*", "Parameters", ["parameters"]),
+        new ByRefWrapper("uint", "Token", ["token"], addNotSupportedIfNotExist: true)
+    ];
 
-    protected override List<BitfieldAccessor>? BitfieldAccessors => new()
-    {
+    protected override IReadOnlyList<BitfieldAccessor>? BitfieldAccessors =>
+    [
         new BitfieldAccessor("IsGeneric", "is_generic"),
         new BitfieldAccessor("IsInflated", "is_inflated"),
         new BitfieldAccessor("IsMarshalledFromNative", "is_marshaled_from_native", defaultGetter: "false")
-    };
+    ];
 }

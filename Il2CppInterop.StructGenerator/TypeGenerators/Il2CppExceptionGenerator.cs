@@ -15,23 +15,19 @@ internal class Il2CppExceptionGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativeExceptionStruct";
     protected override string NativeStub => "Il2CppException";
 
-    protected override List<CodeGenField>? WrapperFields => null;
-
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "ExceptionPointer")
         { ImmediateGet = $"({NativeStub}*)Pointer" }
-    };
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("Il2CppException*", "InnerException", new[] { "inner_ex" }),
-        new ByRefWrapper("Il2CppString*", "Message", new[] { "message" }),
-        new ByRefWrapper("Il2CppString*", "HelpLink", new[] { "_helpURL", "help_link" }),
-        new ByRefWrapper("Il2CppString*", "ClassName", new[] { "className", "class_name" }),
-        new ByRefWrapper("Il2CppString*", "StackTrace", new[] { "stack_trace" }),
-        new ByRefWrapper("Il2CppString*", "RemoteStackTrace", new[] { "remote_stack_trace" })
-    };
-
-    protected override List<BitfieldAccessor>? BitfieldAccessors => null;
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("Il2CppException*", "InnerException", ["inner_ex"]),
+        new ByRefWrapper("Il2CppString*", "Message", ["message"]),
+        new ByRefWrapper("Il2CppString*", "HelpLink", ["_helpURL", "help_link"]),
+        new ByRefWrapper("Il2CppString*", "ClassName", ["className", "class_name"]),
+        new ByRefWrapper("Il2CppString*", "StackTrace", ["stack_trace"]),
+        new ByRefWrapper("Il2CppString*", "RemoteStackTrace", ["remote_stack_trace"])
+    ];
 }

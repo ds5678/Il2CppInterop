@@ -1,5 +1,4 @@
 ﻿using System.CodeDom.Compiler;
-using System.Text;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 
@@ -17,25 +16,25 @@ internal class Il2CppImageGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativeImageStruct";
     protected override string NativeStub => "Il2CppImage";
 
-    protected override List<CodeGenField>? WrapperFields => null;
-
-    protected override List<CodeGenProperty>? WrapperProperties => new()
-    {
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
+    [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "ImagePointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" },
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        },
         new CodeGenProperty("bool", ElementProtection.Public, "HasNameNoExt")
-        { ImmediateGet = GetNativeField("nameNoExt") is not null ? "true" : "false" }
-    };
+        {
+            ImmediateGet = GetNativeField("nameNoExt") is not null ? "true" : "false"
+        }
+    ];
 
-    protected override List<ByRefWrapper>? ByRefWrappers => new()
-    {
-        new ByRefWrapper("Il2CppAssembly*", "Assembly", new[] { "assembly" }, addNotSupportedIfNotExist: true),
-        new ByRefWrapper("byte", "Dynamic", new[] { "dynamic" }, makeDummyIfNotExist: true),
-        new ByRefWrapper("IntPtr", "Name", new[] { "name" }),
-        new ByRefWrapper("IntPtr", "NameNoExt", new[] { "nameNoExt" }, addNotSupportedIfNotExist: true)
-    };
-
-    protected override List<BitfieldAccessor>? BitfieldAccessors => null;
+    protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
+    [
+        new ByRefWrapper("Il2CppAssembly*", "Assembly", ["assembly"], addNotSupportedIfNotExist: true),
+        new ByRefWrapper("byte", "Dynamic", ["dynamic"], makeDummyIfNotExist: true),
+        new ByRefWrapper("IntPtr", "Name", ["name"]),
+        new ByRefWrapper("IntPtr", "NameNoExt", ["nameNoExt"], addNotSupportedIfNotExist: true)
+    ];
 
     protected override Action<IndentedTextWriter>? CreateNewExtraBody => writer =>
     {
