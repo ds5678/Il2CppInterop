@@ -17,6 +17,7 @@ internal static class Config
         ["TypeInfo"] = "Il2CppClass",
         ["FieldInfo"] = "Il2CppFieldInfo",
         ["EventInfo"] = "Il2CppEventInfo",
+        ["ParameterInfo"] = "Il2CppParameterInfo",
         ["PropertyInfo"] = "Il2CppPropertyInfo",
         ["MethodInfo"] = "Il2CppMethodInfo"
     };
@@ -31,13 +32,8 @@ internal static class Config
         ["Il2CppImage"] = typeof(Il2CppImageGenerator),
         ["Il2CppEventInfo"] = typeof(Il2CppEventInfoGenerator),
         ["Il2CppException"] = typeof(Il2CppExceptionGenerator),
+        ["Il2CppParameterInfo"] = typeof(Il2CppParameterInfoGenerator),
         ["Il2CppPropertyInfo"] = typeof(Il2CppPropertyInfoGenerator),
         ["Il2CppMethodInfo"] = typeof(Il2CppMethodInfoGenerator)
-    };
-
-    public static readonly string[] MetadataVersionContainers =
-    {
-        Path.Combine("vm", "MetadataCache.cpp"),
-        Path.Combine("vm", "GlobalMetadata.cpp")
     };
 }

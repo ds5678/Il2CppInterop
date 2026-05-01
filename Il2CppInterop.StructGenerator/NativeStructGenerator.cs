@@ -1,4 +1,5 @@
-﻿using CppAst;
+﻿using System.Diagnostics;
+using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 using Il2CppInterop.StructGenerator.CodeGen.Enums;
 using Il2CppInterop.StructGenerator.Utilities;
@@ -69,15 +70,7 @@ internal class NativeStructGenerator
             bitfieldNextBit = 0;
         }
 
-        foreach (var baseType in CppClass.BaseTypes)
-        {
-            var normalizedType = ConversionUtils.CppTypeToCSharpName(baseType.Type, out var needsImport);
-            CodeGenField field = new(normalizedType, ElementProtection.Public,
-                ConversionUtils.NormalizeName(baseType.Type.GetDisplayName().Replace("Il2Cpp", string.Empty)
-                    .ToLower()));
-            if (needsImport) FieldsToImport.Add(field);
-            NativeStruct.Fields.Add(field);
-        }
+        Debug.Assert(CppClass.BaseTypes.Count == 0);
 
         foreach (var field in CppClass.Fields)
         {
@@ -93,7 +86,7 @@ internal class NativeStructGenerator
             {
                 FinalizeBitfield();
                 CodeGenField codeGenField = new(normalizedType, ElementProtection.Public,
-                    ConversionUtils.NormalizeName(field.Name));
+                    ConversionUtils.GetName(field));
                 if (needsImport) FieldsToImport.Add(codeGenField);
                 NativeStruct.Fields.Add(codeGenField);
             }

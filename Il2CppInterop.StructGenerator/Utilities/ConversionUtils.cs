@@ -58,13 +58,21 @@ internal static class ConversionUtils
         ["InteropDataIndex"] = "int",
 
         ["char"] = "byte",
+        ["int8_t"] = "sbyte",
         ["uint8_t"] = "byte",
+        ["int16_t"] = "short",
         ["uint16_t"] = "ushort",
         ["int32_t"] = "int",
         ["uint32_t"] = "uint",
-        ["unsigned int"] = "uint",
+        ["int64_t"] = "long",
         ["uint64_t"] = "ulong",
-        ["size_t"] = "IntPtr"
+        ["intptr_t"] = "IntPtr",
+        ["uintptr_t"] = "UIntPtr",
+        ["size_t"] = "IntPtr",
+
+        ["unsigned int"] = "uint",
+        ["unsigned long"] = "UIntPtr",
+        ["unsigned long long"] = "ulong",
     };
 
     private static readonly string[] SInvalidNames =
@@ -75,9 +83,33 @@ internal static class ConversionUtils
         "base"
     };
 
-    public static string NormalizeName(string name)
+    public static string GetName(CppField field)
     {
-        return SInvalidNames.Contains(name) ? $"_{name}" : name;
+        var name = field.Name;
+        if (SInvalidNames.Contains(name))
+        {
+            return $"_{name}";
+        }
+        else if (name.Length == 0)
+        {
+            if (field.Parent is CppClass { Name: "Il2CppMethodInfo" } && field.Type is CppClass { ClassKind: CppClassKind.Union } unionType)
+            {
+                // IlCppMethodInfo has two unnamed union fields
+                if (unionType.Fields.Any(f => f.Name is "rgctx_data"))
+                {
+                    return "runtime_data";
+                }
+                if (unionType.Fields.Any(f => f.Name is "genericMethod"))
+                {
+                    return "generic_data";
+                }
+            }
+            throw new ArgumentException("Field has no name and is not part of a known union", nameof(field));
+        }
+        else
+        {
+            return name;
+        }
     }
 
     public static string CppTypeToCSharpName(CppType type, out bool needsImport)
@@ -86,10 +118,13 @@ internal static class ConversionUtils
 
         if (type is CppArrayType arrayType)
         {
-            if (arrayType.SizeOf == 0) return "";
-            if (arrayType.SizeOf == 4) return "uint";
-            if (arrayType.SizeOf == 8) return "ulong";
-            return $"{CppTypeToCSharpName(arrayType.ElementType, out needsImport)}*";
+            return arrayType.SizeOf switch
+            {
+                0 => "",
+                4 => "uint",
+                8 => "ulong",
+                _ => $"{CppTypeToCSharpName(arrayType.ElementType, out needsImport)}*"
+            };
         }
 
         if (type is CppClass fieldType && fieldType.ClassKind == CppClassKind.Union) return "void*";
@@ -100,11 +135,11 @@ internal static class ConversionUtils
             needsImport = true;
 
         string ptrs = new('*', ptrCount);
-        oldTypeName = oldTypeName.Replace("*", string.Empty);
-        if (STypeRenames.ContainsKey(oldTypeName))
-            oldTypeName = STypeRenames[oldTypeName];
+        oldTypeName = oldTypeName.Replace("*", string.Empty).Trim();
+        if (STypeRenames.TryGetValue(oldTypeName, out var renamed))
+            oldTypeName = renamed;
         return STypeConversions.TryGetValue(oldTypeName, out var converted)
-            ? $"{converted!}{ptrs}"
+            ? $"{converted}{ptrs}"
             : $"{oldTypeName}{ptrs}";
     }
 }

@@ -5,11 +5,12 @@
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND '$(PackAsTool)' != 'true'">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
-    <PackageReference Include="CppAst" Version="0.8.0" />
+    <PackageReference Include="CppAst" Version="0.24.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
     <PackageReference Include="PolySharp" Version="1.15.0">
       <PrivateAssets>all</PrivateAssets>
