@@ -35,7 +35,7 @@ internal class CodeGenField : CodeGenElement
         return lhs.DefaultValue == rhs.DefaultValue;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is CodeGenField field && this == field;
     }
