@@ -18,7 +18,9 @@ internal class Il2CppAssemblyNameGenerator : VersionSpecificGenerator
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "AssemblyNamePointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" }
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        }
     ];
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>

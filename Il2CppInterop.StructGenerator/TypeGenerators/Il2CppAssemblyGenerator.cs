@@ -15,7 +15,7 @@ internal class Il2CppAssemblyGenerator : VersionSpecificGenerator
     protected override string NativeInterface => "INativeAssemblyStruct";
     protected override string NativeStub => "Il2CppAssembly";
 
-    protected override List<CodeGenProperty>? WrapperProperties =>
+    protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "AssemblyPointer")
         {
