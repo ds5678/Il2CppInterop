@@ -1,6 +1,6 @@
 ﻿using Il2CppInterop.StructGenerator.TypeGenerators;
 
-namespace Il2CppInterop.StructGenerator.Resources;
+namespace Il2CppInterop.StructGenerator;
 
 internal static class Config
 {

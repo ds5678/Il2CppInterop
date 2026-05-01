@@ -2,7 +2,6 @@
 using AssetRipper.Primitives;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.StructGenerator;
