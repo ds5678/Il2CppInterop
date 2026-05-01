@@ -34,7 +34,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             public uint token;
             public byte dynamic;
         }
-
         internal class NativeStructWrapper : INativeImageStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -47,7 +46,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref IntPtr NameNoExt => ref *(IntPtr*)&_->nameNoExt;
         }
-
     }
-
 }

@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
@@ -10,18 +10,17 @@ internal class CodeGenField : CodeGenElement
         FieldType = type;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type => FieldType;
 
     public string? DefaultValue { get; set; } = null;
     public string FieldType { get; set; }
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new($"{base.Build()}");
-        if (DefaultValue != null) builder.Append($" = {DefaultValue}");
-        builder.Append(';');
-        return builder.ToString();
+        base.Build(writer);
+        if (DefaultValue != null)
+            writer.Write($" = {DefaultValue}");
+        writer.WriteLine(';');
     }
 
     public static bool operator !=(CodeGenField lhs, CodeGenField rhs)

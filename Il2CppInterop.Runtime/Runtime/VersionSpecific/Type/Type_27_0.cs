@@ -33,9 +33,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Type
                 BIT_valuetype = 7,
                 valuetype = (1 << BIT_valuetype),
             }
-
         }
-
         internal class NativeStructWrapper : INativeTypeStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -62,7 +60,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Type
                 set => this.SetBit(_bitfield0offset, (int)Il2CppType_27_0.Bitfield0.BIT_valuetype, value);
             }
         }
-
     }
-
 }

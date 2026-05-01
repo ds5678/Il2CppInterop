@@ -33,7 +33,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
             public Il2CppString* source;
             public Il2CppObject* _data;
         }
-
         internal class NativeStructWrapper : INativeExceptionStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -47,7 +46,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
             public ref Il2CppString* StackTrace => ref _->stack_trace;
             public ref Il2CppString* RemoteStackTrace => ref _->remote_stack_trace;
         }
-
     }
-
 }

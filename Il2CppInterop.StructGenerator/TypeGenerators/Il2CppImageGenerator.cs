@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
+using System.Text;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 
@@ -36,14 +37,13 @@ internal class Il2CppImageGenerator : VersionSpecificGenerator
 
     protected override List<BitfieldAccessor>? BitfieldAccessors => null;
 
-    protected override Action<StringBuilder>? CreateNewExtraBody => builder =>
+    protected override Action<IndentedTextWriter>? CreateNewExtraBody => writer =>
     {
         if (GetNativeField("metadataHandle") is not null)
         {
-            builder.AppendLine(
-                "Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));");
-            builder.AppendLine("metadata->image = (Il2CppImage*)_;");
-            builder.AppendLine("*(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;");
+            writer.WriteLine("Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));");
+            writer.WriteLine("metadata->image = (Il2CppImage*)_;");
+            writer.WriteLine("*(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;");
         }
     };
 }

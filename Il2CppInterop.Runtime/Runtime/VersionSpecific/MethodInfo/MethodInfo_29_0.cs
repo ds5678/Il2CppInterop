@@ -46,9 +46,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 BIT_has_full_generic_sharing_signature = 3,
                 has_full_generic_sharing_signature = (1 << BIT_has_full_generic_sharing_signature),
             }
-
         }
-
         internal class NativeStructWrapper : INativeMethodInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -83,7 +81,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 set { }
             }
         }
-
     }
-
 }

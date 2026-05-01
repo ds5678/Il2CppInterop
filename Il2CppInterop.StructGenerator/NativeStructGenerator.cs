@@ -94,9 +94,4 @@ internal class NativeStructGenerator
         FinalizeBitfield();
         NativeStruct.NestedElements.AddRange(bitfields);
     }
-
-    public string Build()
-    {
-        return NativeStruct.Build();
-    }
 }

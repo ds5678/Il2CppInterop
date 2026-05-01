@@ -1,4 +1,6 @@
-﻿namespace Il2CppInterop.StructGenerator.CodeGen;
+﻿using System.CodeDom.Compiler;
+
+namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal abstract class CodeGenElement
 {
@@ -9,15 +11,12 @@ internal abstract class CodeGenElement
         Name = name;
     }
 
-    public abstract byte IndentAmount { get; set; }
     public abstract string Type { get; }
 
     public bool IsStatic { get; set; }
     public bool IsUnsafe { get; set; }
     public string Name { get; }
     public ElementProtection Protection { get; }
-    public string Indent => new(' ', (IndentAmount - 1) * 4);
-    public string IndentInner => new(' ', IndentAmount * 4);
 
     public string Keywords
     {
@@ -36,8 +35,8 @@ internal abstract class CodeGenElement
 
     public virtual string Declaration => $"{Protection.ToCSharpString()} {Keywords}{Type} {Name}";
 
-    public virtual string Build()
+    public virtual void Build(IndentedTextWriter writer)
     {
-        return $"{Declaration}";
+        writer.Write(Declaration);
     }
 }

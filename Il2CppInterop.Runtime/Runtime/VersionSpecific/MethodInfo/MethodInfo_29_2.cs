@@ -48,9 +48,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 BIT_is_unmanaged_callers_only = 4,
                 is_unmanaged_callers_only = (1 << BIT_is_unmanaged_callers_only),
             }
-
         }
-
         internal class NativeStructWrapper : INativeMethodInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -85,7 +83,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 set { }
             }
         }
-
     }
-
 }

@@ -26,7 +26,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo
             public int offset;
             public uint token;
         }
-
         internal class NativeStructWrapper : INativeFieldInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -38,7 +37,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo
             public ref Il2CppClass* Parent => ref _->parent;
             public ref int Offset => ref _->offset;
         }
-
     }
-
 }

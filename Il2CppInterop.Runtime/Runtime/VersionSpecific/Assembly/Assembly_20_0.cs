@@ -27,7 +27,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
             public int referencedAssemblyCount;
             public NativeAssemblyNameStructHandler_16_0.Il2CppAssemblyName_16_0 aname;
         }
-
         internal class NativeStructWrapper : INativeAssemblyStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -41,7 +40,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
             }
             public ref Il2CppImage* Image => throw new NotSupportedException();
         }
-
     }
-
 }

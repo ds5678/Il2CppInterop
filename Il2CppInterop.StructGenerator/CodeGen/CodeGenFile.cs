@@ -1,40 +1,39 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenFile
 {
-    private byte myMIndentAmount;
     public string? Namespace { get; set; }
     public List<CodeGenElement> Elements { get; } = new();
     public List<string> Usings { get; } = new();
 
-    private string Indent => new(' ', myMIndentAmount * 4);
-
-    public string Build()
+    private void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new();
         foreach (var @using in Usings)
-            builder.AppendLine($"using {@using};");
+            writer.WriteUsing(@using);
         if (Namespace != null)
         {
-            builder.AppendLine($"namespace {Namespace}");
-            builder.AppendLine("{");
-            myMIndentAmount += 1;
+            writer.WriteLine($"namespace {Namespace}");
+            writer.WriteLine("{");
+            writer.Indent++;
         }
-
         foreach (var element in Elements)
+            element.Build(writer);
+        if (Namespace != null)
         {
-            element.IndentAmount = (byte)(myMIndentAmount + 1);
-            builder.AppendLine($"{Indent}{element.Build()}");
+            writer.Indent--;
+            writer.WriteLine("}");
         }
-
-        if (Namespace != null) builder.AppendLine("}");
-        return builder.ToString();
     }
 
     public void WriteTo(string path)
     {
-        File.WriteAllText(path, Build().Replace("\r", null));
+        using StreamWriter writer = new(path)
+        {
+            NewLine = "\n"
+        };
+        using IndentedTextWriter indentedWriter = new(writer);
+        Build(indentedWriter);
     }
 }

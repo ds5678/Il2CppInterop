@@ -1,14 +1,14 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal readonly record struct CodeGenEnumElement(string Name, string? Value = null)
 {
-    public string BuildFrom(CodeGenEnum origin)
+    public void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new($"{origin.IndentInner}{Name}");
-        if (Value != null) builder.Append($" = {Value}");
-        builder.Append(',');
-        return builder.ToString();
+        writer.Write(Name);
+        if (Value != null)
+            writer.Write($" = {Value}");
+        writer.WriteLine(',');
     }
 }

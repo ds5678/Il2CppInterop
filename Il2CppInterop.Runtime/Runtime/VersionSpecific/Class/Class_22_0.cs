@@ -92,7 +92,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 BIT_has_finalize = 7,
                 has_finalize = (1 << BIT_has_finalize),
             }
-
             internal enum Bitfield1 : byte
             {
                 BIT_has_cctor = 0,
@@ -104,9 +103,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 BIT_is_vtable_initialized = 3,
                 is_vtable_initialized = (1 << BIT_is_vtable_initialized),
             }
-
         }
-
         internal class NativeStructWrapper : INativeClassStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -188,7 +185,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 set { }
             }
         }
-
     }
-
 }
