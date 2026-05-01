@@ -12,7 +12,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         var lastField = NativeStructGenerator.NativeStruct.Fields[^1];
         if (lastField.Name == "vtable")
             NativeStructGenerator.NativeStruct.Fields.RemoveAt(NativeStructGenerator.NativeStruct.Fields.Count - 1);
-        AddExtraUsing("Il2CppInterop.Runtime.Runtime.VersionSpecific.Type");
+        ExtraUsings.Add("Il2CppInterop.Runtime.Runtime.VersionSpecific.Type");
     }
 
     protected override string HandlerName => "NativeClassStructHandler";

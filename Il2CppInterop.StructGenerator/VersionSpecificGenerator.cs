@@ -60,12 +60,6 @@ internal abstract class VersionSpecificGenerator
     public HashSet<UnityVersion> ApplicableVersions { get; } = [];
     public HashSet<string> ExtraUsings { get; } = [];
 
-    public void AddExtraUsing(string @using)
-    {
-        if (ExtraUsings.Contains(@using)) return;
-        ExtraUsings.Add(@using);
-    }
-
     public void SetupElements()
     {
         List<CodeGenProperty> properties =
