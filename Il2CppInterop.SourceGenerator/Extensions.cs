@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Il2CppInterop.SourceGenerator;
 
-public static class Utils
+internal static class Extensions
 {
     // Converts a Roslyn Accessibility to the keyword(s) needed in emitted source.
     // Protected/ProtectedAndInternal are included for completeness but are unusual

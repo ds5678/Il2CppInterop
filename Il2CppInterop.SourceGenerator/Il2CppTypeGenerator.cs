@@ -79,48 +79,46 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                     Kind: MemberKind.Il2Cpp,
                     Index: index++,
                     Accessibility: null,
-                    IsStatic: false));
+                    IsStatic: field.IsStatic
+                ));
             }
         }
-        else
+        foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
         {
-            foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
-            {
-                ct.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
-                var attrs = property.GetAttributes();
-                var il2cpp = attrs.Any(a => a.AttributeClass.IsType("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
-                var managed = attrs.Any(a => a.AttributeClass.IsType("ManagedFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
+            var attrs = property.GetAttributes();
+            var il2cpp = attrs.Any(a => a.AttributeClass.IsType("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
+            var managed = attrs.Any(a => a.AttributeClass.IsType("ManagedFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
 
-                if (!il2cpp && !managed) continue;
-                if (!property.IsPartialDefinition) continue;
-                if (managed && property.IsStatic) continue;
+            if (!il2cpp && !managed) continue;
+            if (!property.IsPartialDefinition) continue;
+            if (managed && property.IsStatic) continue;
 
-                // DeclaredAccessibility defaults to Private when no modifier is written,
-                // so we check the syntax directly to distinguish explicit "private" from omitted.
-                var explicitAccess = property.DeclaringSyntaxReferences
-                    .Select(r => r.GetSyntax(ct))
-                    .OfType<PropertyDeclarationSyntax>()
-                    .SelectMany(s => s.Modifiers)
-                    .Any(m => m.IsKind(SyntaxKind.PublicKeyword)
-                                         || m.IsKind(SyntaxKind.InternalKeyword)
-                                         || m.IsKind(SyntaxKind.PrivateKeyword)
-                                         || m.IsKind(SyntaxKind.ProtectedKeyword));
+            // DeclaredAccessibility defaults to Private when no modifier is written,
+            // so we check the syntax directly to distinguish explicit "private" from omitted.
+            var explicitAccess = property.DeclaringSyntaxReferences
+                .Select(r => r.GetSyntax(ct))
+                .OfType<PropertyDeclarationSyntax>()
+                .SelectMany(s => s.Modifiers)
+                .Any(m => m.IsKind(SyntaxKind.PublicKeyword)
+                          || m.IsKind(SyntaxKind.InternalKeyword)
+                          || m.IsKind(SyntaxKind.PrivateKeyword)
+                          || m.IsKind(SyntaxKind.ProtectedKeyword));
 
-                members.Add(new MemberModel(
-                    Name: property.Name,
-                    Type: property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    Kind: managed ? MemberKind.Managed : MemberKind.Il2Cpp,
-                    Index: index++,
-                    Accessibility: !explicitAccess ? null : property.DeclaredAccessibility,
-                    IsStatic: property.IsStatic));
-            }
+            members.Add(new MemberModel(
+                Name: property.Name,
+                Type: property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                Kind: managed ? MemberKind.Managed : MemberKind.Il2Cpp,
+                Index: index++,
+                Accessibility: !explicitAccess ? null : property.DeclaredAccessibility,
+                IsStatic: property.IsStatic));
         }
 
         var finalizerMethods = ImmutableArray<string>.Empty;
         var needsObjectPointerConstructor = false;
 
-        if (typeKind != TypeKind.Struct)
+        if (typeKind == TypeKind.Class)
         {
             finalizerMethods = [
                 ..type.GetMembers()
@@ -190,7 +188,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
     private static void EmitPartialType(IndentedTextWriter writer, TypeModel model)
     {
-        var access = model.DeclaredAccessibility.GetAccessibilityKeyword();
+        var access = model.DeclaredAccessibility?.GetAccessibilityKeyword();
 
         writer.WriteLine("[global::Il2CppInterop.Common.Attributes.Il2CppType(typeof(Il2CppInternals))]");
 
@@ -198,9 +196,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         {
             writer.WriteLine($"{access} partial struct {model.TypeName} :");
             writer.Indent++;
-            writer.WriteLine("global::Il2CppSystem.IObject,");
             writer.WriteLine("global::Il2CppSystem.IValueType,");
-            writer.WriteLine("global::Il2CppInterop.Common.IIl2CppType,");
             writer.WriteLine($"global::Il2CppInterop.Common.IIl2CppType<{model.TypeName}>");
             writer.Indent--;
         }
@@ -219,37 +215,29 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             EmitValueTypeInstanceInterfaceMembers(writer, model);
             writer.WriteLine();
         }
-        else
+        foreach (var member in model.Members)
         {
-            foreach (var member in model.Members)
-            {
-                if (member.IsStatic)
-                    EmitStaticIl2CppProperty(writer, member);
-                else if (member.Kind == MemberKind.Il2Cpp)
-                    EmitIl2CppProperty(writer, member);
-                else
-                    EmitManagedProperty(writer, member);
+            if (member.IsStatic)
+                EmitStaticIl2CppProperty(writer, member);
+            else if (member.Kind == MemberKind.Il2Cpp)
+                EmitIl2CppProperty(writer, member);
+            else
+                EmitManagedProperty(writer, member);
 
-                writer.WriteLine();
-            }
+            writer.WriteLine();
+        }
+        if (model.NeedsObjectPointerConstructor)
+        {
+            EmitConstructor(writer, model);
+            writer.WriteLine();
+        }
 
-            if (model.TypeKind != TypeKind.Interface)
-            {
-                if (model.NeedsObjectPointerConstructor)
-                {
-                    EmitConstructor(writer, model);
-                    writer.WriteLine();
-                }
-
-                if (model.FinalizerMethodNames.Count > 0 || model.Members.Any(m => m.Kind == MemberKind.Managed))
-                {
-                    EmitFinalizer(writer, model);
-                    writer.WriteLine();
-                    EmitLogErrorFinalizer(writer);
-                    writer.WriteLine();
-                }
-
-            }
+        if (model.FinalizerMethodNames.Count > 0 || model.Members.Any(m => m.Kind == MemberKind.Managed))
+        {
+            EmitFinalizer(writer, model);
+            writer.WriteLine();
+            EmitLogErrorFinalizer(writer);
+            writer.WriteLine();
         }
 
         EmitStaticInterfaceMembers(writer, model);
@@ -449,7 +437,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"return new {tn}");
             writer.WriteLine("{");
             writer.Indent++;
-            foreach (var member in model.Members)
+            foreach (var member in model.Members.Where(x => !x.IsStatic))
                 writer.WriteLine($"{member.Name} = global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.ReadFromSpanAtOffset<{member.Type}>(span, Il2CppInternals.FieldOffset_{member.Index}),");
             writer.Indent--;
             writer.WriteLine("};");
@@ -462,7 +450,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"static void global::Il2CppInterop.Common.IIl2CppType<{tn}>.WriteToSpan({tn} value, global::System.Span<byte> span)");
             writer.WriteLine("{");
             writer.Indent++;
-            foreach (var member in model.Members)
+            foreach (var member in model.Members.Where(x => !x.IsStatic))
                 writer.WriteLine($"global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.WriteToSpanAtOffset(value.{member.Name}, span, Il2CppInternals.FieldOffset_{member.Index});");
             writer.Indent--;
             writer.WriteLine("}");
@@ -519,7 +507,12 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         {
             writer.WriteLine("public static readonly int Size;");
             foreach (var member in model.Members)
-                writer.WriteLine($"public static readonly int FieldOffset_{member.Index}; // {member.Name}");
+            {
+                if (member.IsStatic)
+                    writer.WriteLine($"public static readonly nint FieldInfoPtr_{member.Index}; // {member.Name}");
+                else
+                    writer.WriteLine($"public static readonly int FieldOffset_{member.Index}; // {member.Name}");
+            }
         }
         else
         {
@@ -544,7 +537,12 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"Size = global::Il2CppInterop.Runtime.IL2CPP.GetIl2cppValueSize(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer);");
 
             foreach (var member in model.Members)
-                writer.WriteLine($"FieldOffset_{member.Index} = (int)global::Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
+            {
+                if (member.IsStatic)
+                    writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
+                else
+                    writer.WriteLine($"FieldOffset_{member.Index} = (int)global::Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
+            };
 
             writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
         }

@@ -10,5 +10,5 @@ internal sealed record TypeModel(
     EquatableArray<MemberModel> Members,
     EquatableArray<string> FinalizerMethodNames,
     bool NeedsObjectPointerConstructor,
-    Accessibility DeclaredAccessibility,
+    Accessibility? DeclaredAccessibility,
     bool IsAbstract);
