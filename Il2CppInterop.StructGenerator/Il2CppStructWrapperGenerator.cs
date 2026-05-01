@@ -7,12 +7,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.StructGenerator;
 
-public record Il2CppStructWrapperGeneratorOptions(
-    string HeadersDirectory,
-    string OutputDirectory,
-    ILogger? Logger
-);
-
 public static partial class Il2CppStructWrapperGenerator
 {
     private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
