@@ -1,40 +1,42 @@
 using Microsoft.CodeAnalysis;
 
-namespace Il2CppInterop.SourceGenerator
+namespace Il2CppInterop.SourceGenerator;
+
+public static class Utils
 {
-    public static class Utils
+    // Converts a Roslyn Accessibility to the keyword(s) needed in emitted source.
+    // Protected/ProtectedAndInternal are included for completeness but are unusual
+    // on a top-level injected type.
+    internal static string GetAccessibilityKeyword(this Accessibility a) => a switch
     {
-        // Converts a Roslyn Accessibility to the keyword(s) needed in emitted source.
-        // Protected/ProtectedAndInternal are included for completeness but are unusual
-        // on a top-level injected type.
-        internal static string GetAccessibilityKeyword(this Accessibility a) => a switch
+        Accessibility.Public              => "public",
+        Accessibility.Internal            => "internal",
+        Accessibility.Private             => "private",
+        Accessibility.Protected           => "protected",
+        Accessibility.ProtectedOrInternal => "protected internal",
+        Accessibility.ProtectedAndInternal => "private protected",
+        _                                 => "public",
+    };
+
+    extension(INamedTypeSymbol? symbol)
+    {
+        public bool IsType(string name, ReadOnlySpan<string> namespaceParts) =>
+            symbol is not null &&
+            symbol.Name == name &&
+            MatchesNamespace(symbol.ContainingNamespace, namespaceParts);
+    }
+
+    private static bool MatchesNamespace(INamespaceSymbol? ns, ReadOnlySpan<string> parts)
+    {
+        // Walk from innermost to outermost
+        for (var i = parts.Length - 1; i >= 0; i--)
         {
-            Accessibility.Public              => "public",
-            Accessibility.Internal            => "internal",
-            Accessibility.Private             => "private",
-            Accessibility.Protected           => "protected",
-            Accessibility.ProtectedOrInternal => "protected internal",
-            Accessibility.ProtectedAndInternal => "private protected",
-            _                                 => "public",
-        };
-        extension(INamedTypeSymbol? symbol)
-        {
-            public bool IsType(string name, ReadOnlySpan<string> namespaceParts) =>
-                symbol is not null &&
-                symbol.Name == name &&
-                MatchesNamespace(symbol.ContainingNamespace, namespaceParts);
+            if (ns is null or { IsGlobalNamespace: true } || ns.Name != parts[i])
+                return false;
+            ns = ns.ContainingNamespace;
         }
-        private static bool MatchesNamespace(INamespaceSymbol? ns, ReadOnlySpan<string> parts)
-        {
-            // Walk from innermost to outermost
-            for (var i = parts.Length - 1; i >= 0; i--)
-            {
-                if (ns is null or { IsGlobalNamespace: true } || ns.Name != parts[i])
-                    return false;
-                ns = ns.ContainingNamespace;
-            }
-            // Make sure we've consumed all namespaces up to global
-            return ns is null or { IsGlobalNamespace: true };
-        }
+
+        // Make sure we've consumed all namespaces up to global
+        return ns is null or { IsGlobalNamespace: true };
     }
 }
