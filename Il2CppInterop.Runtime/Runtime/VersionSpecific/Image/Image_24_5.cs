@@ -2,18 +2,15 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
-    [ApplicableToUnityVersionsSince("2020.2.0")]
-    public unsafe class NativeImageStructHandler_27_0 : INativeImageStructHandler
+    [ApplicableToUnityVersionsSince("2019.1.0a12")]
+    public unsafe class NativeImageStructHandler_24_5 : INativeImageStructHandler
     {
-        public int Size() => sizeof(Il2CppImage_27_0);
+        public int Size() => sizeof(Il2CppImage_24_5);
         public INativeImageStruct CreateNewStruct()
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size());
-            Il2CppImage_27_0* _ = (Il2CppImage_27_0*)ptr;
+            Il2CppImage_24_5* _ = (Il2CppImage_24_5*)ptr;
             *_ = default;
-            Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));
-            metadata->image = (Il2CppImage*)_;
-            *(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;
             return new NativeStructWrapper(ptr);
         }
         public INativeImageStruct Wrap(Il2CppImage* ptr)
@@ -21,15 +18,18 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppImage_27_0
+        internal unsafe struct Il2CppImage_24_5
         {
             public byte* name;
             public byte* nameNoExt;
             public Il2CppAssembly* assembly;
+            public int typeStart;
             public uint typeCount;
+            public int exportedTypeStart;
             public uint exportedTypeCount;
+            public int customAttributeStart;
             public uint customAttributeCount;
-            public Il2CppMetadataImageHandle metadataHandle;
+            public int entryPointIndex;
             public void* nameToClassHashTable;
             public void* codeGenModule;
             public uint token;
@@ -40,7 +40,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
             public IntPtr Pointer { get; }
-            private Il2CppImage_27_0* _ => (Il2CppImage_27_0*)Pointer;
+            private Il2CppImage_24_5* _ => (Il2CppImage_24_5*)Pointer;
             public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
             public bool HasNameNoExt => true;
             public ref Il2CppAssembly* Assembly => ref _->assembly;

@@ -30,18 +30,18 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             public int entryPointIndex;
             public void* nameToClassHashTable;
             public uint token;
-            public byte dynamic;
         }
 
         internal class NativeStructWrapper : INativeImageStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
+            private byte _dynamicDummy;
             public IntPtr Pointer { get; }
             private Il2CppImage_24_2* _ => (Il2CppImage_24_2*)Pointer;
             public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
             public bool HasNameNoExt => true;
             public ref Il2CppAssembly* Assembly => ref _->assembly;
-            public ref byte Dynamic => ref _->dynamic;
+            public ref byte Dynamic => ref _dynamicDummy;
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref IntPtr NameNoExt => ref *(IntPtr*)&_->nameNoExt;
         }

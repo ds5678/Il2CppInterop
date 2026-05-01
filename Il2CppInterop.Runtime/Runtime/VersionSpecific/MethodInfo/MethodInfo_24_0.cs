@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
-    [ApplicableToUnityVersionsSince("2018.1.0")]
+    [ApplicableToUnityVersionsSince("2018.1.0b5")]
     public unsafe class NativeMethodInfoStructHandler_24_0 : INativeMethodInfoStructHandler
     {
         public int Size() => sizeof(Il2CppMethodInfo_24_0);
@@ -43,8 +43,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 is_inflated = (1 << BIT_is_inflated),
                 BIT_wrapper_type = 2,
                 wrapper_type = (1 << BIT_wrapper_type),
-                BIT_is_marshaled_from_native = 3,
-                is_marshaled_from_native = (1 << BIT_is_marshaled_from_native),
             }
 
         }
@@ -79,8 +77,8 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
             }
             public bool IsMarshalledFromNative
             {
-                get => this.CheckBit(_bitfield0offset, (int)Il2CppMethodInfo_24_0.Bitfield0.BIT_is_marshaled_from_native);
-                set => this.SetBit(_bitfield0offset, (int)Il2CppMethodInfo_24_0.Bitfield0.BIT_is_marshaled_from_native, value);
+                get => false;
+                set { }
             }
         }
 

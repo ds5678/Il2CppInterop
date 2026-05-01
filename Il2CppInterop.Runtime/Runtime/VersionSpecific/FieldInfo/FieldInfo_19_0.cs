@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo
 {
-    [ApplicableToUnityVersionsSince("5.3.2")]
+    [ApplicableToUnityVersionsSince("5.3.1p3")]
     public unsafe class NativeFieldInfoStructHandler_19_0 : INativeFieldInfoStructHandler
     {
         public int Size() => sizeof(Il2CppFieldInfo_19_0);

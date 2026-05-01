@@ -30,6 +30,7 @@ internal static class ConversionUtils
         ["methodPointerType"] = "void*",
         ["Il2CppMethodPointer"] = "void*",
         ["InvokerMethod"] = "void*",
+        ["Il2CppClass_InitDataUnion"] = "void*",
 
         ["TypeIndex"] = "int",
         ["TypeDefinitionIndex"] = "int",

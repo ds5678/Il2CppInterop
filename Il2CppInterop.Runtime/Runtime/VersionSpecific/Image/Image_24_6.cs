@@ -2,15 +2,18 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
 {
-    [ApplicableToUnityVersionsSince("2017.1.2p1")]
-    public unsafe class NativeImageStructHandler_24_1 : INativeImageStructHandler
+    [ApplicableToUnityVersionsSince("2020.2.0")]
+    public unsafe class NativeImageStructHandler_24_6 : INativeImageStructHandler
     {
-        public int Size() => sizeof(Il2CppImage_24_1);
+        public int Size() => sizeof(Il2CppImage_24_6);
         public INativeImageStruct CreateNewStruct()
         {
             IntPtr ptr = Marshal.AllocHGlobal(Size());
-            Il2CppImage_24_1* _ = (Il2CppImage_24_1*)ptr;
+            Il2CppImage_24_6* _ = (Il2CppImage_24_6*)ptr;
             *_ = default;
+            Il2CppImageGlobalMetadata* metadata = (Il2CppImageGlobalMetadata*)Marshal.AllocHGlobal(sizeof(Il2CppImageGlobalMetadata));
+            metadata->image = (Il2CppImage*)_;
+            *(Il2CppImageGlobalMetadata**)&_->metadataHandle = metadata;
             return new NativeStructWrapper(ptr);
         }
         public INativeImageStruct Wrap(Il2CppImage* ptr)
@@ -18,30 +21,30 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             if (ptr == null) return null;
             return new NativeStructWrapper((IntPtr)ptr);
         }
-        internal unsafe struct Il2CppImage_24_1
+        internal unsafe struct Il2CppImage_24_6
         {
             public byte* name;
             public byte* nameNoExt;
-            public int assemblyIndex;
-            public int typeStart;
+            public Il2CppAssembly* assembly;
             public uint typeCount;
-            public int exportedTypeStart;
             public uint exportedTypeCount;
-            public int entryPointIndex;
+            public uint customAttributeCount;
+            public Il2CppMetadataImageHandle metadataHandle;
             public void* nameToClassHashTable;
+            public void* codeGenModule;
             public uint token;
+            public byte dynamic;
         }
 
         internal class NativeStructWrapper : INativeImageStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
-            private byte _dynamicDummy;
             public IntPtr Pointer { get; }
-            private Il2CppImage_24_1* _ => (Il2CppImage_24_1*)Pointer;
+            private Il2CppImage_24_6* _ => (Il2CppImage_24_6*)Pointer;
             public Il2CppImage* ImagePointer => (Il2CppImage*)Pointer;
             public bool HasNameNoExt => true;
-            public ref Il2CppAssembly* Assembly => throw new NotSupportedException();
-            public ref byte Dynamic => ref _dynamicDummy;
+            public ref Il2CppAssembly* Assembly => ref _->assembly;
+            public ref byte Dynamic => ref _->dynamic;
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref IntPtr NameNoExt => ref *(IntPtr*)&_->nameNoExt;
         }

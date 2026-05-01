@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo
 {
-    [ApplicableToUnityVersionsSince("5.3.2")]
+    [ApplicableToUnityVersionsSince("5.3.1p3")]
     public unsafe class NativePropertyInfoStructHandler_19_0 : INativePropertyInfoStructHandler
     {
         public int Size() => sizeof(Il2CppPropertyInfo_19_0);

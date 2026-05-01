@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("2021.1.24")]
+    [ApplicableToUnityVersionsSince("2021.2.0")]
     public unsafe class NativeClassStructHandler_27_3 : INativeClassStructHandler
     {
         public int Size() => sizeof(Il2CppClass_27_3);
@@ -49,7 +49,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public uint initializationExceptionGCHandle;
             public uint cctor_started;
             public uint cctor_finished;
-            public IntPtr cctor_thread;
+            public ulong cctor_thread;
             public Il2CppMetadataGenericContainerHandle genericContainerHandle;
             public uint instance_size;
             public uint actualSize;
@@ -84,14 +84,14 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 initialized = (1 << BIT_initialized),
                 BIT_enumtype = 2,
                 enumtype = (1 << BIT_enumtype),
-                BIT_is_generic = 3,
+                BIT_nullabletype = 3,
+                nullabletype = (1 << BIT_nullabletype),
+                BIT_is_generic = 4,
                 is_generic = (1 << BIT_is_generic),
-                BIT_has_references = 4,
+                BIT_has_references = 5,
                 has_references = (1 << BIT_has_references),
-                BIT_init_pending = 5,
+                BIT_init_pending = 6,
                 init_pending = (1 << BIT_init_pending),
-                BIT_size_init_pending = 6,
-                size_init_pending = (1 << BIT_size_init_pending),
                 BIT_size_inited = 7,
                 size_inited = (1 << BIT_size_inited),
             }

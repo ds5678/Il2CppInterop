@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
 {
-    [ApplicableToUnityVersionsSince("2018.3.8")]
+    [ApplicableToUnityVersionsSince("2018.3.0b11")]
     public unsafe class NativeClassStructHandler_24_3 : INativeClassStructHandler
     {
         public int Size() => sizeof(Il2CppClass_24_3);
@@ -71,7 +71,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             public byte genericRecursionDepth;
             public byte rank;
             public byte minimumAlignment;
-            public byte naturalAligment;
             public byte packingSize;
             public Bitfield0 _bitfield0;
             public Bitfield1 _bitfield1;

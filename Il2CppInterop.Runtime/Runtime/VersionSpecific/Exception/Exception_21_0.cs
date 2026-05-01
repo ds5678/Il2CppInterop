@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
 {
-    [ApplicableToUnityVersionsSince("5.3.5")]
+    [ApplicableToUnityVersionsSince("5.3.4p3")]
     public unsafe class NativeExceptionStructHandler_21_0 : INativeExceptionStructHandler
     {
         public int Size() => sizeof(Il2CppException_21_0);
