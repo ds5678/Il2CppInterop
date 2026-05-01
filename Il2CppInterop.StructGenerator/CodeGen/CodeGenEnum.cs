@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
@@ -10,7 +10,6 @@ internal class CodeGenEnum : CodeGenElement
         UnderlyingType = underlyingType;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type => "enum";
     public EnumUnderlyingType UnderlyingType { get; set; }
 
@@ -26,17 +25,17 @@ internal class CodeGenEnum : CodeGenElement
 
     public List<CodeGenEnumElement> Elements { get; } = new();
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new(base.Build());
+        base.Build(writer);
         if (UnderlyingType != EnumUnderlyingType.Int)
-            builder.Append($" : {UnderlyingType.ToCSharpString()}");
-        builder.AppendLine();
-        builder.AppendLine($"{Indent}{{");
-        foreach (var element in Elements)
-            builder.AppendLine(element.BuildFrom(this));
-        builder.AppendLine($"{Indent}}}");
-        return builder.ToString();
+            writer.Write($" : {UnderlyingType.ToCSharpString()}");
+        writer.WriteLine();
+        using (new CurlyBrackets(writer))
+        {
+            foreach (var element in Elements)
+                element.Build(writer);
+        }
     }
 
     public static bool operator !=(CodeGenEnum lhs, CodeGenEnum rhs)

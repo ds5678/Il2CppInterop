@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
+using System.Text;
 using AssetRipper.Primitives;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
@@ -8,8 +9,8 @@ namespace Il2CppInterop.StructGenerator;
 internal class BitfieldAccessor
 {
     public BitfieldAccessor(string accessorName, string elementName, string accessorType = "bool",
-        bool generateIfNotPresent = true, string? defaultGetter = "", Action<StringBuilder>? defaultGetBuilder = null,
-        Action<StringBuilder>? defaultSetBuilder = null)
+        bool generateIfNotPresent = true, string? defaultGetter = "", Action<IndentedTextWriter>? defaultGetBuilder = null,
+        Action<IndentedTextWriter>? defaultSetBuilder = null)
     {
         AccessorName = accessorName;
         ElementName = elementName;
@@ -25,8 +26,8 @@ internal class BitfieldAccessor
     public string AccessorType { get; }
     public bool GenerateIfNotPresent { get; }
     public string? DefaultImmediateGetter { get; }
-    public Action<StringBuilder>? DefaultGetBuilder { get; }
-    public Action<StringBuilder>? DefaultSetBuilder { get; }
+    public Action<IndentedTextWriter>? DefaultGetBuilder { get; }
+    public Action<IndentedTextWriter>? DefaultSetBuilder { get; }
 }
 
 internal abstract class VersionSpecificGenerator
@@ -75,7 +76,7 @@ internal abstract class VersionSpecificGenerator
     protected abstract List<ByRefWrapper>? ByRefWrappers { get; }
     protected abstract List<BitfieldAccessor>? BitfieldAccessors { get; }
 
-    protected virtual Action<StringBuilder>? CreateNewExtraBody => null;
+    protected virtual Action<IndentedTextWriter>? CreateNewExtraBody => null;
 
     public string MetadataSuffix { get; }
     public NativeStructGenerator NativeStructGenerator { get; }
@@ -224,10 +225,5 @@ internal abstract class VersionSpecificGenerator
     protected CodeGenField? GetNativeField(string name)
     {
         return NativeStructGenerator.NativeStruct.Fields.SingleOrDefault(x => x.Name == name);
-    }
-
-    public virtual string Build()
-    {
-        return HandlerGenerator.HandlerClass.Build();
     }
 }

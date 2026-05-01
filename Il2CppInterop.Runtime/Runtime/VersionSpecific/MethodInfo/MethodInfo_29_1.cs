@@ -48,9 +48,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 BIT_indirect_call_via_invokers = 4,
                 indirect_call_via_invokers = (1 << BIT_indirect_call_via_invokers),
             }
-
         }
-
         internal class NativeStructWrapper : INativeMethodInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -85,7 +83,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 set { }
             }
         }
-
     }
-
 }

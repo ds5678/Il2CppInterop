@@ -33,7 +33,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
             public int revision;
             public ulong publicKeyToken;
         }
-
         internal class NativeStructWrapper : INativeAssemblyNameStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -49,7 +48,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
             public ref int Revision => ref _->revision;
             public ref ulong PublicKeyToken => ref _->publicKeyToken;
         }
-
     }
-
 }

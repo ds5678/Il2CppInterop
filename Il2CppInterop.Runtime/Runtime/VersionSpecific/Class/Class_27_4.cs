@@ -95,7 +95,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 BIT_size_inited = 7,
                 size_inited = (1 << BIT_size_inited),
             }
-
             internal enum Bitfield1 : byte
             {
                 BIT_has_finalize = 0,
@@ -109,9 +108,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 BIT_is_vtable_initialized = 4,
                 is_vtable_initialized = (1 << BIT_is_vtable_initialized),
             }
-
         }
-
         internal class NativeStructWrapper : INativeClassStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -192,7 +189,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
                 set => this.SetBit(_bitfield0offset, (int)Il2CppClass_27_4.Bitfield0.BIT_initialized_and_no_error, value);
             }
         }
-
     }
-
 }

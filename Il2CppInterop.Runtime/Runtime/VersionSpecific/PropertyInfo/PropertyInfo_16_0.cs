@@ -27,7 +27,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo
             public uint attrs;
             public int customAttributeIndex;
         }
-
         internal class NativeStructWrapper : INativePropertyInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -40,7 +39,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo
             public ref Il2CppMethodInfo* Set => ref _->set;
             public ref uint Attrs => ref _->attrs;
         }
-
     }
-
 }

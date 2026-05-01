@@ -38,7 +38,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
             public void* native_trace_ips;
             public int caught_in_unmanaged;
         }
-
         internal class NativeStructWrapper : INativeExceptionStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -52,7 +51,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
             public ref Il2CppString* StackTrace => ref _->stack_trace;
             public ref Il2CppString* RemoteStackTrace => ref _->remote_stack_trace;
         }
-
     }
-
 }

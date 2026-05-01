@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
@@ -9,36 +9,42 @@ internal class CodeGenMethod : CodeGenElement
         Type = returnType;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type { get; }
 
     public List<CodeGenParameter> Parameters { get; } = new();
-    public Action<StringBuilder>? MethodBodyBuilder { get; set; } = null;
+    public Action<IndentedTextWriter>? MethodBodyBuilder { get; set; } = null;
     public string? ImmediateReturn { get; set; } = null;
 
-    public string BuildBody()
+    public void BuildBody(IndentedTextWriter writer)
     {
-        StringBuilder builder = new();
         if (ImmediateReturn != null)
         {
-            if (ImmediateReturn == "") builder.AppendLine(" { }");
-            else builder.AppendLine($" => {ImmediateReturn};");
-            return builder.ToString();
+            if (ImmediateReturn == "")
+                writer.WriteLine(" { }");
+            else
+                writer.WriteLine($" => {ImmediateReturn};");
         }
-
-        builder.AppendLine();
-        builder.AppendLine($"{Indent}{{");
-        StringBuilder body = new();
-        MethodBodyBuilder?.Invoke(body);
-        foreach (var line in body.ToString().Split(Environment.NewLine)) builder.AppendLine($"{IndentInner}{line}");
-        builder.AppendLine($"{Indent}}}");
-        return builder.ToString();
+        else
+        {
+            writer.WriteLine();
+            using (new CurlyBrackets(writer))
+            {
+                MethodBodyBuilder?.Invoke(writer);
+            }
+        }
     }
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new($"{base.Build()}({string.Join(", ", Parameters.Select(x => x.Build()))})");
-        builder.Append(BuildBody());
-        return builder.ToString();
+        base.Build(writer);
+        writer.Write('(');
+        for (var i = 0; i < Parameters.Count; i++)
+        {
+            Parameters[i].Build(writer);
+            if (i != Parameters.Count - 1)
+                writer.Write(", ");
+        }
+        writer.Write(')');
+        BuildBody(writer);
     }
 }

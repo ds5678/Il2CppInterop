@@ -28,7 +28,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.EventInfo
             public Il2CppMethodInfo* raise;
             public uint token;
         }
-
         internal class NativeStructWrapper : INativeEventInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -42,7 +41,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.EventInfo
             public ref Il2CppMethodInfo* Remove => ref _->remove;
             public ref Il2CppMethodInfo* Raise => ref _->raise;
         }
-
     }
-
 }

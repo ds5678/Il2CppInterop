@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 using Il2CppInterop.StructGenerator.CodeGen;
 
 namespace Il2CppInterop.StructGenerator;
@@ -7,7 +7,7 @@ internal class StructHandlerGenerator
 {
     public StructHandlerGenerator(string name, string handlerInterface, string nativeInterface, string nativeStub,
         NativeStructGenerator nativeStructGen, List<CodeGenParameter>? parameterOverride = null,
-        Action<StringBuilder>? extraBodyProvider = null)
+        Action<IndentedTextWriter>? extraBodyProvider = null)
     {
         NativeGenerator = nativeStructGen;
         HandlerClass = new CodeGenClass(ElementProtection.Public, name)
@@ -21,17 +21,18 @@ internal class StructHandlerGenerator
         });
         CodeGenMethod createNewMethod = new(nativeInterface, ElementProtection.Public, "CreateNewStruct")
         {
-            MethodBodyBuilder = builder =>
+            MethodBodyBuilder = writer =>
             {
-                builder.Append("IntPtr ptr = Marshal.AllocHGlobal(");
-                if (SizeProviderOverride != null) builder.AppendLine($"{SizeProviderOverride});");
-                else builder.AppendLine("Size());");
-                builder.AppendLine(
+                writer.Write("IntPtr ptr = Marshal.AllocHGlobal(");
+                if (SizeProviderOverride != null)
+                    writer.WriteLine($"{SizeProviderOverride});");
+                else
+                    writer.WriteLine("Size());");
+                writer.WriteLine(
                     $"{nativeStructGen.NativeStruct.Name}* _ = ({nativeStructGen.NativeStruct.Name}*)ptr;");
-                builder.AppendLine("*_ = default;");
-                if (extraBodyProvider != null)
-                    extraBodyProvider(builder);
-                builder.Append("return new NativeStructWrapper(ptr);");
+                writer.WriteLine("*_ = default;");
+                extraBodyProvider?.Invoke(writer);
+                writer.WriteLine("return new NativeStructWrapper(ptr);");
             }
         };
         if (parameterOverride != null)
@@ -40,10 +41,10 @@ internal class StructHandlerGenerator
         HandlerClass.Methods.Add(new CodeGenMethod(nativeInterface, ElementProtection.Public, "Wrap")
         {
             Parameters = { new CodeGenParameter($"{nativeStub}*", "ptr") },
-            MethodBodyBuilder = builder =>
+            MethodBodyBuilder = writer =>
             {
-                builder.AppendLine("if (ptr == null) return null;");
-                builder.Append("return new NativeStructWrapper((IntPtr)ptr);");
+                writer.WriteLine("if (ptr == null) return null;");
+                writer.WriteLine("return new NativeStructWrapper((IntPtr)ptr);");
             }
         });
     }

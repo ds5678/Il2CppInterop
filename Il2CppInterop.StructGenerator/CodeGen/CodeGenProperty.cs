@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
@@ -9,7 +9,6 @@ internal class CodeGenProperty : CodeGenElement
         Type = propertyType;
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type { get; }
 
     public string? ImmediateGet { get; set; }
@@ -20,42 +19,40 @@ internal class CodeGenProperty : CodeGenElement
     public bool EmptySet { get; set; }
     public CodeGenMethod? SetMethod { get; set; }
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new(base.Build());
-        if ((SetMethod == null && GetMethod != null && GetMethod.ImmediateReturn != null) || ImmediateGet != null)
+        base.Build(writer);
+        if (ImmediateGet != null)
         {
-            if (ImmediateGet != null)
-                builder.AppendLine($" => {ImmediateGet};");
-            else
-                builder.Append(GetMethod.BuildBody());
-            return builder.ToString();
+            writer.WriteLine($" => {ImmediateGet};");
         }
-
-        if (EmptyGet || EmptySet)
+        else if (SetMethod == null && GetMethod != null && GetMethod.ImmediateReturn != null)
         {
-            builder.Append(" {");
-            if (EmptyGet) builder.Append(" get;");
-            if (EmptySet) builder.Append(" set;");
-            builder.AppendLine(" }");
-            return builder.ToString();
+            GetMethod.BuildBody(writer);
         }
-
-        builder.AppendLine();
-        builder.AppendLine($"{Indent}{{");
-        if (GetMethod != null)
+        else if (EmptyGet || EmptySet)
         {
-            GetMethod.IndentAmount = (byte)(IndentAmount + 1);
-            builder.Append($"{IndentInner}get{GetMethod.BuildBody()}");
+            writer.Write(" {");
+            if (EmptyGet) writer.Write(" get;");
+            if (EmptySet) writer.Write(" set;");
+            writer.WriteLine(" }");
         }
-
-        if (SetMethod != null)
+        else
         {
-            SetMethod.IndentAmount = (byte)(IndentAmount + 1);
-            builder.Append($"{IndentInner}set{SetMethod.BuildBody()}");
+            writer.WriteLine();
+            using (new CurlyBrackets(writer))
+            {
+                if (GetMethod != null)
+                {
+                    writer.Write("get");
+                    GetMethod.BuildBody(writer);
+                }
+                if (SetMethod != null)
+                {
+                    writer.Write("set");
+                    SetMethod.BuildBody(writer);
+                }
+            }
         }
-
-        builder.AppendLine($"{Indent}}}");
-        return builder.ToString();
     }
 }

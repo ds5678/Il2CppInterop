@@ -28,7 +28,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             public void* nameToClassHashTable;
             public uint token;
         }
-
         internal class NativeStructWrapper : INativeImageStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -42,7 +41,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Image
             public ref IntPtr Name => ref *(IntPtr*)&_->name;
             public ref IntPtr NameNoExt => throw new NotSupportedException();
         }
-
     }
-
 }

@@ -26,7 +26,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             public int customAttributeIndex;
             public Il2CppTypeStruct* parameter_type;
         }
-
         internal class NativeStructWrapper : INativeParameterInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -39,7 +38,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             public ref uint Token => ref _->token;
             public ref Il2CppTypeStruct* ParameterType => ref _->parameter_type;
         }
-
     }
-
 }

@@ -42,9 +42,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 BIT_is_inflated = 1,
                 is_inflated = (1 << BIT_is_inflated),
             }
-
         }
-
         internal class NativeStructWrapper : INativeMethodInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -79,7 +77,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 set { }
             }
         }
-
     }
-
 }

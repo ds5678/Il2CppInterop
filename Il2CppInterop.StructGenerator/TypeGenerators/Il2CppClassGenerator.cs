@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
 
@@ -23,21 +23,23 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
 
     protected override string? SizeOverride => "Size() + sizeof(VirtualInvokeData) * vTableSlots";
     protected override List<CodeGenField>? WrapperFields => null;
-    private bool ByValArgIsPointer => GetNativeField("byval_arg")?.FieldType.EndsWith("*") ?? false;
-    private bool ThisArgIsPointer => GetNativeField("this_arg")?.FieldType.EndsWith("*") ?? false;
+    private bool ByValArgIsPointer => GetNativeField("byval_arg")?.FieldType.EndsWith('*') ?? false;
+    private bool ThisArgIsPointer => GetNativeField("this_arg")?.FieldType.EndsWith('*') ?? false;
 
-    protected override Action<StringBuilder>? CreateNewExtraBody => builder =>
+    protected override Action<IndentedTextWriter>? CreateNewExtraBody => writer =>
     {
         if (GetNativeField("vtable") is not null)
         {
-            builder.AppendLine("Marshal.FreeHGlobal(ptr);");
-            builder.AppendLine(
+            writer.WriteLine("Marshal.FreeHGlobal(ptr);");
+            writer.WriteLine(
                 $"throw new NotSupportedException(\"The native struct '{NativeStructGenerator.NativeStruct.Name}' has a vtable field which is not currently supported!\");");
             return;
         }
 
-        if (ByValArgIsPointer) builder.AppendLine("_->byval_arg = UnityVersionHandler.NewType().TypePointer;");
-        if (ThisArgIsPointer) builder.AppendLine("_->this_arg = UnityVersionHandler.NewType().TypePointer;");
+        if (ByValArgIsPointer)
+            writer.WriteLine("_->byval_arg = UnityVersionHandler.NewType().TypePointer;");
+        if (ThisArgIsPointer)
+            writer.WriteLine("_->this_arg = UnityVersionHandler.NewType().TypePointer;");
     };
 
     protected override List<CodeGenProperty>? WrapperProperties
@@ -71,10 +73,10 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
     protected override List<BitfieldAccessor>? BitfieldAccessors => new()
     {
         new BitfieldAccessor("ValueType", "valuetype", defaultGetter: "ByValArg.ValueType && ThisArg.ValueType",
-            defaultSetBuilder: builder =>
+            defaultSetBuilder: writer =>
             {
-                builder.AppendLine("ByValArg.ValueType = value;");
-                builder.Append("ThisArg.ValueType = value;");
+                writer.WriteLine("ByValArg.ValueType = value;");
+                writer.WriteLine("ThisArg.ValueType = value;");
             }),
         new BitfieldAccessor("Initialized", "initialized"),
         new BitfieldAccessor("EnumType", "enumtype"),

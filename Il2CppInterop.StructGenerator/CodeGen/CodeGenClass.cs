@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.CodeDom.Compiler;
 
 namespace Il2CppInterop.StructGenerator.CodeGen;
 
@@ -8,7 +8,6 @@ internal class CodeGenClass : CodeGenElement
     {
     }
 
-    public override byte IndentAmount { get; set; } = 1;
     public override string Type => "class";
     public List<string> InterfaceNames { get; } = new();
     public List<string> Attributes { get; } = new();
@@ -17,47 +16,35 @@ internal class CodeGenClass : CodeGenElement
     public List<CodeGenProperty> Properties { get; } = new();
     public List<CodeGenElement> NestedElements { get; } = new();
 
-    public override string Build()
+    public override void Build(IndentedTextWriter writer)
     {
-        StringBuilder builder = new();
-        if (Attributes.Count > 0)
+        foreach (var attribute in Attributes)
         {
-            for (var i = 0; i < Attributes.Count; i++)
-            {
-                if (i > 0) builder.Append(Indent);
-                builder.AppendLine($"[{Attributes[i]}]");
-            }
-
-            builder.Append(Indent);
+            writer.WriteLine($"[{attribute}]");
         }
-
-        builder.Append($"{base.Build()}");
+        base.Build(writer);
         if (InterfaceNames.Count > 0)
-            builder.Append($" : {string.Join(", ", InterfaceNames)}");
-        builder.AppendLine();
-        builder.AppendLine($"{Indent}{{");
-        foreach (var method in Methods)
         {
-            method.IndentAmount = (byte)(IndentAmount + 1);
-            builder.Append($"{IndentInner}{method.Build()}");
+            writer.Write(" : ");
+            writer.Write(InterfaceNames[0]);
+            for (var i = 1; i < InterfaceNames.Count; i++)
+            {
+                writer.Write(", ");
+                writer.Write(InterfaceNames[i]);
+            }
         }
-
-        foreach (var field in Fields)
-            builder.AppendLine($"{IndentInner}{field.Build()}");
-        foreach (var property in Properties)
+        writer.WriteLine();
+        using (new CurlyBrackets(writer))
         {
-            property.IndentAmount = (byte)(IndentAmount + 1);
-            builder.Append($"{IndentInner}{property.Build()}");
+            foreach (var method in Methods)
+                method.Build(writer);
+            foreach (var field in Fields)
+                field.Build(writer);
+            foreach (var property in Properties)
+                property.Build(writer);
+            foreach (var nestedElement in NestedElements)
+                nestedElement.Build(writer);
         }
-
-        foreach (var nestedElement in NestedElements)
-        {
-            nestedElement.IndentAmount = (byte)(IndentAmount + 1);
-            builder.AppendLine($"{IndentInner}{nestedElement.Build()}");
-        }
-
-        builder.AppendLine($"{Indent}}}");
-        return builder.ToString();
     }
 
     public static bool operator !=(CodeGenClass lhs, CodeGenClass rhs)

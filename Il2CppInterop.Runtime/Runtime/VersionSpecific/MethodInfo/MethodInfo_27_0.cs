@@ -46,9 +46,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 BIT_is_marshaled_from_native = 3,
                 is_marshaled_from_native = (1 << BIT_is_marshaled_from_native),
             }
-
         }
-
         internal class NativeStructWrapper : INativeMethodInfoStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -83,7 +81,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
                 set => this.SetBit(_bitfield0offset, (int)Il2CppMethodInfo_27_0.Bitfield0.BIT_is_marshaled_from_native, value);
             }
         }
-
     }
-
 }

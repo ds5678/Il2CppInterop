@@ -31,9 +31,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Type
                 BIT_pinned = 7,
                 pinned = (1 << BIT_pinned),
             }
-
         }
-
         internal class NativeStructWrapper : INativeTypeStruct
         {
             public NativeStructWrapper(IntPtr ptr) => Pointer = ptr;
@@ -60,7 +58,5 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Type
                 set { }
             }
         }
-
     }
-
 }
