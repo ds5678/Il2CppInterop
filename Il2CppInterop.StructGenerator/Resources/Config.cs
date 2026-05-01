@@ -4,10 +4,12 @@ namespace Il2CppInterop.StructGenerator.Resources;
 
 internal static class Config
 {
-    // NOTE: Ignores are handled BEFORE renames
+    /// <summary>
+    /// NOTE: Ignores are handled BEFORE renames
+    /// </summary>
     public static readonly string[] ClassForcedIgnores =
     {
-        // Ignore the reflection structs in object-internals.h
+        // Ignore the reflection structs
         "Il2CppPropertyInfo",
         "Il2CppMethodInfo"
     };
