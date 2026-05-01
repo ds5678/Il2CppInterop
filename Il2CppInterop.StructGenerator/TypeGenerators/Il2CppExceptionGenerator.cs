@@ -18,7 +18,9 @@ internal class Il2CppExceptionGenerator : VersionSpecificGenerator
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [
         new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "ExceptionPointer")
-        { ImmediateGet = $"({NativeStub}*)Pointer" }
+        {
+            ImmediateGet = $"({NativeStub}*)Pointer"
+        }
     ];
 
     protected override IReadOnlyList<ByRefWrapper>? ByRefWrappers =>
