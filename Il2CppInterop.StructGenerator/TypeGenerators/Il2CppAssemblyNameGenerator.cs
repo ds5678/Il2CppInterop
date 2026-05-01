@@ -9,6 +9,7 @@ internal class Il2CppAssemblyNameGenerator : VersionSpecificGenerator
     {
     }
 
+    public override string CppClassName => "Il2CppAssemblyName";
     protected override string HandlerName => "NativeAssemblyNameStructHandler";
     protected override string HandlerInterface => "INativeAssemblyNameStructHandler";
     protected override string NativeInterface => "INativeAssemblyNameStruct";

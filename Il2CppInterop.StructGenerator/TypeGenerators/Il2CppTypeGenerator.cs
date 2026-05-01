@@ -9,6 +9,7 @@ internal class Il2CppTypeGenerator : VersionSpecificGenerator
     {
     }
 
+    public override string CppClassName => "Il2CppType";
     protected override string HandlerName => "NativeTypeStructHandler";
     protected override string HandlerInterface => "INativeTypeStructHandler";
     protected override string NativeInterface => "INativeTypeStruct";

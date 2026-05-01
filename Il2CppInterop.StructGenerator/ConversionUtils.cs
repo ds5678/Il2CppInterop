@@ -75,43 +75,6 @@ internal static class ConversionUtils
         ["unsigned long long"] = "ulong",
     };
 
-    private static readonly string[] SInvalidNames =
-    [
-        "object",
-        "class",
-        "struct",
-        "base"
-    ];
-
-    public static string GetName(CppField field)
-    {
-        var name = field.Name;
-        if (SInvalidNames.Contains(name))
-        {
-            return $"_{name}";
-        }
-        else if (name.Length == 0)
-        {
-            if (field.Parent is CppClass { Name: "Il2CppMethodInfo" } && field.Type is CppClass { ClassKind: CppClassKind.Union } unionType)
-            {
-                // IlCppMethodInfo has two unnamed union fields
-                if (unionType.Fields.Any(f => f.Name is "rgctx_data"))
-                {
-                    return "runtime_data";
-                }
-                if (unionType.Fields.Any(f => f.Name is "genericMethod"))
-                {
-                    return "generic_data";
-                }
-            }
-            throw new ArgumentException("Field has no name and is not part of a known union", nameof(field));
-        }
-        else
-        {
-            return name;
-        }
-    }
-
     public static string CppTypeToCSharpName(CppType type, out bool needsImport)
     {
         needsImport = false;
@@ -131,7 +94,7 @@ internal static class ConversionUtils
         // Forgive me for my sins
         var oldTypeName = type.GetDisplayName().Replace("const ", string.Empty);
         var ptrCount = oldTypeName.Count(x => x == '*');
-        if (ptrCount == 0 && Config.ClassToGenerator.ContainsKey(oldTypeName))
+        if (ptrCount == 0 && Config.ClassNames.Contains(oldTypeName))
             needsImport = true;
 
         string ptrs = new('*', ptrCount);

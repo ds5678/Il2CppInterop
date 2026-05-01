@@ -9,6 +9,7 @@ internal class Il2CppEventInfoGenerator : VersionSpecificGenerator
     {
     }
 
+    public override string CppClassName => "Il2CppEventInfo";
     protected override string HandlerName => "NativeEventInfoStructHandler";
     protected override string HandlerInterface => "INativeEventInfoStructHandler";
     protected override string NativeInterface => "INativeEventInfoStruct";

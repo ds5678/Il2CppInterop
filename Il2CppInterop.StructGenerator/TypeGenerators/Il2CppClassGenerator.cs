@@ -14,6 +14,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         ExtraUsings.Add("Il2CppInterop.Runtime.Runtime.VersionSpecific.Type");
     }
 
+    public override string CppClassName => "Il2CppClass";
     protected override string HandlerName => "NativeClassStructHandler";
     protected override string HandlerInterface => "INativeClassStructHandler";
     protected override string NativeInterface => "INativeClassStruct";
