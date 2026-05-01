@@ -5,8 +5,7 @@ namespace Il2CppInterop.StructGenerator.TypeGenerators;
 
 internal class Il2CppPropertyInfoGenerator : VersionSpecificGenerator
 {
-    public Il2CppPropertyInfoGenerator(string metadataSuffix, CppClass nativeClass,
-        Func<string, CppClass>? dependencyResolver = null) : base(metadataSuffix, nativeClass, dependencyResolver)
+    public Il2CppPropertyInfoGenerator(string metadataSuffix, CppClass nativeClass) : base(metadataSuffix, nativeClass)
     {
     }
 

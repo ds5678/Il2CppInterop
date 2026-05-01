@@ -7,8 +7,7 @@ namespace Il2CppInterop.StructGenerator;
 
 internal abstract class VersionSpecificGenerator
 {
-    public VersionSpecificGenerator(string metadataSuffix, CppClass nativeClass,
-        Func<string, CppClass>? dependencyResolver = null)
+    public VersionSpecificGenerator(string metadataSuffix, CppClass nativeClass)
     {
         MetadataSuffix = metadataSuffix;
         NativeStructGenerator = new NativeStructGenerator(MetadataSuffix, nativeClass);
@@ -19,10 +18,6 @@ internal abstract class VersionSpecificGenerator
             SizeProviderOverride = SizeOverride
         };
         HandlerGenerator.HandlerClass.NestedElements.Add(NativeStructGenerator.NativeStruct);
-        if (DependsOnClasses != null && dependencyResolver != null)
-            foreach (var dependency in DependsOnClasses)
-                HandlerGenerator.HandlerClass.NestedElements.Add(
-                    new NativeStructGenerator(MetadataSuffix, dependencyResolver(dependency)).NativeStruct);
 
         WrapperGenerator = new StructWrapperGenerator(NativeInterface);
         foreach (var bitfieldField in NativeStructGenerator.NativeStruct.Fields.Where(x =>
@@ -42,7 +37,6 @@ internal abstract class VersionSpecificGenerator
     protected abstract string NativeInterface { get; }
     protected abstract string NativeStub { get; }
 
-    protected virtual string[]? DependsOnClasses { get; }
     protected virtual IEnumerable<CodeGenParameter>? CreateNewParameters => null;
     protected virtual string? SizeOverride => null;
 

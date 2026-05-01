@@ -5,8 +5,7 @@ namespace Il2CppInterop.StructGenerator.TypeGenerators;
 
 internal class Il2CppAssemblyNameGenerator : VersionSpecificGenerator
 {
-    public Il2CppAssemblyNameGenerator(string metadataSuffix, CppClass nativeClass,
-        Func<string, CppClass>? dependencyResolver = null) : base(metadataSuffix, nativeClass, dependencyResolver)
+    public Il2CppAssemblyNameGenerator(string metadataSuffix, CppClass nativeClass) : base(metadataSuffix, nativeClass)
     {
     }
 
