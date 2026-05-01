@@ -211,7 +211,6 @@ public static class UnityVersionHandler
         return fieldInfoStructHandler.Size();
     }
 
-
     //Images
     public static INativeImageStruct NewImage()
     {
@@ -272,12 +271,6 @@ public static class UnityVersionHandler
         var address = (nint)parameterInfo + index * parameterInfoStructHandler.Size();
         return parameterInfoStructHandler.Wrap((Il2CppParameterInfo*)address);
     }
-
-    public static bool ParameterInfoHasNamePosToken()
-    {
-        return parameterInfoStructHandler.HasNamePosToken;
-    }
-
 
     //Properties
     public static INativePropertyInfoStruct NewProperty()

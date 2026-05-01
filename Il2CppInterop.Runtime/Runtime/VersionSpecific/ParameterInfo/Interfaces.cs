@@ -5,7 +5,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo;
 public interface INativeParameterInfoStructHandler : INativeStructHandler
 {
     unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* paramInfoPointer);
-    bool HasNamePosToken { get; }
 }
 
 public interface INativeParameterInfoStruct : INativeStruct

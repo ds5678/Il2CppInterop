@@ -1099,7 +1099,7 @@ public static unsafe class TypeInjector
             {
                 var parameterInfo = parameters[i];
                 var param = UnityVersionHandler.Wrap(paramsArray[i]);
-                if (UnityVersionHandler.ParameterInfoHasNamePosToken())
+                if (param.HasNamePosToken)
                 {
                     param.Name = Marshal.StringToCoTaskMemUTF8(parameterInfo.Name);
                     param.Position = i;
