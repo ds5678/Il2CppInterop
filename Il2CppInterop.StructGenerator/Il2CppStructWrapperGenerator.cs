@@ -114,11 +114,11 @@ public static partial class Il2CppStructWrapperGenerator
         Dictionary<Type, Dictionary<UnityVersion, VersionSpecificGenerator>> versionToGeneratorLookup = [];
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
-            if (!versionToGeneratorLookup.ContainsKey(generator.GetType()))
-                versionToGeneratorLookup[generator.GetType()] = [];
+            if (!versionToGeneratorLookup.TryGetValue(generator.GetType(), out var versionDictionary))
+                versionDictionary = versionToGeneratorLookup[generator.GetType()] = [];
 
             foreach (var version in generator.ApplicableVersions)
-                versionToGeneratorLookup[generator.GetType()][version] = generator;
+                versionDictionary[version] = generator;
         }
 
         foreach (var kvp in versionToGeneratorLookup)
