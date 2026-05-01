@@ -17,8 +17,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             return new NativeParameterInfoStructWrapper((IntPtr)paramInfoPointer);
         }
 
-        public bool HasNamePosToken => true;
-
         [StructLayout(LayoutKind.Sequential)]
         internal unsafe struct Il2CppParameterInfo_24_0
         {

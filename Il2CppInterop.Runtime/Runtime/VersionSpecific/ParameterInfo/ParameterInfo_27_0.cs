@@ -17,8 +17,6 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             return new NativeParameterInfoStructWrapper((IntPtr)paramInfoPointer);
         }
 
-        public bool HasNamePosToken => false;
-
         //Doesn't actually exist; just using this for type pointer storage in MethodInfo 27_3 +
         [StructLayout(LayoutKind.Sequential)]
         internal unsafe struct Il2CppParameterInfo_27_0
