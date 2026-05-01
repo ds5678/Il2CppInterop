@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using CppAst;
 using Il2CppInterop.StructGenerator.CodeGen;
-using Il2CppInterop.StructGenerator.Utilities;
 
 namespace Il2CppInterop.StructGenerator;
 

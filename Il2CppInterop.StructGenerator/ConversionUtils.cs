@@ -1,7 +1,6 @@
 ﻿using CppAst;
-using Il2CppInterop.StructGenerator.Resources;
 
-namespace Il2CppInterop.StructGenerator.Utilities;
+namespace Il2CppInterop.StructGenerator;
 
 internal static class ConversionUtils
 {
