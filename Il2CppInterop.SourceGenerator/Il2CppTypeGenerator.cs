@@ -1,5 +1,4 @@
 using System.CodeDom.Compiler;
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -29,129 +28,19 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                         _ => false,
                     };
                 },
-                transform: static (ctx, ct) => GetTypeModel(ctx, ct))
+                transform: static (ctx, ct) => {
+
+                    var injectedTypeAttr = ctx.Attributes[0];
+                    var assemblyName = injectedTypeAttr.NamedArguments
+                        .FirstOrDefault(a => a.Key == "Assembly")
+                        .Value.Value as string;
+                    return TypeModel.FromNode((INamedTypeSymbol)ctx.TargetSymbol, assemblyName, ct);
+                })
             .Where(static m => m is not null);
 
         context.RegisterSourceOutput(types, static (ctx, model) => Emit(ctx, model!));
     }
 
-    private static TypeModel? GetTypeModel(GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
-    {
-        if (ctx.TargetSymbol is not INamedTypeSymbol type)
-            return null;
-
-        var typeKind = ctx.TargetNode switch
-        {
-            StructDeclarationSyntax    => TypeKind.Struct,
-            InterfaceDeclarationSyntax => TypeKind.Interface,
-            ClassDeclarationSyntax     => TypeKind.Class,
-            _                          => TypeKind.Unknown,
-        };
-
-        if (typeKind == TypeKind.Unknown)
-            return null;
-
-        // Reference-type-only filter from the original class generator: skip plain `: object`.
-        if (typeKind == TypeKind.Class && type.BaseType?.SpecialType == SpecialType.System_Object)
-            return null;
-
-        var injectedTypeAttr = ctx.Attributes[0];
-        var assemblyName = injectedTypeAttr.NamedArguments
-            .FirstOrDefault(a => a.Key == "Assembly")
-            .Value.Value as string;
-
-        var members = ImmutableArray.CreateBuilder<MemberModel>();
-        var index = 0;
-
-        if (typeKind == TypeKind.Struct)
-        {
-            foreach (var field in type.GetMembers().OfType<IFieldSymbol>())
-            {
-                ct.ThrowIfCancellationRequested();
-
-                var attrs = field.GetAttributes();
-                if (!attrs.Any(a => a.AttributeClass.IsType("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"])))
-                    continue;
-
-                members.Add(new MemberModel(
-                    Name: field.Name,
-                    Type: field.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    Kind: MemberKind.Il2Cpp,
-                    Index: index++,
-                    Accessibility: null,
-                    IsStatic: field.IsStatic
-                ));
-            }
-        }
-        foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var attrs = property.GetAttributes();
-            var il2cpp = attrs.Any(a => a.AttributeClass.IsType("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
-            var managed = attrs.Any(a => a.AttributeClass.IsType("ManagedFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
-
-            if (!il2cpp && !managed) continue;
-            if (!property.IsPartialDefinition) continue;
-            if (managed && property.IsStatic) continue;
-
-            // DeclaredAccessibility defaults to Private when no modifier is written,
-            // so we check the syntax directly to distinguish explicit "private" from omitted.
-            var explicitAccess = property.DeclaringSyntaxReferences
-                .Select(r => r.GetSyntax(ct))
-                .OfType<PropertyDeclarationSyntax>()
-                .SelectMany(s => s.Modifiers)
-                .Any(m => m.IsKind(SyntaxKind.PublicKeyword)
-                          || m.IsKind(SyntaxKind.InternalKeyword)
-                          || m.IsKind(SyntaxKind.PrivateKeyword)
-                          || m.IsKind(SyntaxKind.ProtectedKeyword));
-
-            members.Add(new MemberModel(
-                Name: property.Name,
-                Type: property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                Kind: managed ? MemberKind.Managed : MemberKind.Il2Cpp,
-                Index: index++,
-                Accessibility: !explicitAccess ? null : property.DeclaredAccessibility,
-                IsStatic: property.IsStatic));
-        }
-
-        var finalizerMethods = ImmutableArray<string>.Empty;
-        var needsObjectPointerConstructor = false;
-
-        if (typeKind == TypeKind.Class)
-        {
-            finalizerMethods = [
-                ..type.GetMembers()
-                    .OfType<IMethodSymbol>()
-                    .Where(m =>
-                        !m.IsStatic &&
-                        m.Parameters.IsEmpty &&
-                        m.ReturnsVoid &&
-                        m.GetAttributes().Any(a =>
-                            a.AttributeClass.IsType("Il2CppFinalizerAttribute", ["Il2CppInterop", "Common", "Attributes"])))
-                    .Select(m => m.Name)
-            ];
-
-            needsObjectPointerConstructor = !type.GetMembers()
-                .OfType<IMethodSymbol>()
-                .Any(m => m.MethodKind == MethodKind.Constructor &&
-                          m.Parameters is [{ Type: INamedTypeSymbol s }] &&
-                          s.IsType("ObjectPointer", ["Il2CppInterop", "Common"]));
-        }
-
-        return new TypeModel(
-            Namespace: type.ContainingNamespace.IsGlobalNamespace
-                ? null
-                : type.ContainingNamespace.ToDisplayString(),
-            TypeName: type.Name,
-            TypeKind: typeKind,
-            AssemblyName: assemblyName,
-            Members: new EquatableArray<MemberModel>(members),
-            FinalizerMethodNames: new EquatableArray<string>(finalizerMethods),
-            NeedsObjectPointerConstructor: needsObjectPointerConstructor,
-            DeclaredAccessibility: type.DeclaredAccessibility,
-            IsAbstract: type.IsAbstract);
-    }
 
     private static void Emit(SourceProductionContext ctx, TypeModel model)
     {
@@ -375,7 +264,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.Indent++;
 
         writer.WriteLine("// This disposal happens when the object is collected by the Il2Cpp GC instead of the managed GC.");
-        writer.WriteLine("// That ensures that the delegate is kept alive as long as the Il2Cpp object is alive, even if the managed wrapper gets collected.");
+        writer.WriteLine("// That ensures that the referenced value is kept alive as long as the Il2Cpp object is alive, even if the managed wrapper gets collected.");
         writer.WriteLine("// In theory, the managed wrapper could be collected and recreated multiple times during the lifetime of the Il2Cpp object,");
         writer.WriteLine("// so this ensures that the managed fields are not disposed prematurely.");
 
@@ -422,9 +311,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
     private static void EmitStaticInterfaceMembers(IndentedTextWriter writer, TypeModel model)
     {
         var tn = model.TypeName;
-        var isValueType = model.TypeKind == TypeKind.Struct;
-
-        if (isValueType)
+        if (model.TypeKind == TypeKind.Struct)
         {
             writer.WriteLine($"static int global::Il2CppInterop.Common.IIl2CppType<{tn}>.Size => Il2CppInternals.Size;");
             writer.WriteLine();
@@ -506,25 +393,14 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         if (isValueType)
         {
             writer.WriteLine("public static readonly int Size;");
-            foreach (var member in model.Members)
-            {
-                if (member.IsStatic)
-                    writer.WriteLine($"public static readonly nint FieldInfoPtr_{member.Index}; // {member.Name}");
-                else
-                    writer.WriteLine($"public static readonly int FieldOffset_{member.Index}; // {member.Name}");
-            }
         }
-        else
+        foreach (var member in model.Members)
         {
-            foreach (var member in model.Members)
-            {
-                if (member.IsStatic)
-                    writer.WriteLine($"public static readonly nint FieldInfoPtr_{member.Index}; // {member.Name}");
-                else
-                    writer.WriteLine($"public static readonly int FieldOffset_{member.Index}; //  {member.Name}");
-            }
+            if (member.IsStatic)
+                writer.WriteLine($"public static readonly nint FieldInfoPtr_{member.Index}; // {member.Name}");
+            else
+                writer.WriteLine($"public static readonly int FieldOffset_{member.Index}; // {member.Name}");
         }
-
         writer.WriteLine();
         writer.WriteLine("static Il2CppInternals()");
         writer.WriteLine("{");
@@ -532,32 +408,22 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
         writer.WriteLine($"global::Il2CppInterop.Runtime.Injection.TypeInjector.RegisterTypeInIl2Cpp<{model.TypeName}>();");
 
+        foreach (var member in model.Members)
+        {
+            if (member.IsStatic)
+                writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
+            else
+                writer.WriteLine($"FieldOffset_{member.Index} = (int)global::Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
+        }
+
         if (isValueType)
         {
             writer.WriteLine($"Size = global::Il2CppInterop.Runtime.IL2CPP.GetIl2cppValueSize(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer);");
-
-            foreach (var member in model.Members)
-            {
-                if (member.IsStatic)
-                    writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
-                else
-                    writer.WriteLine($"FieldOffset_{member.Index} = (int)global::Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
-            };
-
             writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
         }
-        else
+        else if (!model.IsAbstract)
         {
-            foreach (var member in model.Members)
-            {
-                if (member.IsStatic)
-                    writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
-                else
-                    writer.WriteLine($"FieldOffset_{member.Index} = (int)global::Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
-            }
-
-            if (!model.IsAbstract)
-                writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, ptr => new {model.TypeName}(ptr));");
+            writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, ptr => new {model.TypeName}(ptr));");
         }
 
         writer.Indent--;

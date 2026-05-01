@@ -1,3 +1,4 @@
+using System.CodeDom.Compiler;
 using Microsoft.CodeAnalysis;
 
 namespace Il2CppInterop.SourceGenerator;
@@ -47,4 +48,5 @@ internal static class Extensions
         // Make sure we've consumed all namespaces up to global
         return ns is null or { IsGlobalNamespace: true };
     }
+    internal static void WriteLineNoTabs(this IndentedTextWriter writer) => writer.WriteLineNoTabs(null);
 }
