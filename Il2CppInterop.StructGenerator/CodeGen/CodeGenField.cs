@@ -7,6 +7,7 @@ internal class CodeGenField : CodeGenElement
 {
     public CodeGenField(string type, ElementProtection protection, string name) : base(protection, name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(type);
         FieldType = type;
     }
 

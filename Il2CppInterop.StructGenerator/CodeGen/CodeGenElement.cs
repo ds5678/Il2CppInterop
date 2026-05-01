@@ -6,6 +6,7 @@ internal abstract class CodeGenElement
 {
     public CodeGenElement(ElementProtection protection, string name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
         Protection = protection;
         Name = name;
     }

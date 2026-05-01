@@ -19,28 +19,6 @@ public static class Il2CppStructWrapperGenerator
     private static readonly Dictionary<int, List<VersionSpecificGenerator>> SGenerators = new();
     internal static ILogger? Logger { get; set; }
 
-    private static int GetMetadataVersion(string libil2CppPath)
-    {
-        var metadataVersion = -1;
-        foreach (var versionContainer in Config.MetadataVersionContainers)
-        {
-            var fullPath = Path.Combine(libil2CppPath, versionContainer);
-            if (File.Exists(fullPath))
-            {
-                var metadataMatch = Regex.Match(File.ReadAllText(fullPath),
-                    @"\(s_GlobalMetadataHeader->version == ([0-9]+)\);");
-
-                if (metadataMatch.Success)
-                {
-                    metadataVersion = int.Parse(metadataMatch.Groups[1].Value);
-                    break;
-                }
-            }
-        }
-
-        return metadataVersion;
-    }
-
     private static VersionSpecificGenerator? VisitClass(CppClass @class, int metadataVersion,
         UnityVersion unityVersion, CppClass[] classes)
     {
@@ -99,77 +77,88 @@ public static class Il2CppStructWrapperGenerator
         if (Directory.Exists(options.OutputDirectory))
             Directory.Delete(options.OutputDirectory, true);
         Directory.CreateDirectory(options.OutputDirectory);
-        foreach (var (libil2CppDir, version) in Directory.GetDirectories(options.HeadersDirectory)
-                     .Select(x => (x, UnityVersion.Parse(Path.GetFileName(x)))).OrderBy(x => x.Item2))
+        var previousVersion = UnityVersion.MinVersion;
+        foreach (var (headerPath, version) in Directory.GetFiles(options.HeadersDirectory, "*.h")
+                     .Select(x => (x, UnityVersion.Parse(Path.GetFileNameWithoutExtension(x)))).OrderBy(x => x.Item2))
         {
-            var classInternalsPath = Path.Combine(libil2CppDir, "il2cpp-class-internals.h");
-            if (!File.Exists(classInternalsPath))
-            {
-                Logger?.LogWarning(
-                    "{} doesn't have il2cpp-class-internals.h - falling back to class-internals.h", version);
-                classInternalsPath = Path.Combine(libil2CppDir, "class-internals.h");
-                if (!File.Exists(classInternalsPath))
-                {
-                    Logger?.LogWarning("{} doesn't have class-internals.h", version);
-                    continue;
-                }
-            }
+            var headerText = File.ReadAllText(headerPath);
+            var metadataMatch = Regex.Match(headerText, @"const int METADATA_VERSION = ([0-9]+);");
 
-            var objectInternalsPath = Path.Combine(libil2CppDir, "il2cpp-object-internals.h");
-            if (!File.Exists(objectInternalsPath))
+            int metadataVersion;
+            if (metadataMatch.Success)
             {
-                Logger?.LogWarning(
-                    "{} doesn't have il2cpp-object-internals.h - falling back to object-internals.h", version);
-                objectInternalsPath = Path.Combine(libil2CppDir, "object-internals.h");
-                if (!File.Exists(objectInternalsPath))
-                {
-                    Logger?.LogWarning("{} doesn't have object-internals.h", version);
-                    continue;
-                }
+                metadataVersion = int.Parse(metadataMatch.Groups[1].Value);
             }
-
-            var metadataVersion = GetMetadataVersion(libil2CppDir);
-            if (metadataVersion == -1)
+            else
             {
                 Logger?.LogWarning("{} has an invalid metadata version", version);
                 continue;
             }
 
-            var classInternalsIsTmp = true;
-            // Graduated top of my class by the way
-            {
-                if (!File.Exists($"{classInternalsPath}_backup"))
-                {
-                    var classInternalsData = File.ReadAllText(classInternalsPath);
-                    // I have to do this because the lib I use doesn't recognize these unions, so I have to name them in the most disgusting way imaginable
-                    classInternalsData = Regex.Replace(classInternalsData,
-                        @"(union.{0,60}?rgctx_data;.*?method(?:Definition|MetadataHandle);.*?});", "$1 runtime_data;",
-                        RegexOptions.Singleline);
-                    classInternalsData = Regex.Replace(classInternalsData,
-                        @"(union.{0,60}?genericMethod;.*?genericContainer(?:Handle)?;.*?});", "$1 generic_data;",
-                        RegexOptions.Singleline);
+            const string HeaderPrefix = """
+                #line 1 "Prefix.h"
+                typedef int int32_t;
+                typedef unsigned int uint32_t;
+                typedef short int16_t;
+                typedef unsigned short uint16_t;
+                typedef char int8_t;
+                typedef unsigned char uint8_t;
+                typedef long long int64_t;
+                typedef unsigned long long uint64_t;
+                typedef long intptr_t;
+                typedef unsigned long uintptr_t;
+                """;
 
-                    File.Move(classInternalsPath, $"{classInternalsPath}_backup");
-                    File.WriteAllText(classInternalsPath, classInternalsData);
-                }
+            string processedHeaderText;
+            if (headerText.Contains("struct ParameterInfo", StringComparison.Ordinal))
+            {
+                processedHeaderText = $"""
+                    {HeaderPrefix}
+                    #line 1 "Header.h"
+                    {headerText}
+                    """;
             }
+            else
+            {
+                // ParameterInfo was removed in v27, but we add it back in manually.
+                processedHeaderText = $$"""
+                    {{HeaderPrefix}}
+                    #line 1 "ParameterInfo.h"
+                    typedef struct Il2CppType Il2CppType;
+                    typedef struct ParameterInfo
+                    {
+                        const Il2CppType* parameter_type;
+                    } ParameterInfo;
+                    #line 1 "Header.h"
+                    {{headerText.Replace("const Il2CppType** parameters;", "const ParameterInfo* parameters;")}}
+                    """;
+            }
+
             if (!SGenerators.ContainsKey(metadataVersion))
                 SGenerators[metadataVersion] = new List<VersionSpecificGenerator>();
-            var compilation = CppParser.ParseFiles(new List<string> { objectInternalsPath, classInternalsPath },
+            var compilation = CppParser.Parse(processedHeaderText,
                 new CppParserOptions
                 {
-                    ParseAsCpp = true,
+                    ParserKind = CppParserKind.Cpp,
                     AutoSquashTypedef = false,
-                    ParseMacros = true
+                    ParseMacros = false
                 });
             Logger?.LogInformation("Parsing {}", version);
-            var classes = compilation.Classes.ToArray();
-            foreach (var @class in classes) VisitClass(@class, metadataVersion, version, classes);
-            if (classInternalsIsTmp)
+            if (compilation.HasErrors)
             {
-                File.Delete(classInternalsPath);
-                File.Move($"{classInternalsPath}_backup", classInternalsPath);
+                Logger?.LogError("Failed to parse {}", version);
+                continue;
             }
+            // If this is the first version with this major.minor.build, strip the rest of the information.
+            var actualVersion = version.Major == previousVersion.Major && version.Minor == previousVersion.Minor && version.Build == previousVersion.Build
+                ? version
+                : new UnityVersion(version.Major, version.Minor, version.Build);
+            var classes = compilation.Classes.ToArray();
+            foreach (var @class in classes)
+            {
+                VisitClass(@class, metadataVersion, actualVersion, classes);
+            }
+            previousVersion = version;
         }
 
         Logger?.LogInformation("Building version specific classes");
@@ -190,8 +179,11 @@ public static class Il2CppStructWrapperGenerator
             VersionSpecificGenerator? last = null;
             foreach (var kvp2 in kvp.Value.Where(kvp2 => last is null || last != kvp2.Value))
             {
+                var versionString = kvp2.Key is { Type: UnityVersionType.Alpha, TypeNumber: 0 }
+                    ? kvp2.Key.ToStringWithoutType()
+                    : kvp2.Key.ToString();
                 kvp2.Value.HandlerGenerator.HandlerClass.Attributes.Add(
-                    $"ApplicableToUnityVersionsSince(\"{kvp2.Key.ToStringWithoutType()}\")");
+                    $"ApplicableToUnityVersionsSince(\"{versionString}\")");
                 last = kvp2.Value;
             }
         }
