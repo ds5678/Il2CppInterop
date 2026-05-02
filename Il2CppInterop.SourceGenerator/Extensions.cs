@@ -10,19 +10,19 @@ internal static class Extensions
     // on a top-level injected type.
     internal static string GetAccessibilityKeyword(this Accessibility a) => a switch
     {
-        Accessibility.Public              => "public",
-        Accessibility.Internal            => "internal",
-        Accessibility.Private             => "private",
-        Accessibility.Protected           => "protected",
+        Accessibility.Public => "public",
+        Accessibility.Internal => "internal",
+        Accessibility.Private => "private",
+        Accessibility.Protected => "protected",
         Accessibility.ProtectedOrInternal => "protected internal",
         Accessibility.ProtectedAndInternal => "private protected",
-        _                                 => "public",
+        _ => "public",
     };
 
     internal static string GetTypeKeyword(this TypeKind kind) => kind switch
     {
-        TypeKind.Class     => "class",
-        TypeKind.Struct    => "struct",
+        TypeKind.Class => "class",
+        TypeKind.Struct => "struct",
         TypeKind.Interface => "interface",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
