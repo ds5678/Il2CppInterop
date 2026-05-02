@@ -135,6 +135,7 @@ public static partial class Il2CppStructWrapperGenerator
             }
         }
 
+        HashSet<string> generatorNames = [];
         foreach (var generator in SGenerators.Values.SelectMany(x => x))
         {
             var generatorOutputDirectory = Path.Join(options.OutputDirectory, generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null));
@@ -153,6 +154,12 @@ public static partial class Il2CppStructWrapperGenerator
             };
             file.Usings.AddRange(generator.ExtraUsings);
             file.WriteTo(Path.Join(generatorOutputDirectory, $"{generator.NativeStructGenerator.NativeStruct.Name.Replace("Il2Cpp", null)}.cs"));
+            if (generatorNames.Add(generator.CppClassName))
+            {
+                // The first time we encounter a generator for a given class, we also generate the interface.
+                var interfacesFile = generator.GenerateInterfacesFile();
+                interfacesFile.WriteTo(Path.Join(generatorOutputDirectory, "Interfaces.cs"));
+            }
         }
 
         Logger = null;

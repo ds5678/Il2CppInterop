@@ -2,7 +2,7 @@
 
 internal sealed class CodeGenInterface : CodeGenType
 {
-    public CodeGenInterface(ElementProtection protection, string name) : base(protection, name)
+    public CodeGenInterface(ElementProtection? protection, string name) : base(protection, name)
     {
     }
 

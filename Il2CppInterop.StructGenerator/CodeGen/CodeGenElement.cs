@@ -4,7 +4,7 @@ namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal abstract class CodeGenElement
 {
-    public CodeGenElement(ElementProtection protection, string name)
+    public CodeGenElement(ElementProtection? protection, string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         Protection = protection;
@@ -16,7 +16,7 @@ internal abstract class CodeGenElement
     public bool IsStatic { get; set; }
     public bool IsUnsafe { get; set; }
     public string Name { get; }
-    public ElementProtection Protection { get; }
+    public ElementProtection? Protection { get; }
 
     public string Keywords
     {
@@ -33,7 +33,13 @@ internal abstract class CodeGenElement
         }
     }
 
-    public virtual string Declaration => $"{Protection.ToCSharpString()} {Keywords}{Type} {Name}";
+    public virtual string Declaration
+    {
+        get
+        {
+            return Protection is null ? $"{Keywords}{Type} {Name}" : $"{Protection.Value.ToCSharpString()} {Keywords}{Type} {Name}";
+        }
+    }
 
     public virtual void Build(IndentedTextWriter writer)
     {

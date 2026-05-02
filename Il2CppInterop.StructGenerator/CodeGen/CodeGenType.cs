@@ -4,7 +4,7 @@ namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal abstract class CodeGenType : CodeGenElement
 {
-    public CodeGenType(ElementProtection protection, string name) : base(protection, name)
+    public CodeGenType(ElementProtection? protection, string name) : base(protection, name)
     {
     }
 

@@ -2,7 +2,7 @@
 
 internal sealed class CodeGenStruct : CodeGenType
 {
-    public CodeGenStruct(ElementProtection protection, string name) : base(protection, name)
+    public CodeGenStruct(ElementProtection? protection, string name) : base(protection, name)
     {
     }
 
