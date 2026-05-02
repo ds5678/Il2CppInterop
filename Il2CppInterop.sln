@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11109.219 d18.0-oob
+VisualStudioVersion = 18.0.11109.219
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Il2CppInterop.Generator", "Il2CppInterop.Generator\Il2CppInterop.Generator.csproj", "{7C3FD45B-A563-47AF-90DF-8B051A8C33A0}"
 EndProject
@@ -44,6 +44,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2Cppmscorlib", "Il2Cppmsc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.SourceGenerator", "Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj", "{3110C3CE-A58E-4B3A-8BE2-455AFD69606E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.SourceGenerator.Tests", "Il2CppInterop.SourceGenerator.Tests\Il2CppInterop.SourceGenerator.Tests.csproj", "{03100003-C74A-4ABD-AB2E-EB0395ADA031}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{3110C3CE-A58E-4B3A-8BE2-455AFD69606E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3110C3CE-A58E-4B3A-8BE2-455AFD69606E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3110C3CE-A58E-4B3A-8BE2-455AFD69606E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03100003-C74A-4ABD-AB2E-EB0395ADA031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03100003-C74A-4ABD-AB2E-EB0395ADA031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03100003-C74A-4ABD-AB2E-EB0395ADA031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03100003-C74A-4ABD-AB2E-EB0395ADA031}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
