@@ -11,7 +11,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
 {
     #region Diagnostic Descriptors
 
-    private static readonly DiagnosticDescriptor MustBePartial = new(
+    public static DiagnosticDescriptor MustBePartial { get; } = new(
         id: "IL2CPP0001",
         title: "Injected type must be partial",
         messageFormat: "Type '{0}' is marked with [InjectedType] but is not declared as partial. Add the 'partial' modifier so the source generator can augment it.",
@@ -23,7 +23,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
                      "which requires the partial keyword.",
         helpLinkUri: "https://github.com/BepInEx/Il2CppInterop");
 
-    private static readonly DiagnosticDescriptor MustInheritIl2CppObject = new(
+    public static DiagnosticDescriptor MustInheritIl2CppObject { get; } = new(
         id: "IL2CPP0002",
         title: "Injected class must inherit from Il2CppSystem.Object",
         messageFormat: "Class '{0}' is marked with [InjectedType] but does not inherit from Il2CppSystem.Object",
@@ -31,7 +31,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor CannotHaveStaticConstructor = new(
+    public static DiagnosticDescriptor CannotHaveStaticConstructor { get; } = new(
         id: "IL2CPP0003",
         title: "Injected type cannot have a static constructor",
         messageFormat: "Type '{0}' is marked with [InjectedType] but has a static constructor. Remove it, as Il2CppInternals handles static initialization.",
@@ -39,7 +39,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor CannotOverrideIl2CppFinalize = new(
+    public static DiagnosticDescriptor CannotOverrideIl2CppFinalize { get; } = new(
         id: "IL2CPP0004",
         title: "Injected type should not manually override Il2CppFinalize",
         messageFormat: "Type '{0}' manually overrides Il2CppFinalize. Use [Il2CppFinalizer] on a method instead.",
@@ -47,7 +47,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor CannotHaveManagedFieldOnStructOrInterface = new(
+    public static DiagnosticDescriptor CannotHaveManagedFieldOnStructOrInterface { get; } = new(
         id: "IL2CPP0005",
         title: "Structs and interfaces cannot have [ManagedField] properties",
         messageFormat: "Type '{0}' is a {1} and cannot have properties marked with [ManagedField]",
@@ -55,7 +55,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor CannotHaveIl2CppFieldOnStruct = new(
+    public static DiagnosticDescriptor CannotHaveIl2CppFieldOnStruct { get; } = new(
         id: "IL2CPP0006",
         title: "Structs cannot have instance properties marked with [Il2CppField]",
         messageFormat: "Type '{0}' is a struct and cannot have instance properties marked with [Il2CppField]",
@@ -63,7 +63,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor ManagedFieldMustBeInstance = new(
+    public static DiagnosticDescriptor ManagedFieldMustBeInstance { get; } = new(
         id: "IL2CPP0007",
         title: "Properties marked with [ManagedField] must be instance members",
         messageFormat: "Property '{0}' is marked with [ManagedField] but is static. [ManagedField] properties must be instance members.",
@@ -71,7 +71,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor FieldPropertyMustBePartial = new(
+    public static DiagnosticDescriptor FieldPropertyMustBePartial { get; } = new(
         id: "IL2CPP0008",
         title: "Properties marked with [ManagedField] or [Il2CppField] must be partial",
         messageFormat: "Property '{0}' is marked with [{1}] but is not partial. Add the 'partial' modifier.",
@@ -79,7 +79,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor ShouldNotHaveUninjectedInstanceMembers = new(
+    public static DiagnosticDescriptor ShouldNotHaveUninjectedInstanceMembers { get; } = new(
         id: "IL2CPP0009",
         title: "Injected types should not have uninjected instance members",
         messageFormat: "Type '{0}' has instance member '{1}' which is not managed by Il2CppInterop. Use [ManagedField] or [Il2CppField] properties instead.",
