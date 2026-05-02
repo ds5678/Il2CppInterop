@@ -1,23 +1,19 @@
-using System;
-
 namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
 {
     public interface INativeMethodInfoStructHandler : INativeStructHandler
     {
         INativeMethodInfoStruct CreateNewStruct();
-        unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer);
+        unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* pointer);
     }
-
     public interface INativeMethodInfoStruct : INativeStruct
     {
         unsafe Il2CppMethodInfo* MethodInfoPointer { get; }
-        ref IntPtr Name { get; }
+        ref nint Name { get; }
         ref ushort Slot { get; }
-        ref IntPtr MethodPointer { get; }
-
-        ref IntPtr VirtualMethodPointer { get; }
+        ref nint MethodPointer { get; }
+        ref nint VirtualMethodPointer { get; }
         unsafe ref Il2CppClass* Class { get; }
-        ref IntPtr InvokerMethod { get; }
+        ref nint InvokerMethod { get; }
         unsafe ref Il2CppTypeStruct* ReturnType { get; }
         ref Il2CppMethodFlags Flags { get; }
         ref byte ParametersCount { get; }

@@ -4,7 +4,7 @@ namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenProperty : CodeGenElement
 {
-    public CodeGenProperty(string propertyType, ElementProtection protection, string name) : base(protection, name)
+    public CodeGenProperty(string propertyType, ElementProtection? protection, string name) : base(protection, name)
     {
         Type = propertyType;
     }
@@ -18,6 +18,9 @@ internal class CodeGenProperty : CodeGenElement
 
     public bool EmptySet { get; set; }
     public CodeGenMethod? SetMethod { get; set; }
+
+    public bool HasGet => GetMethod != null || ImmediateGet != null || EmptyGet;
+    public bool HasSet => SetMethod != null || EmptySet;
 
     public override void Build(IndentedTextWriter writer)
     {

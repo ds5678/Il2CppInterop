@@ -4,7 +4,7 @@ namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenEnum : CodeGenElement
 {
-    public CodeGenEnum(EnumUnderlyingType underlyingType, ElementProtection protection, string name) : base(protection,
+    public CodeGenEnum(EnumUnderlyingType underlyingType, ElementProtection? protection, string name) : base(protection,
         name)
     {
         UnderlyingType = underlyingType;

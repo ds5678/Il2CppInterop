@@ -4,7 +4,7 @@ namespace Il2CppInterop.StructGenerator.CodeGen;
 
 internal class CodeGenMethod : CodeGenElement
 {
-    public CodeGenMethod(string returnType, ElementProtection protection, string name) : base(protection, name)
+    public CodeGenMethod(string returnType, ElementProtection? protection, string name) : base(protection, name)
     {
         Type = returnType;
     }
@@ -14,10 +14,15 @@ internal class CodeGenMethod : CodeGenElement
     public List<CodeGenParameter> Parameters { get; } = [];
     public Action<IndentedTextWriter>? MethodBodyBuilder { get; set; } = null;
     public string? ImmediateReturn { get; set; } = null;
+    public bool HasBody { get; set; } = true;
 
     public void BuildBody(IndentedTextWriter writer)
     {
-        if (ImmediateReturn != null)
+        if (!HasBody)
+        {
+            writer.WriteLine(";");
+        }
+        else if (ImmediateReturn != null)
         {
             if (ImmediateReturn == "")
                 writer.WriteLine(" { }");

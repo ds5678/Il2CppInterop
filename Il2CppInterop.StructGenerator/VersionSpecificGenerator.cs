@@ -190,4 +190,73 @@ internal abstract class VersionSpecificGenerator
     {
         return NativeStructGenerator.NativeStruct.Fields.SingleOrDefault(x => x.Name == name);
     }
+
+    public CodeGenFile GenerateInterfacesFile()
+    {
+        var createNewStructMethod = new CodeGenMethod(NativeInterface, null, "CreateNewStruct")
+        {
+            HasBody = false
+        };
+        createNewStructMethod.Parameters.AddRange(CreateNewParameters ?? []);
+        var handlerInterface = new CodeGenInterface(ElementProtection.Public, HandlerInterface)
+        {
+            InterfaceNames = { "INativeStructHandler" },
+            Methods =
+            {
+                createNewStructMethod,
+                new CodeGenMethod(NativeInterface, null, "Wrap")
+                {
+                    IsUnsafe = true,
+                    HasBody = false,
+                    Parameters =
+                    {
+                        new CodeGenParameter($"{NativeStub}*", "pointer"),
+                    }
+                },
+            }
+        };
+        var nativeInterface = new CodeGenInterface(ElementProtection.Public, NativeInterface)
+        {
+            InterfaceNames = { "INativeStruct" },
+        };
+        foreach (var property in WrapperProperties ?? [])
+        {
+            if (property.Protection != ElementProtection.Public)
+                continue;
+
+            nativeInterface.Properties.Add(new CodeGenProperty(property.Type, null, property.Name)
+            {
+                EmptyGet = property.HasGet,
+                EmptySet = property.HasSet,
+                IsUnsafe = property.IsUnsafe || property.Type.Contains('*'),
+            });
+        }
+        foreach (var wrapper in ByRefWrappers ?? [])
+        {
+            nativeInterface.Properties.Add(new CodeGenProperty($"ref {wrapper.WrappedType}", null, wrapper.WrappedName)
+            {
+                IsUnsafe = wrapper.WrappedType.Contains('*'),
+                EmptyGet = true,
+            });
+        }
+        foreach (var accessor in BitfieldAccessors ?? [])
+        {
+            nativeInterface.Properties.Add(new CodeGenProperty(accessor.AccessorType, null, accessor.AccessorName)
+            {
+                EmptyGet = true,
+                EmptySet = true,
+            });
+        }
+        var file = new CodeGenFile()
+        {
+            Namespace = $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
+            Elements =
+            {
+                handlerInterface,
+                nativeInterface,
+            }
+        };
+        file.Usings.AddRange(ExtraUsings);
+        return file;
+    }
 }
