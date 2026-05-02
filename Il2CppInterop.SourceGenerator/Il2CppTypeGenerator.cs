@@ -28,7 +28,8 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
                         _ => false,
                     };
                 },
-                transform: static (ctx, ct) => {
+                transform: static (ctx, ct) =>
+                {
 
                     var injectedTypeAttr = ctx.Attributes[0];
                     var assemblyName = injectedTypeAttr.NamedArguments
