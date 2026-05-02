@@ -33,6 +33,20 @@ internal static class Extensions
             symbol is not null &&
             symbol.Name == name &&
             MatchesNamespace(symbol.ContainingNamespace, namespaceParts);
+
+        public bool HasAttribute(string name, ReadOnlySpan<string> namespaceParts)
+        {
+            if (symbol is null)
+                return false;
+
+            foreach (var attr in symbol.GetAttributes())
+            {
+                if (attr.AttributeClass.IsType(name, namespaceParts))
+                    return true;
+            }
+
+            return false;
+        }
     }
 
     private static bool MatchesNamespace(INamespaceSymbol? ns, ReadOnlySpan<string> parts)
@@ -49,4 +63,5 @@ internal static class Extensions
         return ns is null or { IsGlobalNamespace: true };
     }
     internal static void WriteLineNoTabs(this IndentedTextWriter writer) => writer.WriteLineNoTabs(null);
+
 }
