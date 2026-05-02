@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis.Testing;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Il2CppInterop.SourceGenerator.Tests;
 
