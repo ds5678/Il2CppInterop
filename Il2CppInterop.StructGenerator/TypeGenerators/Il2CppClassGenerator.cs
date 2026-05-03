@@ -61,9 +61,10 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
             byvalArg.ImmediateGet += "_->byval_arg)";
             thisArg.ImmediateGet += "_->this_arg)";
             return [
-                new CodeGenProperty("nint", ElementProtection.Public, "VTable")
+                new CodeGenProperty("VirtualInvokeData*", ElementProtection.Public, "VTable")
                 {
-                    ImmediateGet = $"nint.Add(Pointer, sizeof({NativeStructGenerator.NativeStruct.Name}))"
+                    ImmediateGet = $"(VirtualInvokeData*)nint.Add(Pointer, sizeof({NativeStructGenerator.NativeStruct.Name}))",
+                    IsUnsafe = true
                 },
                 new CodeGenProperty($"{NativeStub}*", ElementProtection.Public, "ClassPointer")
                 {
@@ -96,7 +97,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
     protected override IReadOnlyList<ByRefWrapper> ByRefWrappers =>
     [
         new ByRefWrapper("uint", "InstanceSize", ["instance_size"]),
-        new ByRefWrapper("ushort", "VtableCount", ["vtable_count"]),
+        new ByRefWrapper("ushort", "VTableCount", ["vtable_count"]),
         new ByRefWrapper("ushort", "InterfaceCount", ["interfaces_count"]),
         new ByRefWrapper("ushort", "InterfaceOffsetsCount", ["interface_offsets_count"]),
         new ByRefWrapper("byte", "TypeHierarchyDepth", ["typeHierarchyDepth"]),

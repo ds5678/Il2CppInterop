@@ -8,12 +8,12 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
     }
     public interface INativeClassStruct : INativeStruct
     {
-        nint VTable { get; }
+        unsafe VirtualInvokeData* VTable { get; }
         unsafe Il2CppClass* ClassPointer { get; }
         INativeTypeStruct ByValArg { get; }
         INativeTypeStruct ThisArg { get; }
         ref uint InstanceSize { get; }
-        ref ushort VtableCount { get; }
+        ref ushort VTableCount { get; }
         ref ushort InterfaceCount { get; }
         ref ushort InterfaceOffsetsCount { get; }
         ref byte TypeHierarchyDepth { get; }

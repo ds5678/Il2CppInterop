@@ -111,12 +111,12 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             private static int _bitfield1offset = Marshal.OffsetOf<Il2CppClass_24_0>(nameof(Il2CppClass_24_0._bitfield1)).ToInt32();
             public nint Pointer { get; }
             private Il2CppClass_24_0* _ => (Il2CppClass_24_0*)Pointer;
-            public nint VTable => nint.Add(Pointer, sizeof(Il2CppClass_24_0));
+            public unsafe VirtualInvokeData* VTable => (VirtualInvokeData*)nint.Add(Pointer, sizeof(Il2CppClass_24_0));
             public Il2CppClass* ClassPointer => (Il2CppClass*)Pointer;
             public INativeTypeStruct ByValArg => UnityVersionHandler.Wrap((Il2CppTypeStruct*)&_->byval_arg);
             public INativeTypeStruct ThisArg => UnityVersionHandler.Wrap((Il2CppTypeStruct*)&_->this_arg);
             public ref uint InstanceSize => ref _->instance_size;
-            public ref ushort VtableCount => ref _->vtable_count;
+            public ref ushort VTableCount => ref _->vtable_count;
             public ref ushort InterfaceCount => ref _->interfaces_count;
             public ref ushort InterfaceOffsetsCount => ref _->interface_offsets_count;
             public ref byte TypeHierarchyDepth => ref _->typeHierarchyDepth;

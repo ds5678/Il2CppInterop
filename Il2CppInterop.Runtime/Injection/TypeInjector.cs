@@ -299,8 +299,8 @@ public static unsafe class TypeInjector
                 for (; index < lowestedInterfaceOffset; index++)
                 {
                     ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
-                    var vtableEntry = (VirtualInvokeData*)classPointer.VTable + index;
-                    var baseVTableEntry = (VirtualInvokeData*)baseClassPointer.VTable + index;
+                    var vtableEntry = classPointer.VTable + index;
+                    var baseVTableEntry = baseClassPointer.VTable + index;
                     var baseMethodInfo = baseMap2[baseMap3[(nint)baseVTableEntry->method]];
                     if (baseMethodToMethodMap.TryGetValue(baseMethodInfo, out var methodInfo))
                     {
@@ -329,7 +329,7 @@ public static unsafe class TypeInjector
 
                     var nativeMethodInfo = map4[map1[methodInfo]];
                     ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
-                    ((VirtualInvokeData*)classPointer.VTable)[index] = new()
+                    classPointer.VTable[index] = new()
                     {
                         methodPtr = nativeMethodInfo.MethodPointer,
                         method = nativeMethodInfo.MethodInfoPointer
@@ -344,7 +344,7 @@ public static unsafe class TypeInjector
                     var interfaceType = pointersToInterfaces[interfaceClassPointer.Pointer];
                     var baseInterfaceOffset = pair.offset;
                     var interfaceOffset = index;
-                    int interfaceVtableCount = interfaceClassPointer.VtableCount;
+                    int interfaceVtableCount = interfaceClassPointer.VTableCount;
 
                     interfaceOffsets.Add(new Il2CppRuntimeInterfaceOffsetPair
                     {
@@ -371,8 +371,8 @@ public static unsafe class TypeInjector
                     {
                         Debug.Assert(index == interfaceOffset + i);
                         ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
-                        var vtableEntry = (VirtualInvokeData*)classPointer.VTable + interfaceOffset + i;
-                        var interfaceVTableEntry = (VirtualInvokeData*)interfaceClassPointer.VTable + i;
+                        var vtableEntry = classPointer.VTable + interfaceOffset + i;
+                        var interfaceVTableEntry = interfaceClassPointer.VTable + i;
                         var interfaceMethodInfo = interfaceMap2[interfaceMap3[(nint)interfaceVTableEntry->method]];
                         if (interfaceMethodToImplementingMethod.TryGetValue(interfaceMethodInfo, out var methodInfo) && methodInfo.DeclaringType == type)
                         {
@@ -382,7 +382,7 @@ public static unsafe class TypeInjector
                         }
                         else
                         {
-                            var baseVTableEntry = (VirtualInvokeData*)baseClassPointer.VTable + baseInterfaceOffset + i;
+                            var baseVTableEntry = baseClassPointer.VTable + baseInterfaceOffset + i;
                             *vtableEntry = *baseVTableEntry;
                         }
                         index++;
@@ -424,8 +424,8 @@ public static unsafe class TypeInjector
                 {
                     Debug.Assert(index == interfaceOffset + i);
                     ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
-                    var vtableEntry = (VirtualInvokeData*)classPointer.VTable + interfaceOffset + i;
-                    var interfaceVTableEntry = (VirtualInvokeData*)interfaceClassPointer.VTable + i;
+                    var vtableEntry = classPointer.VTable + interfaceOffset + i;
+                    var interfaceVTableEntry = interfaceClassPointer.VTable + i;
                     var interfaceMethodInfo = interfaceMap2[interfaceMap3[(nint)interfaceVTableEntry->method]];
                     var methodInfo = interfaceMethodToImplementingMethod[interfaceMethodInfo];
                     var nativeMethodInfo = map4[map1[methodInfo]];
@@ -536,7 +536,7 @@ public static unsafe class TypeInjector
 
     private static int LowestInterfaceOffset(INativeClassStruct classPointer)
     {
-        int result = classPointer.VtableCount;
+        int result = classPointer.VTableCount;
         for (var i = classPointer.InterfaceOffsetsCount - 1; i >= 0; i--)
         {
             var offset = (classPointer.InterfaceOffsets + i)->offset;
@@ -803,7 +803,7 @@ public static unsafe class TypeInjector
         }
         if (type.IsValueType)
         {
-            count += UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.ValueType>.NativeClassPointer).VtableCount;
+            count += UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.ValueType>.NativeClassPointer).VTableCount;
         }
         return int.Min(count, ushort.MaxValue);
 
@@ -897,7 +897,7 @@ public static unsafe class TypeInjector
 
         InjectorHelpers.ClassInit(baseEnum.ClassPointer);
 
-        var il2cppEnum = UnityVersionHandler.NewClass(baseEnum.VtableCount);
+        var il2cppEnum = UnityVersionHandler.NewClass(baseEnum.VTableCount);
         var elementClass =
             UnityVersionHandler.Wrap(
                 (Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(GetEnumUnderlyingType(type)));
@@ -929,10 +929,10 @@ public static unsafe class TypeInjector
 
         il2cppEnum.Flags = (Il2CppClassAttributes)type.Attributes;
 
-        il2cppEnum.VtableCount = baseEnum.VtableCount;
-        var vtable = (VirtualInvokeData*)il2cppEnum.VTable;
-        var baseVTable = (VirtualInvokeData*)baseEnum.VTable;
-        for (var i = 0; i < baseEnum.VtableCount; i++)
+        il2cppEnum.VTableCount = baseEnum.VTableCount;
+        var vtable = il2cppEnum.VTable;
+        var baseVTable = baseEnum.VTable;
+        for (var i = 0; i < baseEnum.VTableCount; i++)
             vtable[i] = baseVTable[i];
 
         var enumNamesAndValues = GetEnumNamesAndValues(type);
