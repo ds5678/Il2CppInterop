@@ -223,8 +223,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         var isReturnValueType = managedReturnType.IsValueType;
         if (isReturnValueType)
         {
-            uint align = 0;
-            returnSize = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore.GetNativeClassPointer(managedReturnType), ref align);
+            returnSize = IL2CPP.GetIl2CppValueSize(Il2CppClassPointerStore.GetNativeClassPointer(managedReturnType));
         }
 
         var hasReturnBuffer = isReturnValueType && IsReturnBufferNeeded(returnSize);
