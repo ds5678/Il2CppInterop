@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using Il2CppInterop.Common;
-using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Runtime;
 
