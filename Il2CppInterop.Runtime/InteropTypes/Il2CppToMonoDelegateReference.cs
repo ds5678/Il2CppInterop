@@ -4,7 +4,7 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Microsoft.Extensions.Logging;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Runtime.InteropTypes;
 
 [InjectedType(Assembly = "Assembly-CSharp.dll")]
 internal sealed partial class Il2CppToMonoDelegateReference : Object
