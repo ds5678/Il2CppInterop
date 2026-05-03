@@ -5,14 +5,14 @@ using Iced.Intel;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal static class XrefScannerLowLevel
+internal static class XrefScanner
 {
-    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn = false)
+    public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreReturn = false)
     {
-        return JumpTargetsImpl(DecoderForAddress(codeStart), ignoreRetn);
+        return JumpTargetsImpl(DecoderForAddress(codeStart), ignoreReturn);
     }
 
-    private static IEnumerable<IntPtr> JumpTargetsImpl(Decoder myDecoder, bool ignoreRetn)
+    private static IEnumerable<IntPtr> JumpTargetsImpl(Decoder myDecoder, bool ignoreReturn)
     {
         var firstFlowControl = true;
 
@@ -25,7 +25,7 @@ internal static class XrefScannerLowLevel
             if (instruction.Mnemonic == Mnemonic.Int3)
                 yield break;
 
-            if (instruction.FlowControl == FlowControl.Return && !ignoreRetn)
+            if (instruction.FlowControl == FlowControl.Return && !ignoreReturn)
                 yield break;
 
             if (instruction.FlowControl == FlowControl.UnconditionalBranch ||
@@ -85,24 +85,15 @@ internal static class XrefScannerLowLevel
         }
     }
 
-    private static ulong ExtractTargetAddress(in Instruction instruction)
+    private static ulong ExtractTargetAddress(in Instruction instruction) => instruction.Op0Kind switch
     {
-        switch (instruction.Op0Kind)
-        {
-            case OpKind.NearBranch16:
-                return instruction.NearBranch16;
-            case OpKind.NearBranch32:
-                return instruction.NearBranch32;
-            case OpKind.NearBranch64:
-                return instruction.NearBranch64;
-            case OpKind.FarBranch16:
-                return instruction.FarBranch16;
-            case OpKind.FarBranch32:
-                return instruction.FarBranch32;
-            default:
-                return 0;
-        }
-    }
+        OpKind.NearBranch16 => instruction.NearBranch16,
+        OpKind.NearBranch32 => instruction.NearBranch32,
+        OpKind.NearBranch64 => instruction.NearBranch64,
+        OpKind.FarBranch16 => instruction.FarBranch16,
+        OpKind.FarBranch32 => instruction.FarBranch32,
+        _ => 0,
+    };
 
     private static unsafe Decoder DecoderForAddress(IntPtr codeStart, int lengthLimit = 1000)
     {
