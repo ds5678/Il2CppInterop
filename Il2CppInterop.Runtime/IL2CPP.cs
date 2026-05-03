@@ -44,8 +44,7 @@ public static unsafe partial class IL2CPP
     {
         if (klass == nint.Zero)
             return 0;
-        uint align = 0;
-        return il2cpp_class_value_size(klass, ref align);
+        return il2cpp_class_value_size(klass, out _);
     }
 
     public static nint GetIl2CppGenericInstanceMethod(nint methodInfoPointer, nint declaringTypeClassPointer, params nint[] genericMethodArguments)
@@ -327,7 +326,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial int il2cpp_class_value_size(nint klass, ref uint align);
+    public static partial int il2cpp_class_value_size(nint klass, out uint align);
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
