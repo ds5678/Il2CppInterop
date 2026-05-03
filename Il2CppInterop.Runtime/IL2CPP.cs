@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
@@ -49,30 +50,14 @@ public static unsafe partial class IL2CPP
 
     public static nint GetIl2CppGenericInstanceMethod(nint methodInfoPointer, nint declaringTypeClassPointer, params nint[] genericMethodArguments)
     {
-        // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
-        RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
-
         var types = new Il2CppSystem.Type[genericMethodArguments.Length];
         for (var i = 0; i < genericMethodArguments.Length; i++)
         {
-            types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericMethodArguments[i]));
+            types[i] = Il2CppSystem.Type.FromClassPointer(genericMethodArguments[i]);
         }
         var methodInfoObject = (Il2CppSystem.Reflection.MethodInfo)Il2CppObjectPool.Get(il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer))!;
         var methodInfoGeneric = methodInfoObject.MakeGenericMethod(types);
         return il2cpp_method_get_from_reflection(methodInfoGeneric?.Pointer ?? throw new NullReferenceException());
-    }
-
-    public static nint GetIl2CppGenericInstanceType(nint typeClassPointer, params nint[] genericTypeArguments)
-    {
-        // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
-        RuntimeHelpers.RunClassConstructor(typeof(Il2CppSystem.RuntimeType).TypeHandle);
-
-        var types = new Il2CppSystem.Type[genericTypeArguments.Length];
-        for (var i = 0; i < genericTypeArguments.Length; i++)
-        {
-            types[i] = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(genericTypeArguments[i]));
-        }
-        return il2cpp_class_from_type(Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(typeClassPointer)).MakeGenericType(types).TypeHandle.value);
     }
 
     public static ObjectPointer NewObjectPointer<T>()
@@ -82,7 +67,8 @@ public static unsafe partial class IL2CPP
 
     public static nint GetIl2CppNestedType(nint enclosingType, string nestedTypeName)
     {
-        if (enclosingType == nint.Zero) return nint.Zero;
+        if (enclosingType == nint.Zero)
+            return nint.Zero;
 
         var iter = nint.Zero;
         nint nestedTypePtr;
@@ -104,10 +90,10 @@ public static unsafe partial class IL2CPP
 
         static IntPtr GetNestedTypeViaReflection(nint enclosingClass, string nestedTypeName)
         {
-            var reflectionType = Il2CppSystem.Type.internal_from_handle(il2cpp_class_get_type(enclosingClass));
+            var reflectionType = Il2CppSystem.Type.FromClassPointer(enclosingClass);
             var nestedType = reflectionType.GetNestedType(nestedTypeName, Il2CppSystem.Reflection.BindingFlags.Public | Il2CppSystem.Reflection.BindingFlags.NonPublic);
 
-            return nestedType != null ? il2cpp_class_from_system_type(nestedType.Pointer) : IntPtr.Zero;
+            return nestedType?.ToClassPointer() ?? nint.Zero;
         }
     }
 

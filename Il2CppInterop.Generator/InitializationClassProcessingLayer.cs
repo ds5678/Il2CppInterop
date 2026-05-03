@@ -34,7 +34,6 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var il2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
         var getIl2CppNestedType = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppNestedType));
         var getIl2CppClass = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppClass));
-        var getIl2CppGenericInstanceType = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceType));
         var il2CppRuntimeClassInit = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppRuntimeClassInit));
         var getIl2CppField = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppField));
         var getIl2CppFieldOffset = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppFieldOffset));
@@ -46,6 +45,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var generationInternalsType = appContext.ResolveTypeOrThrow(typeof(GenerationInternals));
         var getIl2CppMethod = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppMethod));
         var getIl2CppMethodByToken = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppMethodByToken));
+        var getIl2CppGenericInstanceType = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppGenericInstanceType));
 
         var typeInjector = appContext.ResolveTypeOrThrow(typeof(TypeInjector));
         var registerTypeInIl2Cpp = typeInjector.Methods.Single(m =>

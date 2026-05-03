@@ -1,9 +1,12 @@
 using System;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Exceptions;
+using Il2CppInterop.Runtime.Extensions;
+using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
@@ -47,13 +50,7 @@ public static partial class GenerationInternals
             throw new ArgumentException($"{type} does not have a corresponding IL2CPP class pointer");
         }
 
-        var il2CppType = IL2CPP.il2cpp_class_get_type(classPointer);
-        if (il2CppType == IntPtr.Zero)
-        {
-            throw new ArgumentException($"{type} does not have a corresponding IL2CPP type pointer");
-        }
-
-        return Il2CppSystem.Type.internal_from_handle(il2CppType);
+        return Il2CppSystem.Type.FromClassPointer(classPointer);
     }
 
     public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)
@@ -68,6 +65,30 @@ public static partial class GenerationInternals
     {
         var obj = IL2CPP.il2cpp_gchandle_get_target(gchandle);
         return obj == nint.Zero;
+    }
+
+    /// <summary>
+    /// Get the class pointer for a generic instance type
+    /// </summary>
+    /// <param name="typeClassPointer">The class pointer for the generic type definition</param>
+    /// <param name="genericTypeArguments">The class pointers for the generic type arguments</param>
+    /// <returns>The class pointer for the generic instance type</returns>
+    public static nint GetIl2CppGenericInstanceType(nint typeClassPointer, params nint[] genericTypeArguments)
+    {
+        var types = new Il2CppSystem.Type[genericTypeArguments.Length];
+        for (var i = 0; i < genericTypeArguments.Length; i++)
+        {
+            types[i] = Il2CppSystem.Type.FromClassPointer(genericTypeArguments[i]);
+        }
+        var genericTypeInstance = Il2CppSystem.Type.FromClassPointer(typeClassPointer).MakeGenericType(types);
+        var result = genericTypeInstance.ToClassPointer();
+        if (result == nint.Zero)
+        {
+            var className = IL2CPP.il2cpp_class_get_name(typeClassPointer);
+            Logger.Instance.LogTrace("Could not get class pointer for generic instance type {ClassName}`{TypeArgumentCount}. Creating one...", className, genericTypeArguments.Length);
+            result = GenericTypeInflater.InflateGenericType(typeClassPointer, genericTypeArguments);
+        }
+        return result;
     }
 
     public static nint GetIl2CppMethodByToken(nint clazz, int token)

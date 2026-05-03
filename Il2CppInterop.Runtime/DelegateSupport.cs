@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
@@ -199,7 +200,7 @@ public static class DelegateSupport
         if (classTypePtr == IntPtr.Zero)
             throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 
-        var il2CppDelegateType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(classTypePtr));
+        var il2CppDelegateType = Il2CppSystem.Type.FromClassPointer(classTypePtr);
         var nativeDelegateInvokeMethod = il2CppDelegateType.GetMethod("Invoke");
 
         var nativeParameters = nativeDelegateInvokeMethod.GetParameters();
