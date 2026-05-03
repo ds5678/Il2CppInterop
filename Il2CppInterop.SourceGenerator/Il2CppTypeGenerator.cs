@@ -423,11 +423,11 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         if (isValueType)
         {
             writer.WriteLine($"Size = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppValueSize(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer);");
-            writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
+            writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
         }
         else if (!model.IsAbstract)
         {
-            writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, ptr => new {model.TypeName}(ptr));");
+            writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, ptr => new {model.TypeName}(ptr));");
         }
 
         writer.Indent--;

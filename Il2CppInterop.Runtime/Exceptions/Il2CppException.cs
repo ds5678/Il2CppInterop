@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Runtime.Exceptions;
 

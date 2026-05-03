@@ -15,7 +15,6 @@ using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
-using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Generator;
 

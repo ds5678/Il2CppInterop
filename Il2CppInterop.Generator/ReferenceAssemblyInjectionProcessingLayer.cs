@@ -8,7 +8,6 @@ using Il2CppInterop.Runtime.Exceptions;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using Il2CppInterop.Runtime.Runtime;
 
 namespace Il2CppInterop.Generator;
 

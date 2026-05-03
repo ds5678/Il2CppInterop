@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
-using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 using Il2CppException = Il2CppInterop.Runtime.Exceptions.Il2CppException;
 
