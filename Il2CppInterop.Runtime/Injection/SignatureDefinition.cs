@@ -3,8 +3,13 @@ using System.Linq;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal static class MemoryUtils
+internal struct SignatureDefinition
 {
+    public string pattern;
+    public string mask;
+    public int offset;
+    public bool xref;
+
     public static nint FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
     {
         var ptr = FindSignatureInBlock(
@@ -42,13 +47,5 @@ internal static class MemoryUtils
         }
 
         return 0;
-    }
-
-    public struct SignatureDefinition
-    {
-        public string pattern;
-        public string mask;
-        public int offset;
-        public bool xref;
     }
 }
