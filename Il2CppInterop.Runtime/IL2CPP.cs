@@ -1,14 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
@@ -235,94 +230,6 @@ public static unsafe partial class IL2CPP
 
             return nestedType != null ? il2cpp_class_from_system_type(nestedType.Pointer) : IntPtr.Zero;
         }
-    }
-
-    public static T ResolveICall<T>(string signature) where T : Delegate
-    {
-        var icallPtr = il2cpp_resolve_icall(signature);
-        if (icallPtr == nint.Zero)
-        {
-            Logger.Instance.LogTrace("ICall {Signature} not resolved", signature);
-            return GenerateDelegateForMissingICall<T>(signature);
-        }
-
-        return GenerateDelegateForICall<T>(icallPtr);
-    }
-
-    private static T GenerateDelegateForMissingICall<T>(string signature) where T : Delegate
-    {
-        var invoke = typeof(T).GetMethod("Invoke")!;
-
-        var trampoline = new DynamicMethod("(missing icall delegate) " + typeof(T).FullName,
-            invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
-        var bodyBuilder = trampoline.GetILGenerator();
-
-        bodyBuilder.Emit(OpCodes.Ldstr, $"ICall with signature {signature} was not resolved");
-        bodyBuilder.Emit(OpCodes.Newobj, typeof(Exception).GetConstructor([typeof(string)])!);
-        bodyBuilder.Emit(OpCodes.Throw);
-
-        return (T)trampoline.CreateDelegate(typeof(T));
-    }
-
-    private static T GenerateDelegateForICall<T>(nint icallPtr) where T : Delegate
-    {
-        var invoke = typeof(T).GetMethod("Invoke")!;
-
-        var trampoline = new DynamicMethod("(icall delegate) " + typeof(T).FullName,
-            invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(IL2CPP), true);
-        var bodyBuilder = trampoline.GetILGenerator();
-
-        var sizeOfMethod = typeof(Il2CppType).GetMethod(nameof(Il2CppType.SizeOf))!;
-        var parameters = invoke.GetParameters();
-        var parameterTypes = new Type[parameters.Length];
-        var locals = new LocalBuilder[parameters.Length];
-        for (var i = 0; i < parameters.Length; i++)
-        {
-            var parameter = parameters[i];
-            var parameterType = parameter.ParameterType;
-
-            // Parameter is a ByReference<T>, and we need to get the underlying type T
-            var elementType = parameterType.GenericTypeArguments[0];
-
-            var nativeStruct = TrampolineHelpers.NativeType(elementType);
-            parameterTypes[i] = nativeStruct;
-
-            var nativeLocal = bodyBuilder.DeclareLocal(nativeStruct);
-            locals[i] = nativeLocal;
-
-            bodyBuilder.Emit(OpCodes.Ldarga, i);
-            bodyBuilder.Emit(OpCodes.Ldloca, nativeLocal);
-            bodyBuilder.Emit(OpCodes.Call, parameterType.GetMethod(nameof(ByReference<>.CopyToUnmanaged))!.MakeGenericMethod(nativeStruct));
-        }
-
-        foreach (var local in locals)
-        {
-            bodyBuilder.Emit(OpCodes.Ldloc, local);
-        }
-
-        bodyBuilder.Emit(OpCodes.Ldc_I8, icallPtr);
-        bodyBuilder.Emit(OpCodes.Conv_I);
-
-        if (invoke.ReturnType == typeof(void))
-        {
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), parameterTypes, null);
-        }
-        else
-        {
-            var returnType = invoke.ReturnType;
-            var nativeStruct = TrampolineHelpers.NativeType(returnType);
-
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeStruct, parameterTypes, null);
-
-            var returnLocal = bodyBuilder.DeclareLocal(nativeStruct);
-            bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
-
-            bodyBuilder.Emit(OpCodes.Ldloca, returnLocal);
-            bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.ReadFromPointer))!.MakeGenericMethod(returnType));
-        }
-        bodyBuilder.Emit(OpCodes.Ret);
-
-        return (T)trampoline.CreateDelegate(typeof(T));
     }
 
     // IL2CPP Functions

@@ -42,7 +42,8 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppMethodByToken = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppMethodByToken));
         var getIl2CppGenericInstanceMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceMethod));
         var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2cppValueSize));
-        var resolveICall = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.ResolveICall));
+
+        var resolveICall = appContext.ResolveTypeOrThrow(typeof(RuntimeInvoke)).GetMethodByName(nameof(RuntimeInvoke.ResolveICall));
 
         var typeInjector = appContext.ResolveTypeOrThrow(typeof(TypeInjector));
         var registerTypeInIl2Cpp = typeInjector.Methods.Single(m =>
