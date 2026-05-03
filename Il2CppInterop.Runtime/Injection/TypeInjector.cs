@@ -9,6 +9,7 @@ using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
+using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Runtime;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
@@ -655,7 +656,7 @@ public static unsafe class TypeInjector
 
     private static Il2CppSystem.String GetFullName(Il2CppTypeStruct* type)
     {
-        return Il2CppSystem.Type.internal_from_handle((nint)type).FullName;
+        return Il2CppSystem.Type.FromTypePointer((nint)type).FullName;
     }
 
     private static ReadOnlySpan<char> GetSpan(Il2CppSystem.String? str)
@@ -886,7 +887,7 @@ public static unsafe class TypeInjector
                 throw new ArgumentException($"{typeName} does not have a corresponding IL2CPP type pointer");
             }
 
-            return Il2CppSystem.Type.internal_from_handle(il2CppType);
+            return Il2CppSystem.Type.FromTypePointer(il2CppType);
         }
     }
 

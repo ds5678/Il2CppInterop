@@ -1,5 +1,6 @@
 using System;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Extensions;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
@@ -48,7 +49,7 @@ public readonly unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>
 
     static Pointer()
     {
-        var elementType = Il2CppSystem.Type.internal_from_handle(IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<T>.NativeClassPointer));
-        Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer = IL2CPP.il2cpp_class_from_type(elementType.MakePointerType().TypeHandle.value);
+        var elementType = Il2CppSystem.Type.FromClassPointer(Il2CppClassPointerStore<T>.NativeClassPointer);
+        Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer = elementType.MakePointerType().ToClassPointer();
     }
 }
