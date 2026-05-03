@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
-using Il2CppInterop.Runtime.InteropTypes.CoreLib;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Runtime;
 using Microsoft.Extensions.Logging;
 
@@ -245,6 +247,15 @@ public static class DelegateSupport
         }
 
         return converted;
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetParameters")]
+    [return: UnsafeAccessorType($"Il2CppInterop.Runtime.InteropTypes.Arrays.{nameof(Il2CppArrayRank1<>)}`1[[Il2CppSystem.Reflection.ParameterInfo, Il2Cppmscorlib]]")]
+    private static extern object GetParametersInternal(Il2CppSystem.Reflection.MethodBase method);
+
+    private static IReadOnlyList<Il2CppSystem.Reflection.ParameterInfo> GetParameters(this Il2CppSystem.Reflection.MethodBase method)
+    {
+        return (IReadOnlyList<Il2CppSystem.Reflection.ParameterInfo>)GetParametersInternal(method);
     }
 
     internal sealed class MethodSignature : IEquatable<MethodSignature>
