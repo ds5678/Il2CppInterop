@@ -91,15 +91,15 @@ namespace Il2CppInterop.Runtime.Injection
         internal delegate void d_ClassInit(Il2CppClass* klass);
         internal static d_ClassInit ClassInit;
 
-        private static readonly MemoryUtils.SignatureDefinition[] s_ClassInitSignatures =
+        private static readonly SignatureDefinition[] s_ClassInitSignatures =
         {
-            new MemoryUtils.SignatureDefinition
+            new SignatureDefinition
             {
                 pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x28\x83",
                 mask = "x????xxxxx",
                 xref = true
             },
-            new MemoryUtils.SignatureDefinition
+            new SignatureDefinition
             {
                 pattern = "\xE8\x00\x00\x00\x00\x0F\xB7\x47\x48\x48",
                 mask = "x????xxxxx",
@@ -131,7 +131,7 @@ namespace Il2CppInterop.Runtime.Injection
                 throw new NotSupportedException("Failed to use signature for Class::Init and a substitute cannot be found, please create an issue and report your unity version & game");
             }
             nint pClassInit = s_ClassInitSignatures
-                .Select(s => MemoryUtils.FindSignatureInModule(Il2CppModule, s))
+                .Select(s => SignatureDefinition.FindSignatureInModule(Il2CppModule, s))
                 .FirstOrDefault(p => p != 0);
 
             if (pClassInit == 0)

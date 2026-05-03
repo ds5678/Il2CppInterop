@@ -7,8 +7,13 @@ using TerraFX.Interop.Windows;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal static class MemoryUtils
+internal struct SignatureDefinition
 {
+    public string pattern;
+    public string mask;
+    public int offset;
+    public bool xref;
+
     public static unsafe nint FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
     {
         // On newer Unity (6000.x) the loaded GameAssembly maps some pages PAGE_NOACCESS / guard pages; the raw
@@ -97,13 +102,5 @@ internal static class MemoryUtils
         }
 
         return regions;
-    }
-
-    public struct SignatureDefinition
-    {
-        public string pattern;
-        public string mask;
-        public int offset;
-        public bool xref;
     }
 }
