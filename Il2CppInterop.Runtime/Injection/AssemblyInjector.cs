@@ -25,8 +25,7 @@ internal static unsafe class AssemblyInjector
                 }
                 else
                 {
-                    uint assembliesCount = 0;
-                    var assemblies = IL2CPP.il2cpp_domain_get_assemblies(domain, ref assembliesCount);
+                    var assemblies = IL2CPP.il2cpp_domain_get_assemblies(domain, out var assembliesCount);
                     for (var i = 0; i < assembliesCount; i++)
                     {
                         var image = UnityVersionHandler.Wrap((Il2CppImage*)IL2CPP.il2cpp_assembly_get_image(assemblies[i]));
