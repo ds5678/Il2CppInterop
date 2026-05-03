@@ -316,7 +316,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial nint* il2cpp_domain_get_assemblies(nint domain, ref uint size);
+    public static partial nint* il2cpp_domain_get_assemblies(nint domain, out uint size);
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
