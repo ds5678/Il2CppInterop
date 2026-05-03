@@ -422,7 +422,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
         if (isValueType)
         {
-            writer.WriteLine($"Size = global::Il2CppInterop.Runtime.IL2CPP.GetIl2cppValueSize(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer);");
+            writer.WriteLine($"Size = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppValueSize(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer);");
             writer.WriteLine($"global::Il2CppInterop.Runtime.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
         }
         else if (!model.IsAbstract)

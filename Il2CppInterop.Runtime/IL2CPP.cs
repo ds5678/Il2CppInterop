@@ -40,7 +40,7 @@ public static unsafe partial class IL2CPP
         return (int)il2cpp_field_get_offset(field);
     }
 
-    public static int GetIl2cppValueSize(nint klass)
+    public static int GetIl2CppValueSize(nint klass)
     {
         if (klass == nint.Zero)
             return 0;

@@ -39,7 +39,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppField = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppField));
         var getIl2CppFieldOffset = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppFieldOffset));
         var getIl2CppGenericInstanceMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceMethod));
-        var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2cppValueSize));
+        var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppValueSize));
 
         var resolveICall = appContext.ResolveTypeOrThrow(typeof(RuntimeInvoke)).GetMethodByName(nameof(RuntimeInvoke.ResolveICall));
 
