@@ -9,6 +9,7 @@
     <Platforms>AnyCPU</Platforms>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
