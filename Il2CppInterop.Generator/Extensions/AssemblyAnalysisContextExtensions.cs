@@ -43,5 +43,22 @@ internal static class AssemblyAnalysisContextExtensions
         {
             return assembly.GetTypeByFullName(type) ?? throw new($"Unable to find type by full name {type.FullName}");
         }
+
+        public string ImageName
+        {
+            get
+            {
+                var result = assembly.Definition?.Image.Name;
+                if (string.IsNullOrEmpty(result))
+                {
+                    result = assembly.DefaultName;
+                    if (!result.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result = $"{result}.dll";
+                    }
+                }
+                return result;
+            }
+        }
     }
 }

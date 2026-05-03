@@ -13,6 +13,10 @@ public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2Cpp
     /// <summary>
     /// The file name of the assembly that the type is defined in
     /// </summary>
+    /// <remarks>
+    /// Technically, this is the image name, not the assembly name.
+    /// In practice, the assembly name has no file extension, whereas the image name does.
+    /// </remarks>
     static virtual string AssemblyName
     {
         get
