@@ -14,7 +14,7 @@ internal static class TrampolineHelpers
     private static ModuleBuilder? _fixedStructModuleBuilder;
     private static readonly Dictionary<int, Type> _fixedStructCache = new();
 
-    internal static Type GetFixedSizeStructType(int size)
+    private static Type GetFixedSizeStructType(int size)
     {
         if (_fixedStructCache.TryGetValue(size, out var result))
         {
@@ -43,13 +43,19 @@ internal static class TrampolineHelpers
         {
             return managedType;
         }
-        else if (managedType.IsByRef)
+        else if (!managedType.IsValueType)
         {
-            throw new NotSupportedException("ByRef types are not supported in NativeType conversion.");
-        }
-        else if (managedType.IsArray || managedType.IsSZArray)
-        {
-            throw new NotSupportedException("Array types are not supported in NativeType conversion.");
+            if (managedType.IsByRef)
+            {
+                throw new NotSupportedException("ByRef types are not supported in NativeType conversion.");
+            }
+            else if (managedType.IsArray || managedType.IsSZArray)
+            {
+                throw new NotSupportedException("Array types are not supported in NativeType conversion.");
+            }
+
+            // General reference type
+            return typeof(IntPtr);
         }
         else if (managedType == typeof(Il2CppSystem.Boolean))
         {
@@ -65,7 +71,7 @@ internal static class TrampolineHelpers
         {
             return typeof(IntPtr);
         }
-        else if (managedType.IsValueType)
+        else
         {
             // Struct that's passed on the stack => handle as general struct
 
@@ -77,11 +83,6 @@ internal static class TrampolineHelpers
 
             var fixedSize = IL2CPP.GetIl2CppValueSize(nativeClassPtr);
             return GetFixedSizeStructType(fixedSize);
-        }
-        else
-        {
-            // General reference type
-            return typeof(IntPtr);
         }
     }
 }
