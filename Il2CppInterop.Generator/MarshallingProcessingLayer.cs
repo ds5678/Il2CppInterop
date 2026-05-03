@@ -252,7 +252,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 }
 
                 // AssemblyName
-                if (assembly.Name != assembly.DefaultName)
+                if (assembly.Name != assembly.ImageName)
                 {
                     var instantiated_iil2CppTypeGeneric_get_AssemblyName = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_AssemblyName, [instantiatedType], []);
                     var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.AssemblyName)}";
@@ -272,7 +272,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Ldstr, assembly.DefaultName),
+                            new Instruction(CilOpCodes.Ldstr, assembly.ImageName),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });
