@@ -33,7 +33,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
         }
 
         private static readonly SignatureDefinition[] s_Signatures =
-        {
+        [
             // Test Game - Unity 2021.3.4 (x64)
             new SignatureDefinition
             {
@@ -77,7 +77,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 mask = "xxxxxxxxxx????x",
                 xref = false
             }
-        };
+        ];
 
         private static nint FindClassGetFieldDefaultValueXref(bool forceICallMethod = false)
         {
@@ -85,7 +85,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             if (forceICallMethod)
             {
                 // MonoField isn't present on 2021.2.0+
-                var monoFieldType = InjectorHelpers.Il2CppMscorlib.GetTypesSafe().SingleOrDefault((x) => x.Name is "MonoField");
+                var monoFieldType = InjectorHelpers.Il2CppMscorlib.GetTypesSafe().SingleOrDefault((x) => x.Name is nameof(Il2CppSystem.Reflection.MonoField));
                 if (monoFieldType == null)
                     throw new Exception($"Unity {Il2CppInteropRuntime.Instance.UnityVersion} is not supported at the moment: MonoField isn't present in Il2Cppmscorlib.dll for unity version, unable to fetch icall");
 
