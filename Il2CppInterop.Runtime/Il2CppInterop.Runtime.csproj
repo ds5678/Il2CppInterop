@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>Il2CppInterop.Runtime</PackageId>
@@ -28,7 +28,19 @@
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
     <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" />
-    <ProjectReference Include="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <!-- Include the source generator in the NuGet package for consumers -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Include="$(OutputPath)\..\..\Il2CppInterop.SourceGenerator\netstandard2.0\Il2CppInterop.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <None Include="..\Il2CppInterop.SourceGenerator\bin\$(Configuration)\netstandard2.0\Il2CppInterop.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <!-- Ensure source generator is built before packing -->
+  <Target Name="EnsureGeneratorBuilt" BeforeTargets="GenerateNuspec">
+    <MSBuild Projects="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+  </Target>
 </Project>
