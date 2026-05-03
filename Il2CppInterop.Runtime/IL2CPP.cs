@@ -52,7 +52,7 @@ public static unsafe partial class IL2CPP
     public static nint GetIl2CppMethodByToken(nint clazz, int token)
     {
         if (clazz == nint.Zero)
-            return NativeStructUtils.GetMethodInfoForMissingMethod(token.ToString());
+            return GetMethodInfoForMissingMethod(token.ToString());
 
         var iter = nint.Zero;
         nint method;
@@ -63,15 +63,14 @@ public static unsafe partial class IL2CPP
         var className = il2cpp_class_get_name(clazz);
         Logger.Instance.LogTrace("Unable to find method {ClassName}::{Token}", className, token);
 
-        return NativeStructUtils.GetMethodInfoForMissingMethod(className + "::" + token);
+        return GetMethodInfoForMissingMethod($"{className}::{token}");
     }
 
     public static nint GetIl2CppMethod(nint clazz, bool isGeneric, string methodName, string returnTypeName,
         params string[] argTypes)
     {
         if (clazz == nint.Zero)
-            return NativeStructUtils.GetMethodInfoForMissingMethod(methodName + "(" + string.Join(", ", argTypes) +
-                                                                   ")");
+            return GetMethodInfoForMissingMethod($"{methodName}({string.Join(", ", argTypes)})");
 
         returnTypeName = Regex.Replace(returnTypeName, "\\`\\d+", "").Replace('/', '.').Replace('+', '.');
         for (var index = 0; index < argTypes.Length; index++)
@@ -164,8 +163,7 @@ public static unsafe partial class IL2CPP
             return method;
         }
 
-        return NativeStructUtils.GetMethodInfoForMissingMethod(className + "::" + methodName + "(" +
-                                                               string.Join(", ", argTypes) + ")");
+        return GetMethodInfoForMissingMethod($"{className}::{methodName}({string.Join(", ", argTypes)})");
     }
 
     public static nint GetIl2CppGenericInstanceMethod(nint methodInfoPointer, nint declaringTypeClassPointer, params nint[] genericMethodArguments)
@@ -230,6 +228,14 @@ public static unsafe partial class IL2CPP
 
             return nestedType != null ? il2cpp_class_from_system_type(nestedType.Pointer) : IntPtr.Zero;
         }
+    }
+
+    private static IntPtr GetMethodInfoForMissingMethod(string methodName)
+    {
+        var methodInfo = UnityVersionHandler.NewMethod();
+        methodInfo.Name = Marshal.StringToCoTaskMemUTF8(methodName);
+        methodInfo.Slot = ushort.MaxValue;
+        return methodInfo.Pointer;
     }
 
     // IL2CPP Functions

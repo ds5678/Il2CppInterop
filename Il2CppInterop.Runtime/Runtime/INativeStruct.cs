@@ -1,18 +1,11 @@
-using System;
-using System.Runtime.InteropServices;
-
 namespace Il2CppInterop.Runtime.Runtime;
 
-public static class NativeStructUtils
+public interface INativeStruct
 {
-    public static IntPtr GetMethodInfoForMissingMethod(string methodName)
-    {
-        var methodInfo = UnityVersionHandler.NewMethod();
-        methodInfo.Name = Marshal.StringToCoTaskMemUTF8(methodName);
-        methodInfo.Slot = ushort.MaxValue;
-        return methodInfo.Pointer;
-    }
-
+    nint Pointer { get; }
+}
+internal static class INativeStructExtensions
+{
     public static unsafe bool CheckBit(this INativeStruct self, int startOffset, int bit)
     {
         var byteOffset = bit / 8;
