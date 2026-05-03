@@ -6,9 +6,7 @@ namespace Il2CppInterop.Runtime;
 
 public static class Il2CppObjectPool
 {
-    internal static bool DisableCaching { get; set; }
-
-    private static readonly ConcurrentDictionary<nint, WeakReference<Object>> s_cache = new();
+    private static readonly ConcurrentDictionary<nint, WeakReference<object>> s_cache = new();
 
     private static readonly ConcurrentDictionary<nint, Func<ObjectPointer, object>> s_initializers = new();
 
@@ -35,12 +33,9 @@ public static class Il2CppObjectPool
         }
 
         var newObj = initializer((ObjectPointer)ptr);
-        if (newObj is Object @object)
+        if (!newObj.GetType().IsValueType)
         {
-            if (!DisableCaching)
-            {
-                s_cache[ptr] = new WeakReference<Object>(@object);
-            }
+            s_cache[ptr] = new WeakReference<object>(newObj);
         }
 
         return newObj;
