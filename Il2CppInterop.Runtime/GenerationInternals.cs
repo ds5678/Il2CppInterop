@@ -13,7 +13,7 @@ namespace Il2CppInterop.Runtime;
 /// Do not reference this class. Everything in it is an implementation detail of the generator. Breaking changes may occur at any time without warning.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public static class GenerationInternals
+public static partial class GenerationInternals
 {
     public static unsafe string? Il2CppStringToManaged(Il2CppSystem.String? il2CppString)
     {
@@ -92,11 +92,11 @@ public static class GenerationInternals
         if (clazz == nint.Zero)
             return GetMethodInfoForMissingMethod($"{methodName}({string.Join(", ", argTypes)})");
 
-        returnTypeName = Regex.Replace(returnTypeName, "\\`\\d+", "").Replace('/', '.').Replace('+', '.');
+        returnTypeName = GenericArityRegex.Replace(returnTypeName, "").Replace('/', '.').Replace('+', '.');
         for (var index = 0; index < argTypes.Length; index++)
         {
             var argType = argTypes[index];
-            argTypes[index] = Regex.Replace(argType, "\\`\\d+", "").Replace('/', '.').Replace('+', '.');
+            argTypes[index] = GenericArityRegex.Replace(argType, "").Replace('/', '.').Replace('+', '.');
         }
 
         var methodsSeen = 0;
@@ -192,4 +192,7 @@ public static class GenerationInternals
         methodInfo.Slot = ushort.MaxValue;
         return methodInfo.Pointer;
     }
+
+    [GeneratedRegex(@"\`\d+")]
+    private static partial Regex GenericArityRegex { get; }
 }
