@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using Il2CppInterop.Common;
 
-namespace Il2CppInterop.Runtime.Runtime;
+namespace Il2CppInterop.Runtime;
 
 public static class Il2CppObjectPool
 {
