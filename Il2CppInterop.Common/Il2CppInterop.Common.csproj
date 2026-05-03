@@ -6,6 +6,7 @@
     <Description>Common API for Il2CppInterop packages</Description>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
