@@ -183,7 +183,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
         writer.WriteLine("readonly void global::Il2CppSystem.IValueType.WriteToSpan(global::System.Span<byte> span) =>");
         writer.Indent++;
-        writer.WriteLine("global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.WriteToSpan(this, span);");
+        writer.WriteLine("global::Il2CppInterop.Runtime.Il2CppType.WriteToSpan(this, span);");
         writer.Indent--;
     }
 
@@ -197,8 +197,8 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine($"{accessPrefix}static partial {member.Type} {member.Name}");
         writer.WriteLine("{");
         writer.Indent++;
-        writer.WriteLine($"get => global::Il2CppInterop.Runtime.InteropTypes.FieldAccess.GetStaticFieldValue<{member.Type}>(Il2CppInternals.FieldInfoPtr_{member.Index});");
-        writer.WriteLine($"set => global::Il2CppInterop.Runtime.InteropTypes.FieldAccess.SetStaticFieldValue(Il2CppInternals.FieldInfoPtr_{member.Index}, value);");
+        writer.WriteLine($"get => global::Il2CppInterop.Runtime.FieldAccess.GetStaticFieldValue<{member.Type}>(Il2CppInternals.FieldInfoPtr_{member.Index});");
+        writer.WriteLine($"set => global::Il2CppInterop.Runtime.FieldAccess.SetStaticFieldValue(Il2CppInternals.FieldInfoPtr_{member.Index}, value);");
         writer.Indent--;
         writer.WriteLine("}");
     }
@@ -209,8 +209,8 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine($"{accessPrefix}partial {member.Type} {member.Name}");
         writer.WriteLine("{");
         writer.Indent++;
-        writer.WriteLine($"get => global::Il2CppInterop.Runtime.InteropTypes.FieldAccess.GetInstanceFieldValue<{member.Type}>(this, Il2CppInternals.FieldOffset_{member.Index});");
-        writer.WriteLine($"set => global::Il2CppInterop.Runtime.InteropTypes.FieldAccess.SetInstanceFieldValue(this, Il2CppInternals.FieldOffset_{member.Index}, value);");
+        writer.WriteLine($"get => global::Il2CppInterop.Runtime.FieldAccess.GetInstanceFieldValue<{member.Type}>(this, Il2CppInternals.FieldOffset_{member.Index});");
+        writer.WriteLine($"set => global::Il2CppInterop.Runtime.FieldAccess.SetInstanceFieldValue(this, Il2CppInternals.FieldOffset_{member.Index}, value);");
         writer.Indent--;
         writer.WriteLine("}");
     }
@@ -222,8 +222,8 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         writer.WriteLine($"private global::Il2CppSystem.IntPtr {member.Name}__BackingField");
         writer.WriteLine("{");
         writer.Indent++;
-        writer.WriteLine($"get => global::Il2CppInterop.Runtime.InteropTypes.FieldAccess.GetInstanceFieldValue<global::Il2CppSystem.IntPtr>(this, Il2CppInternals.FieldOffset_{member.Index});");
-        writer.WriteLine($"set => global::Il2CppInterop.Runtime.InteropTypes.FieldAccess.SetInstanceFieldValue(this, Il2CppInternals.FieldOffset_{member.Index}, value);");
+        writer.WriteLine($"get => global::Il2CppInterop.Runtime.FieldAccess.GetInstanceFieldValue<global::Il2CppSystem.IntPtr>(this, Il2CppInternals.FieldOffset_{member.Index});");
+        writer.WriteLine($"set => global::Il2CppInterop.Runtime.FieldAccess.SetInstanceFieldValue(this, Il2CppInternals.FieldOffset_{member.Index}, value);");
         writer.Indent--;
         writer.WriteLine("}");
 
@@ -329,7 +329,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine("{");
             writer.Indent++;
             foreach (var member in model.Members.Where(x => !x.IsStatic))
-                writer.WriteLine($"{member.Name} = global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.ReadFromSpanAtOffset<{member.Type}>(span, Il2CppInternals.FieldOffset_{member.Index}),");
+                writer.WriteLine($"{member.Name} = global::Il2CppInterop.Runtime.Il2CppType.ReadFromSpanAtOffset<{member.Type}>(span, Il2CppInternals.FieldOffset_{member.Index}),");
             writer.Indent--;
             writer.WriteLine("};");
             writer.WriteLine("#nullable restore");
@@ -342,7 +342,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine("{");
             writer.Indent++;
             foreach (var member in model.Members.Where(x => !x.IsStatic))
-                writer.WriteLine($"global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.WriteToSpanAtOffset(value.{member.Name}, span, Il2CppInternals.FieldOffset_{member.Index});");
+                writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppType.WriteToSpanAtOffset(value.{member.Name}, span, Il2CppInternals.FieldOffset_{member.Index});");
             writer.Indent--;
             writer.WriteLine("}");
             writer.WriteLineNoTabs();
@@ -358,7 +358,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"static {tn}? global::Il2CppInterop.Common.IIl2CppType<{tn}>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)");
             writer.WriteLine("{");
             writer.Indent++;
-            writer.WriteLine($"return global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.ReadReference<{tn}>(span);");
+            writer.WriteLine($"return global::Il2CppInterop.Runtime.Il2CppType.ReadReference<{tn}>(span);");
             writer.Indent--;
             writer.WriteLine("}");
             writer.WriteLineNoTabs();
@@ -366,7 +366,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"static void global::Il2CppInterop.Common.IIl2CppType<{tn}>.WriteToSpan({tn}? value, global::System.Span<byte> span)");
             writer.WriteLine("{");
             writer.Indent++;
-            writer.WriteLine("global::Il2CppInterop.Runtime.InteropTypes.Il2CppType.WriteReference(value, span);");
+            writer.WriteLine("global::Il2CppInterop.Runtime.Il2CppType.WriteReference(value, span);");
             writer.Indent--;
             writer.WriteLine("}");
             writer.WriteLineNoTabs();

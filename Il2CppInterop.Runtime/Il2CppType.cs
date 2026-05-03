@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Runtime;
 
-namespace Il2CppInterop.Runtime.InteropTypes;
+namespace Il2CppInterop.Runtime;
 
 public static class Il2CppType
 {
