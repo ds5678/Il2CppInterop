@@ -213,6 +213,75 @@ public static partial class GenerationInternals
         methodInfo.Slot = ushort.MaxValue;
         return methodInfo.Pointer;
     }
+    public static void Il2CppRuntimeClassInit(nint @class)
+    {
+        if (@class != nint.Zero)
+            IL2CPP.il2cpp_runtime_class_init(@class);
+    }
+
+    public static nint GetIl2CppClass(string assemblyName, string namespaze, string className)
+    {
+        return IL2CPP.il2cpp_class_from_name(AssemblyInjector.GetOrCreateImage(assemblyName).Pointer, namespaze, className);
+    }
+
+    public static int GetIl2CppValueSize(nint klass)
+    {
+        if (klass == nint.Zero)
+            return 0;
+        return IL2CPP.il2cpp_class_value_size(klass, out _);
+    }
+
+    public static nint GetIl2CppGenericInstanceMethod(nint methodInfoPointer, nint declaringTypeClassPointer, params nint[] genericMethodArguments)
+    {
+        var types = new Il2CppSystem.Type[genericMethodArguments.Length];
+        for (var i = 0; i < genericMethodArguments.Length; i++)
+        {
+            types[i] = Il2CppSystem.Type.FromClassPointer(genericMethodArguments[i]);
+        }
+        var methodInfoObject = (Il2CppSystem.Reflection.MethodInfo)Il2CppObjectPool.Get(IL2CPP.il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer))!;
+        var methodInfoGeneric = methodInfoObject.MakeGenericMethod(types);
+        return il2cpp_method_get_from_reflection(methodInfoGeneric?.Pointer ?? throw new NullReferenceException());
+
+        static unsafe nint il2cpp_method_get_from_reflection(nint method)
+        {
+            if (UnityVersionHandler.HasGetMethodFromReflection)
+                return IL2CPP.il2cpp_method_get_from_reflection(method);
+            Il2CppReflectionMethod* reflectionMethod = (Il2CppReflectionMethod*)method;
+            return (nint)reflectionMethod->method;
+        }
+    }
+
+    public static nint GetIl2CppNestedType(nint enclosingType, string nestedTypeName)
+    {
+        if (enclosingType == nint.Zero)
+            return nint.Zero;
+
+        var iter = nint.Zero;
+        nint nestedTypePtr;
+        if (IL2CPP.il2cpp_class_is_inflated(enclosingType))
+        {
+            Logger.Instance.LogTrace("Original class was inflated, falling back to reflection");
+
+            return GetNestedTypeViaReflection(enclosingType, nestedTypeName);
+        }
+
+        while ((nestedTypePtr = IL2CPP.il2cpp_class_get_nested_types(enclosingType, ref iter)) != nint.Zero)
+            if (IL2CPP.il2cpp_class_get_name(nestedTypePtr) == nestedTypeName)
+                return nestedTypePtr;
+
+        Logger.Instance.LogError(
+            "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, IL2CPP.il2cpp_class_get_name(enclosingType));
+
+        return nint.Zero;
+
+        static IntPtr GetNestedTypeViaReflection(nint enclosingClass, string nestedTypeName)
+        {
+            var reflectionType = Il2CppSystem.Type.FromClassPointer(enclosingClass);
+            var nestedType = reflectionType.GetNestedType(nestedTypeName, Il2CppSystem.Reflection.BindingFlags.Public | Il2CppSystem.Reflection.BindingFlags.NonPublic);
+
+            return nestedType?.ToClassPointer() ?? nint.Zero;
+        }
+    }
 
     [GeneratedRegex(@"\`\d+")]
     private static partial Regex GenericArityRegex { get; }

@@ -415,14 +415,14 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         foreach (var member in model.Members)
         {
             if (member.IsStatic)
-                writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
+                writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
             else
-                writer.WriteLine($"FieldOffset_{member.Index} = (int)global::Il2CppInterop.Runtime.IL2CPP.il2cpp_field_get_offset(global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppField(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
+                writer.WriteLine($"FieldOffset_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
         }
 
         if (isValueType)
         {
-            writer.WriteLine($"Size = global::Il2CppInterop.Runtime.IL2CPP.GetIl2CppValueSize(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer);");
+            writer.WriteLine($"Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, out _);");
             writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
         }
         else if (!model.IsAbstract)

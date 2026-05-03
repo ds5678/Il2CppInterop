@@ -1,31 +1,32 @@
 using System;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime;
 
 public static unsafe class FieldAccess
 {
-    public static T? GetStaticFieldValue<T>(IntPtr fieldInfoPtr) where T : IIl2CppType<T>
+    public static T? GetStaticFieldValue<T>(nint fieldInfo) where T : IIl2CppType<T>
     {
-        ArgumentNullException.ThrowIfNull(fieldInfoPtr.ToPointer(), nameof(fieldInfoPtr));
+        ArgumentNullException.ThrowIfNull(fieldInfo.ToPointer(), nameof(fieldInfo));
         var data = stackalloc byte[T.Size];
-        IL2CPP.il2cpp_field_static_get_value(fieldInfoPtr, data);
+        IL2CPP.il2cpp_field_static_get_value(fieldInfo, data);
         return T.ReadFromSpan(new ReadOnlySpan<byte>(data, T.Size));
     }
 
-    public static void SetStaticFieldValue<T>(IntPtr fieldInfoPtr, T? value) where T : IIl2CppType<T>
+    public static void SetStaticFieldValue<T>(nint fieldInfo, T? value) where T : IIl2CppType<T>
     {
-        ArgumentNullException.ThrowIfNull(fieldInfoPtr.ToPointer(), nameof(fieldInfoPtr));
+        ArgumentNullException.ThrowIfNull(fieldInfo.ToPointer(), nameof(fieldInfo));
         if (typeof(T).IsValueType)
         {
             var data = stackalloc byte[T.Size];
             value.WriteToPointer(data);
-            IL2CPP.il2cpp_field_static_set_value(fieldInfoPtr, data);
+            IL2CPP.il2cpp_field_static_set_value(fieldInfo, data);
         }
         else
         {
-            IL2CPP.il2cpp_field_static_set_value(fieldInfoPtr, (void*)value.Box());
+            IL2CPP.il2cpp_field_static_set_value(fieldInfo, (void*)value.Box());
         }
     }
 
@@ -51,7 +52,7 @@ public static unsafe class FieldAccess
         }
         else
         {
-            IL2CPP.il2cpp_gc_wbarrier_set_field(instance.Pointer, (IntPtr)data, value.Box());
+            IL2CPP.il2cpp_gc_wbarrier_set_field(instance.Pointer, (nint)data, value.Box());
         }
     }
 
@@ -65,8 +66,26 @@ public static unsafe class FieldAccess
         }
         else
         {
-            *(IntPtr*)data = value.Box();
+            *(nint*)data = value.Box();
         }
+    }
+
+    public static nint GetFieldInfo(nint classPointer, string fieldName)
+    {
+        if (classPointer == nint.Zero)
+            return nint.Zero;
+
+        var field = IL2CPP.il2cpp_class_get_field_from_name(classPointer, fieldName);
+        if (field == nint.Zero)
+            Logger.Instance.LogError("Field {FieldName} was not found on class {ClassName}", fieldName, IL2CPP.il2cpp_class_get_name(classPointer));
+        return field;
+    }
+
+    public static int GetFieldOffset(nint field)
+    {
+        if (field == nint.Zero)
+            return -1;
+        return (int)IL2CPP.il2cpp_field_get_offset(field);
     }
 
     private static bool HasWbarriorSupport()

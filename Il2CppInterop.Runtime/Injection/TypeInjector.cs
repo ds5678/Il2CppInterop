@@ -514,7 +514,7 @@ public static unsafe class TypeInjector
                     fieldInfo.Offset = fieldOffset;
                     if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
                     {
-                        var fieldSize = IL2CPP.GetIl2CppValueSize(fieldInfoClass);
+                        var fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out _);
                         fieldOffset += fieldSize;
                     }
                     else

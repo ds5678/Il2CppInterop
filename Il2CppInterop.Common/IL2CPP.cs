@@ -1,103 +1,13 @@
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Il2CppInterop.Common;
-using Il2CppInterop.Runtime.Extensions;
-using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.Runtime;
-using Microsoft.Extensions.Logging;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Common;
 
+/// <summary>
+/// IL2CPP Functions
+/// </summary>
 public static unsafe partial class IL2CPP
 {
-    public static void Il2CppRuntimeClassInit(nint @class)
-    {
-        if (@class != nint.Zero)
-            il2cpp_runtime_class_init(@class);
-    }
-
-    public static nint GetIl2CppClass(string assemblyName, string namespaze, string className)
-    {
-        return il2cpp_class_from_name(AssemblyInjector.GetOrCreateImage(assemblyName).Pointer, namespaze, className);
-    }
-
-    public static nint GetIl2CppField(nint clazz, string fieldName)
-    {
-        if (clazz == nint.Zero)
-            return nint.Zero;
-
-        var field = il2cpp_class_get_field_from_name(clazz, fieldName);
-        if (field == nint.Zero)
-            Logger.Instance.LogError(
-                "Field {FieldName} was not found on class {ClassName}", fieldName, il2cpp_class_get_name(clazz));
-        return field;
-    }
-
-    public static int GetIl2CppFieldOffset(nint field)
-    {
-        if (field == nint.Zero)
-            return -1;
-        return (int)il2cpp_field_get_offset(field);
-    }
-
-    public static int GetIl2CppValueSize(nint klass)
-    {
-        if (klass == nint.Zero)
-            return 0;
-        return il2cpp_class_value_size(klass, out _);
-    }
-
-    public static nint GetIl2CppGenericInstanceMethod(nint methodInfoPointer, nint declaringTypeClassPointer, params nint[] genericMethodArguments)
-    {
-        var types = new Il2CppSystem.Type[genericMethodArguments.Length];
-        for (var i = 0; i < genericMethodArguments.Length; i++)
-        {
-            types[i] = Il2CppSystem.Type.FromClassPointer(genericMethodArguments[i]);
-        }
-        var methodInfoObject = (Il2CppSystem.Reflection.MethodInfo)Il2CppObjectPool.Get(il2cpp_method_get_object(methodInfoPointer, declaringTypeClassPointer))!;
-        var methodInfoGeneric = methodInfoObject.MakeGenericMethod(types);
-        return il2cpp_method_get_from_reflection(methodInfoGeneric?.Pointer ?? throw new NullReferenceException());
-    }
-
-    public static ObjectPointer NewObjectPointer<T>()
-    {
-        return (ObjectPointer)il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPointer);
-    }
-
-    public static nint GetIl2CppNestedType(nint enclosingType, string nestedTypeName)
-    {
-        if (enclosingType == nint.Zero)
-            return nint.Zero;
-
-        var iter = nint.Zero;
-        nint nestedTypePtr;
-        if (il2cpp_class_is_inflated(enclosingType))
-        {
-            Logger.Instance.LogTrace("Original class was inflated, falling back to reflection");
-
-            return GetNestedTypeViaReflection(enclosingType, nestedTypeName);
-        }
-
-        while ((nestedTypePtr = il2cpp_class_get_nested_types(enclosingType, ref iter)) != nint.Zero)
-            if (il2cpp_class_get_name(nestedTypePtr) == nestedTypeName)
-                return nestedTypePtr;
-
-        Logger.Instance.LogError(
-            "Nested type {NestedTypeName} on {EnclosingTypeName} not found!", nestedTypeName, il2cpp_class_get_name(enclosingType));
-
-        return nint.Zero;
-
-        static IntPtr GetNestedTypeViaReflection(nint enclosingClass, string nestedTypeName)
-        {
-            var reflectionType = Il2CppSystem.Type.FromClassPointer(enclosingClass);
-            var nestedType = reflectionType.GetNestedType(nestedTypeName, Il2CppSystem.Reflection.BindingFlags.Public | Il2CppSystem.Reflection.BindingFlags.NonPublic);
-
-            return nestedType?.ToClassPointer() ?? nint.Zero;
-        }
-    }
-
-    // IL2CPP Functions
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void il2cpp_init(nint domain_name);
@@ -560,16 +470,9 @@ public static unsafe partial class IL2CPP
     [return: MarshalAs(UnmanagedType.LPUTF8Str)]
     public static partial string il2cpp_method_get_name(nint method);
 
-    public static nint il2cpp_method_get_from_reflection(nint method)
-    {
-        if (UnityVersionHandler.HasGetMethodFromReflection) return _il2cpp_method_get_from_reflection(method);
-        Il2CppReflectionMethod* reflectionMethod = (Il2CppReflectionMethod*)method;
-        return (nint)reflectionMethod->method;
-    }
-
-    [LibraryImport("GameAssembly", EntryPoint = "il2cpp_method_get_from_reflection")]
+    [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial nint _il2cpp_method_get_from_reflection(nint method);
+    public static partial nint il2cpp_method_get_from_reflection(nint method);
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

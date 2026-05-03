@@ -20,7 +20,7 @@ public abstract class SourceGenerationTests
         };
         Context.TestState.AdditionalReferences.Add(typeof(InjectedTypeAttribute).Assembly);
         Context.TestState.AdditionalReferences.Add(typeof(Il2CppSystem.Object).Assembly);
-        Context.TestState.AdditionalReferences.Add(typeof(IL2CPP).Assembly);
+        Context.TestState.AdditionalReferences.Add(typeof(RuntimeInvoke).Assembly);
     }
 
     protected async Task TestGeneration(string testCode, string expectedFileName, string expectedGeneratedCode)

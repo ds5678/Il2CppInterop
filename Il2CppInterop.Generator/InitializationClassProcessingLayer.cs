@@ -30,14 +30,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var il2CppClassPointerStore = appContext.ResolveTypeOrThrow(typeof(Il2CppClassPointerStore<>));
         var classPointerField = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
 
-        var il2CppStaticClass = appContext.ResolveTypeOrThrow(typeof(IL2CPP));
-        var getIl2CppNestedType = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppNestedType));
-        var getIl2CppClass = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppClass));
-        var il2CppRuntimeClassInit = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.Il2CppRuntimeClassInit));
-        var getIl2CppField = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppField));
-        var getIl2CppFieldOffset = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppFieldOffset));
-        var getIl2CppGenericInstanceMethod = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppGenericInstanceMethod));
-        var getIl2CppValueSize = il2CppStaticClass.GetMethodByName(nameof(IL2CPP.GetIl2CppValueSize));
+        var fieldAccessClass = appContext.ResolveTypeOrThrow(typeof(FieldAccess));
+        var getFieldInfo = fieldAccessClass.GetMethodByName(nameof(FieldAccess.GetFieldInfo));
+        var getFieldOffset = fieldAccessClass.GetMethodByName(nameof(FieldAccess.GetFieldOffset));
 
         var resolveICall = appContext.ResolveTypeOrThrow(typeof(RuntimeInvoke)).GetMethodByName(nameof(RuntimeInvoke.ResolveICall));
 
@@ -45,6 +40,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var getIl2CppMethod = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppMethod));
         var getIl2CppMethodByToken = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppMethodByToken));
         var getIl2CppGenericInstanceType = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppGenericInstanceType));
+        var getIl2CppNestedType = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppNestedType));
+        var getIl2CppClass = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppClass));
+        var il2CppRuntimeClassInit = generationInternalsType.GetMethodByName(nameof(GenerationInternals.Il2CppRuntimeClassInit));
+        var getIl2CppGenericInstanceMethod = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppGenericInstanceMethod));
+        var getIl2CppValueSize = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppValueSize));
 
         var typeInjector = appContext.ResolveTypeOrThrow(typeof(TypeInjector));
         var registerTypeInIl2Cpp = typeInjector.Methods.Single(m =>
@@ -235,10 +235,10 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
                         instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
                         instructions.Add(new Instruction(CilOpCodes.Ldstr, field.DefaultName));
-                        instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppField));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getFieldInfo));
                         instructions.Add(new Instruction(CilOpCodes.Dup));
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedInfoStore));
-                        instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppFieldOffset));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getFieldOffset));
                         instructions.Add(new Instruction(CilOpCodes.Conv_I4));
                         if (type.IsValueType)
                         {

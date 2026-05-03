@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Injection;
@@ -81,7 +82,7 @@ internal static class TrampolineHelpers
                 throw new NotSupportedException($"Type {managedType.FullName} is not an Il2Cpp type.");
             }
 
-            var fixedSize = IL2CPP.GetIl2CppValueSize(nativeClassPtr);
+            var fixedSize = IL2CPP.il2cpp_class_value_size(nativeClassPtr, out _);
             return GetFixedSizeStructType(fixedSize);
         }
     }
