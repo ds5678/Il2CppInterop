@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Il2CppInterop.Common;
 using Il2CppSystem;
 
 namespace Il2CppInterop.Runtime.Extensions;

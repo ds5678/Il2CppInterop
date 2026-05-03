@@ -1,3 +1,4 @@
+using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Runtime;
 

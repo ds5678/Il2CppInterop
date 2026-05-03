@@ -19,6 +19,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
     {
         Type[] il2CppInteropCommonTypes =
         [
+            typeof(IL2CPP),
             typeof(ObjectPointer),
 
             typeof(Il2CppMemberAttribute),
@@ -41,8 +42,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppArrayRank2<>),
             typeof(Il2CppArrayRank3<>),
 
-            typeof(Runtime.Exceptions.Il2CppException),
-            typeof(IL2CPP),
+            typeof(Il2CppException),
             typeof(Il2CppClassPointerStore<>),
             typeof(Il2CppObjectPool),
             typeof(TypeInjector),

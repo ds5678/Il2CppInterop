@@ -171,4 +171,10 @@ public static class Il2CppType
             throw new InvalidCastException();
         }
     }
+
+    // Temporary location for this method
+    public static ObjectPointer NewObjectPointer<T>()
+    {
+        return (ObjectPointer)IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPointer);
+    }
 }

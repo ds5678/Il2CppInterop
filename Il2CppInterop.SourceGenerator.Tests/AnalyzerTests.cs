@@ -18,7 +18,7 @@ public abstract class AnalyzerTests
         };
         Context.TestState.AdditionalReferences.Add(typeof(InjectedTypeAttribute).Assembly);
         Context.TestState.AdditionalReferences.Add(typeof(Il2CppSystem.Object).Assembly);
-        Context.TestState.AdditionalReferences.Add(typeof(IL2CPP).Assembly);
+        Context.TestState.AdditionalReferences.Add(typeof(RuntimeInvoke).Assembly);
     }
 
     protected async Task TestDiagnostic(string testCode, DiagnosticResult expectedDiagnostic)
