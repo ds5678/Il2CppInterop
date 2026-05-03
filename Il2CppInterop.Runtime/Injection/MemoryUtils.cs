@@ -7,7 +7,7 @@ using TerraFX.Interop.Windows;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal class MemoryUtils
+internal static class MemoryUtils
 {
     public static unsafe nint FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
     {

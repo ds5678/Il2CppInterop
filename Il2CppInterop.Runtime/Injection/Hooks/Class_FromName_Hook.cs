@@ -21,8 +21,8 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
             if (classPtr == null)
             {
-                string namespaze = Marshal.PtrToStringUTF8(_namespace);
-                string className = Marshal.PtrToStringUTF8(name);
+                var namespaze = Marshal.PtrToStringUTF8(_namespace) ?? "";
+                var className = Marshal.PtrToStringUTF8(name) ?? "";
                 InjectorHelpers.s_ClassNameLookup.TryGetValue((namespaze, className, (IntPtr)image), out IntPtr injectedClass);
                 classPtr = (Il2CppClass*)injectedClass;
             }
