@@ -1,12 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using Iced.Intel;
 
-namespace Il2CppInterop.Common.XrefScans;
+namespace Il2CppInterop.Runtime.Injection;
 
-public static class XrefScannerLowLevel
+internal static class XrefScannerLowLevel
 {
     public static IEnumerable<IntPtr> JumpTargets(IntPtr codeStart, bool ignoreRetn = false)
     {
-        return JumpTargetsImpl(XrefScanner.DecoderForAddress(codeStart), ignoreRetn);
+        return JumpTargetsImpl(DecoderForAddress(codeStart), ignoreRetn);
     }
 
     private static IEnumerable<IntPtr> JumpTargetsImpl(Decoder myDecoder, bool ignoreRetn)
@@ -31,8 +34,11 @@ public static class XrefScannerLowLevel
                 // We hope and pray that the compiler didn't use short jumps for any function calls
                 if (!instruction.IsJmpShort)
                 {
-                    yield return (IntPtr)ExtractTargetAddress(in instruction);
-                    if (firstFlowControl && instruction.FlowControl == FlowControl.UnconditionalBranch) yield break;
+                    var targetAddress = (IntPtr)ExtractTargetAddress(in instruction);
+                    if (targetAddress != IntPtr.Zero)
+                        yield return targetAddress;
+                    if (firstFlowControl && instruction.FlowControl == FlowControl.UnconditionalBranch)
+                        yield break;
                 }
             }
 
@@ -45,7 +51,7 @@ public static class XrefScannerLowLevel
 
     public static IEnumerable<IntPtr> CallAndIndirectTargets(IntPtr pointer)
     {
-        return CallAndIndirectTargetsImpl(XrefScanner.DecoderForAddress(pointer, 1024 * 1024));
+        return CallAndIndirectTargetsImpl(DecoderForAddress(pointer, 1024 * 1024));
     }
 
     private static IEnumerable<IntPtr> CallAndIndirectTargetsImpl(Decoder decoder)
@@ -63,7 +69,7 @@ public static class XrefScannerLowLevel
 
             if (instruction.Mnemonic == Mnemonic.Call || instruction.Mnemonic == Mnemonic.Jmp)
             {
-                var targetAddress = XrefScanner.ExtractTargetAddress(instruction);
+                var targetAddress = ExtractTargetAddress(instruction);
                 if (targetAddress != 0)
                     yield return (IntPtr)targetAddress;
                 continue;
@@ -94,7 +100,20 @@ public static class XrefScannerLowLevel
             case OpKind.FarBranch32:
                 return instruction.FarBranch32;
             default:
-                throw new ArgumentOutOfRangeException();
+                return 0;
         }
+    }
+
+    private static unsafe Decoder DecoderForAddress(IntPtr codeStart, int lengthLimit = 1000)
+    {
+        if (codeStart == IntPtr.Zero)
+            throw new NullReferenceException(nameof(codeStart));
+
+        var stream = new UnmanagedMemoryStream((byte*)codeStart, lengthLimit, lengthLimit, FileAccess.Read);
+        var codeReader = new StreamCodeReader(stream);
+        var decoder = Decoder.Create(IntPtr.Size * 8, codeReader);
+        decoder.IP = (ulong)codeStart;
+
+        return decoder;
     }
 }
