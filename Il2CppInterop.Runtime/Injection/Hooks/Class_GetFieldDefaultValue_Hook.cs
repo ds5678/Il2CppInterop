@@ -93,27 +93,27 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var monoFieldGetValueInternalThunk = InjectorHelpers.GetIl2CppMethodPointer(monoFieldType.GetMethod(nameof(Il2CppSystem.Reflection.MonoField.GetValueInternal)));
                 Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::thunk_GetValueInternal: 0x{MonoFieldGetValueInternalThunkAddress}", monoFieldGetValueInternalThunk.ToInt64().ToString("X2"));
 
-                var monoFieldGetValueInternal = XrefScannerLowLevel.JumpTargets(monoFieldGetValueInternalThunk).Single();
+                var monoFieldGetValueInternal = XrefScanner.JumpTargets(monoFieldGetValueInternalThunk).Single();
                 Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::GetValueInternal: 0x{MonoFieldGetValueInternalAddress}", monoFieldGetValueInternal.ToInt64().ToString("X2"));
 
                 // Field::GetValueObject could be inlined with Field::GetValueObjectForThread
-                var fieldGetValueObject = XrefScannerLowLevel.JumpTargets(monoFieldGetValueInternal).Single();
+                var fieldGetValueObject = XrefScanner.JumpTargets(monoFieldGetValueInternal).Single();
                 Logger.Instance.LogTrace("Field::GetValueObject: 0x{FieldGetValueObjectAddress}", fieldGetValueObject.ToInt64().ToString("X2"));
 
-                var fieldGetValueObjectForThread = XrefScannerLowLevel.JumpTargets(fieldGetValueObject).Last();
+                var fieldGetValueObjectForThread = XrefScanner.JumpTargets(fieldGetValueObject).Last();
                 Logger.Instance.LogTrace("Field::GetValueObjectForThread: 0x{FieldGetValueObjectForThreadAddress}", fieldGetValueObjectForThread.ToInt64().ToString("X2"));
 
-                classGetDefaultFieldValue = XrefScannerLowLevel.JumpTargets(fieldGetValueObjectForThread).ElementAt(2);
+                classGetDefaultFieldValue = XrefScanner.JumpTargets(fieldGetValueObjectForThread).ElementAt(2);
             }
             else
             {
                 var getStaticFieldValueAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
                 Logger.Instance.LogTrace("il2cpp_field_static_get_value: 0x{GetStaticFieldValueApiAddress}", getStaticFieldValueAPI.ToInt64().ToString("X2"));
 
-                var getStaticFieldValue = XrefScannerLowLevel.JumpTargets(getStaticFieldValueAPI).Single();
+                var getStaticFieldValue = XrefScanner.JumpTargets(getStaticFieldValueAPI).Single();
                 Logger.Instance.LogTrace("Field::StaticGetValue: 0x{GetStaticFieldValueAddress}", getStaticFieldValue.ToInt64().ToString("X2"));
 
-                var getStaticFieldValueTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValue).ToList();
+                var getStaticFieldValueTargets = XrefScanner.JumpTargets(getStaticFieldValue).ToList();
 
                 // Sometimes the compiler can do an optimization and omit 'retn' instruction,
                 // which then causes code following to grab wrong function pointer. A correct match should not contain more than 4 jumps
@@ -125,7 +125,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 var getStaticFieldValueInternal = getStaticFieldValueTargets[^1];
                 Logger.Instance.LogTrace("Field::StaticGetValueInternal: 0x{GetStaticFieldValueInternalAddress}", getStaticFieldValueInternal.ToInt64().ToString("X2"));
 
-                var getStaticFieldValueInternalTargets = XrefScannerLowLevel.JumpTargets(getStaticFieldValueInternal).ToArray();
+                var getStaticFieldValueInternalTargets = XrefScanner.JumpTargets(getStaticFieldValueInternal).ToArray();
 
                 if (getStaticFieldValueInternalTargets.Length == 0) return FindClassGetFieldDefaultValueXref(true);
 

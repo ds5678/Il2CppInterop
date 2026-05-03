@@ -40,30 +40,30 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                 );
                 Logger.Instance.LogTrace("Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{RuntimeHelpersInitializeArrayAddress}", runtimeHelpersInitializeArray.ToInt64().ToString("X2"));
 
-                var runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArray).Last();
-                if (XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Count() == 1)
+                var runtimeHelpersInitializeArrayICall = XrefScanner.JumpTargets(runtimeHelpersInitializeArray).Last();
+                if (XrefScanner.JumpTargets(runtimeHelpersInitializeArrayICall).Count() == 1)
                 {
                     // is a thunk function
                     Logger.Instance.LogTrace("RuntimeHelpers::thunk_InitializeArray: 0x{RuntimeHelpersInitializeArrayICallAddress}", runtimeHelpersInitializeArrayICall.ToInt64().ToString("X2"));
-                    runtimeHelpersInitializeArrayICall = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).Single();
+                    runtimeHelpersInitializeArrayICall = XrefScanner.JumpTargets(runtimeHelpersInitializeArrayICall).Single();
                 }
 
                 Logger.Instance.LogTrace("RuntimeHelpers::InitializeArray: 0x{RuntimeHelpersInitializeArrayICallAddress}", runtimeHelpersInitializeArrayICall.ToInt64().ToString("X2"));
 
-                var typeGetUnderlyingType = XrefScannerLowLevel.JumpTargets(runtimeHelpersInitializeArrayICall).ElementAt(1);
+                var typeGetUnderlyingType = XrefScanner.JumpTargets(runtimeHelpersInitializeArrayICall).ElementAt(1);
                 Logger.Instance.LogTrace("Type::GetUnderlyingType: 0x{TypeGetUnderlyingTypeAddress}", typeGetUnderlyingType.ToInt64().ToString("X2"));
 
-                getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(typeGetUnderlyingType).First();
+                getTypeInfoFromTypeDefinitionIndex = XrefScanner.JumpTargets(typeGetUnderlyingType).First();
             }
             else
             {
                 var imageGetClassAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
                 Logger.Instance.LogTrace("il2cpp_image_get_class: 0x{ImageGetClassApiAddress}", imageGetClassAPI.ToInt64().ToString("X2"));
 
-                var imageGetType = XrefScannerLowLevel.JumpTargets(imageGetClassAPI).First();
+                var imageGetType = XrefScanner.JumpTargets(imageGetClassAPI).First();
                 Logger.Instance.LogTrace("Image::GetType: 0x{ImageGetTypeAddress}", imageGetType.ToInt64().ToString("X2"));
 
-                var imageGetTypeXrefs = XrefScannerLowLevel.JumpTargets(imageGetType).ToArray();
+                var imageGetTypeXrefs = XrefScanner.JumpTargets(imageGetType).ToArray();
 
                 if (imageGetTypeXrefs.Length == 0)
                 {
@@ -89,7 +89,7 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
 
                     Logger.Instance.LogTrace($"getTypeInfoFromHandle: {getTypeInfoFromHandle:X2}");
 
-                    var getTypeInfoFromHandleXrefs = XrefScannerLowLevel.JumpTargets(getTypeInfoFromHandle).ToArray();
+                    var getTypeInfoFromHandleXrefs = XrefScanner.JumpTargets(getTypeInfoFromHandle).ToArray();
 
                     // If getTypeInfoFromHandle xrefs is not a single call, it's the function we want, if not, we keep xrefing until we find it
                     if (getTypeInfoFromHandleXrefs.Length != 1)
@@ -102,9 +102,9 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
                         // Two calls, second one (GetIndexForTypeDefinitionInternal) is inlined
                         getTypeInfoFromTypeDefinitionIndex = getTypeInfoFromHandleXrefs.Single();
                         // Xref scanner is sometimes confused about getTypeInfoFromHandle so we walk all the thunks until we hit the big method we need
-                        while (XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).ToArray().Length == 1)
+                        while (XrefScanner.JumpTargets(getTypeInfoFromTypeDefinitionIndex).ToArray().Length == 1)
                         {
-                            getTypeInfoFromTypeDefinitionIndex = XrefScannerLowLevel.JumpTargets(getTypeInfoFromTypeDefinitionIndex).Single();
+                            getTypeInfoFromTypeDefinitionIndex = XrefScanner.JumpTargets(getTypeInfoFromTypeDefinitionIndex).Single();
                         }
                     }
                 }

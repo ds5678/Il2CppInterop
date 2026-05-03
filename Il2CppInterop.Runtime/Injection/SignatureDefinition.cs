@@ -47,7 +47,7 @@ internal struct SignatureDefinition
         }
 
         if (ptr != 0 && sigDef.xref)
-            ptr = XrefScannerLowLevel.JumpTargets(ptr).FirstOrDefault();
+            ptr = XrefScanner.JumpTargets(ptr).FirstOrDefault();
         return ptr;
     }
 
