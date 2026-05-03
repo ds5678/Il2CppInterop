@@ -75,7 +75,7 @@ internal static class TrampolineHelpers
                 throw new NotSupportedException($"Type {managedType.FullName} is not an Il2Cpp type.");
             }
 
-            var fixedSize = IL2CPP.GetIl2cppValueSize(nativeClassPtr);
+            var fixedSize = IL2CPP.GetIl2CppValueSize(nativeClassPtr);
             return GetFixedSizeStructType(fixedSize);
         }
         else
