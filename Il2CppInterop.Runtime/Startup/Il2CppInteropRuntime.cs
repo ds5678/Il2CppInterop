@@ -1,9 +1,7 @@
 ﻿using AssetRipper.Primitives;
 using Il2CppInterop.Common.Host;
-using Il2CppInterop.Common.XrefScans;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime.XrefScans;
 
 namespace Il2CppInterop.Runtime.Startup;
 
@@ -27,7 +25,6 @@ public sealed class Il2CppInteropRuntime : BaseHost
             DetourProvider = configuration.DetourProvider
         };
         SetInstance(res);
-        res.AddXrefScanner<Il2CppInteropRuntime, XrefScanImpl>();
         return res;
     }
 

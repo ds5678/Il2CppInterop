@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Linq;
-using Il2CppInterop.Common.XrefScans;
 
 namespace Il2CppInterop.Runtime.Injection;
 
