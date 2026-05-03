@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal class MemoryUtils
+internal static class MemoryUtils
 {
     public static nint FindSignatureInModule(ProcessModule module, SignatureDefinition sigDef)
     {
