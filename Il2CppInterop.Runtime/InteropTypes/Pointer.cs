@@ -39,7 +39,7 @@ public readonly unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>
 
     static int IIl2CppType<Pointer<T>>.Size => IntPtr.Size;
 
-    readonly nint IIl2CppType.ObjectClass => Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer;
+    readonly nint IIl2CppType.ObjectClass => Il2CppType.GetClassPointer<Pointer<T>>();
 
     static Pointer<T> IIl2CppType<Pointer<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (Pointer<T>)(void*)Il2CppType.ReadPointer(span);
     static void IIl2CppType<Pointer<T>>.WriteToSpan(Pointer<T> value, Span<byte> span) => Il2CppType.WritePointer((IntPtr)value._pointer, span);
@@ -49,7 +49,7 @@ public readonly unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>
 
     static Pointer()
     {
-        var elementType = Il2CppSystem.Type.FromClassPointer(Il2CppClassPointerStore<T>.NativeClassPointer);
-        Il2CppClassPointerStore<Pointer<T>>.NativeClassPointer = elementType.MakePointerType().ToClassPointer();
+        var elementType = Il2CppSystem.Type.FromClassPointer(Il2CppType.GetClassPointer<T>());
+        Il2CppType.SetClassPointer<Pointer<T>>(elementType.MakePointerType().ToClassPointer());
     }
 }
