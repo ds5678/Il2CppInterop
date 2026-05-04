@@ -53,7 +53,7 @@ public static class Il2CppObjectPool
 
     public static void RegisterValueTypeInitializer<T>() where T : struct, IIl2CppType<T>
     {
-        RegisterInitializer(Il2CppClassPointerStore<T>.NativeClassPointer, ValueTypeInitializer<T>);
+        RegisterInitializer(Il2CppType.GetClassPointer<T>(), ValueTypeInitializer<T>);
     }
 
     public static unsafe object ValueTypeInitializer<T>(ObjectPointer obj) where T : struct, IIl2CppType<T>

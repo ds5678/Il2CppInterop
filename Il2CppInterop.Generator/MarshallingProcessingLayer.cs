@@ -25,9 +25,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var iil2CppTypeGeneric_ReadFromSpan = iil2CppTypeGeneric.GetMethodByName(nameof(IIl2CppType<>.ReadFromSpan));
         var iil2CppTypeGeneric_WriteToSpan = iil2CppTypeGeneric.GetMethodByName(nameof(IIl2CppType<>.WriteToSpan));
 
-        var il2CppClassPointerStore = appContext.ResolveTypeOrThrow(typeof(Il2CppClassPointerStore<>));
-        var il2CppClassPointerStore_NativeClassPointer = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
-
         var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
         var il2CppTypeHelper_ReadReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadReference));
         var il2CppTypeHelper_WriteReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteReference));
@@ -36,6 +33,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var il2CppTypeHelper_ReadFromSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadFromSpanBlittable));
         var il2CppTypeHelper_WriteToSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpanBlittable));
         var il2CppTypeHelper_WriteToSpan = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpan));
+        var il2CppTypeHelper_GetClassPointer = il2CppTypeHelper.Methods.Single(m => m.Name == nameof(Il2CppType.GetClassPointer) && m.GenericParameters.Count == 1);
 
         var intPtr_get_Size = appContext.SystemTypes.SystemIntPtrType.GetMethodByName($"get_{nameof(IntPtr.Size)}");
 
@@ -145,7 +143,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Ldsfld, new ConcreteGenericFieldAnalysisContext(il2CppClassPointerStore_NativeClassPointer, il2CppClassPointerStore.MakeGenericInstanceType([classReferenceType]))),
+                            new Instruction(CilOpCodes.Call, il2CppTypeHelper_GetClassPointer.MakeGenericInstanceMethod(classReferenceType)),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });

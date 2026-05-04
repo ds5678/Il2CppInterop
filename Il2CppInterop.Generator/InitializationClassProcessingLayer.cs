@@ -27,8 +27,6 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
     {
         var runClassConstructor = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.Runtime.CompilerServices.RuntimeHelpers")
             .Methods.First(m => m.Name == nameof(RuntimeHelpers.RunClassConstructor) && m.Parameters[0].ParameterType != appContext.SystemTypes.SystemIntPtrType);
-        var il2CppClassPointerStore = appContext.ResolveTypeOrThrow(typeof(Il2CppClassPointerStore<>));
-        var classPointerField = il2CppClassPointerStore.GetFieldByName(nameof(Il2CppClassPointerStore<>.NativeClassPointer));
 
         var fieldAccessClass = appContext.ResolveTypeOrThrow(typeof(FieldAccess));
         var getFieldInfo = fieldAccessClass.GetMethodByName(nameof(FieldAccess.GetFieldInfo));
@@ -61,7 +59,10 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var byReference_CopyTo = byReference.GetMethodByName(nameof(ByReference<>.CopyTo));
         var byReference_Constructor = byReference.GetMethodByName(".ctor");
 
-        var il2CppTypeHelper_SizeOf = appContext.ResolveTypeOrThrow(typeof(Il2CppType)).GetMethodByName(nameof(Il2CppType.SizeOf));
+        var il2CppType = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
+        var il2CppType_SizeOf = il2CppType.GetMethodByName(nameof(Il2CppType.SizeOf));
+        var il2CppType_GetClassPointer = il2CppType.Methods.Single(m => m.Name == nameof(Il2CppType.GetClassPointer) && m.GenericParameters.Count == 1);
+        var il2CppType_SetClassPointer = il2CppType.Methods.Single(m => m.Name == nameof(Il2CppType.SetClassPointer) && m.GenericParameters.Count == 1);
 
         var il2CppObjectPool = appContext.ResolveTypeOrThrow(typeof(Il2CppObjectPool));
         var il2CppObjectPool_RegisterInitializer = il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.RegisterInitializer));
@@ -128,7 +129,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         ? type
                         : type.MakeGenericInstanceType(initializationType.GenericParameters);
 
-                    var concreteClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize]));
+                    var getClassPointerMethodInstantiated = il2CppType_GetClassPointer.MakeGenericInstanceMethod(typeToInitialize);
                     if (type.IsUnstripped)
                     {
                         instructions.Add(new Instruction(CilOpCodes.Call, registerTypeInIl2Cpp.MakeGenericInstanceMethod(typeToInitialize)));
@@ -141,15 +142,14 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(new Instruction(CilOpCodes.Ldtoken, typeToInitialize.DeclaringType));
                             instructions.Add(new Instruction(CilOpCodes.Call, runClassConstructor));
 
-                            // Il2CppClassPointerStore<NestedClass>.NativeClassPointer = IL2CPP.GetIl2CppNestedType(Il2CppClassPointerStore<DeclaringType>.NativeClassPointer, "NestedClass");
-                            var declaringTypeClassPointerField = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([typeToInitialize.DeclaringType]));
-                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, declaringTypeClassPointerField));
+                            // Il2CppType.SetClassPointer<NestedClass>(IL2CPP.GetIl2CppNestedType(Il2CppType.GetClassPointer<DeclaringType>(), "NestedClass"));
+                            instructions.Add(new Instruction(CilOpCodes.Call, il2CppType_GetClassPointer.MakeGenericInstanceMethod(typeToInitialize.DeclaringType)));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultName));// typeToInitialize can have the wrong DefaultName
                             instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppNestedType));
                         }
                         else
                         {
-                            // Il2CppClassPointerStore<Class>.NativeClassPointer = IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class");
+                            // Il2CppType.SetClassPointer<Class>(IL2CPP.GetIl2CppClass("Assembly-CSharp.dll", "", "Class"));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, assembly.ImageName));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultNamespace));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, type.DefaultName));
@@ -163,21 +163,19 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             {
                                 instructions.Add(new Instruction(CilOpCodes.Dup));
                                 instructions.Add(new Instruction(CilOpCodes.Ldc_I4, j));
-                                var genericParameter = initializationType.GenericParameters[j];
-                                var classPointerForGenericParameter = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([genericParameter]));
-                                instructions.Add(new Instruction(CilOpCodes.Ldsfld, classPointerForGenericParameter));
+                                instructions.Add(new Instruction(CilOpCodes.Call, il2CppType_GetClassPointer.MakeGenericInstanceMethod(initializationType.GenericParameters[j])));
                                 instructions.Add(new Instruction(CilOpCodes.Stelem_I));
                             }
                             instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppGenericInstanceType));
                         }
-                        instructions.Add(new Instruction(CilOpCodes.Stsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Call, il2CppType_SetClassPointer.MakeGenericInstanceMethod(typeToInitialize)));
 
-                        // IL2CPP.il2cpp_runtime_class_init(Il2CppClassPointerStore<Class>.NativeClassPointer);
-                        instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                        // Il2CppRuntimeClassInit(Il2CppType.GetClassPointer<Class>());
+                        instructions.Add(new Instruction(CilOpCodes.Call, getClassPointerMethodInstantiated));
                         instructions.Add(new Instruction(CilOpCodes.Call, il2CppRuntimeClassInit));
                     }
 
-                    // Size = IL2CPP.il2cpp_class_value_size(Il2CppClassPointerStore<Class>.NativeClassPointer, ref align);
+                    // Size = GetIl2CppValueSize(Il2CppType.GetClassPointer<Class>());
                     if (type.IsValueType)
                     {
                         var sizeStore = initializationType.InjectFieldContext(
@@ -190,12 +188,12 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             ? new ConcreteGenericFieldAnalysisContext(sizeStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : sizeStore;
 
-                        instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getClassPointerMethodInstantiated));
                         instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppValueSize));
                         instructions.Add(new Instruction(CilOpCodes.Stsfld, instantiatedSizeStore));
                     }
 
-                    // FieldOffset_0 = (int)IL2CPP.il2cpp_field_get_offset(IL2CPP.GetIl2CppField(Il2CppClassPointerStore<Class>.NativeClassPointer, "field_name"));
+                    // FieldOffset_0 = FieldAccess.GetFieldOffset(FieldAccess.GetFieldInfo(Il2CppType.GetClassPointer<Class>(), "field_name"));
                     for (var index = 0; index < type.Fields.Count; index++)
                     {
                         var field = type.Fields[index];
@@ -228,7 +226,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             ? new ConcreteGenericFieldAnalysisContext(offsetStore, initializationType.MakeGenericInstanceType(initializationType.GenericParameters))
                             : offsetStore;
 
-                        instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                        instructions.Add(new Instruction(CilOpCodes.Call, getClassPointerMethodInstantiated));
                         instructions.Add(new Instruction(CilOpCodes.Ldstr, field.DefaultName));
                         instructions.Add(new Instruction(CilOpCodes.Call, getFieldInfo));
                         instructions.Add(new Instruction(CilOpCodes.Dup));
@@ -269,7 +267,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         {
                             tokenLessMethodCount++;
 
-                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                            instructions.Add(new Instruction(CilOpCodes.Call, getClassPointerMethodInstantiated));
                             instructions.Add(new Instruction(method.GenericParameters.Count == 0 ? CilOpCodes.Ldc_I4_0 : CilOpCodes.Ldc_I4_1));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, method.DefaultName));
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, method.DefaultReturnType.DefaultFullName));
@@ -288,7 +286,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         }
                         else
                         {
-                            instructions.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                            instructions.Add(new Instruction(CilOpCodes.Call, getClassPointerMethodInstantiated));
                             instructions.Add(new Instruction(CilOpCodes.Ldc_I4, unchecked((int)method.Token)));
                             instructions.Add(new Instruction(CilOpCodes.Call, getIl2CppMethodByToken));
                         }
@@ -325,16 +323,15 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
                             var instructions2 = new List<Instruction>();
                             instructions2.Add(new Instruction(CilOpCodes.Ldsfld, concreteMethodInfoStore2));
-                            instructions2.Add(new Instruction(CilOpCodes.Ldsfld, concreteClassPointerField));
+                            instructions2.Add(new Instruction(CilOpCodes.Call, getClassPointerMethodInstantiated));
                             instructions2.Add(new Instruction(CilOpCodes.Ldc_I4, method.GenericParameters.Count));
                             instructions2.Add(new Instruction(CilOpCodes.Newarr, appContext.SystemTypes.SystemIntPtrType));
                             for (var j = 0; j < method.GenericParameters.Count; j++)
                             {
+                                var genericParameter = methodInfoPtrGenericClass.GenericParameters[j + initializationType.GenericParameters.Count];
                                 instructions2.Add(new Instruction(CilOpCodes.Dup));
                                 instructions2.Add(new Instruction(CilOpCodes.Ldc_I4, j));
-                                var genericParameter = methodInfoPtrGenericClass.GenericParameters[j + initializationType.GenericParameters.Count];
-                                var classPointerForGenericParameter = new ConcreteGenericFieldAnalysisContext(classPointerField, il2CppClassPointerStore.MakeGenericInstanceType([genericParameter]));
-                                instructions2.Add(new Instruction(CilOpCodes.Ldsfld, classPointerForGenericParameter));
+                                instructions2.Add(new Instruction(CilOpCodes.Call, il2CppType_GetClassPointer.MakeGenericInstanceMethod(genericParameter)));
                                 instructions2.Add(new Instruction(CilOpCodes.Stelem_I));
                             }
                             instructions2.Add(new Instruction(CilOpCodes.Call, getIl2CppGenericInstanceMethod));
@@ -459,7 +456,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                         }
                         else if (type.IsValueType)
                         {
-                            instructions.Add(CilOpCodes.Ldsfld, concreteClassPointerField);
+                            instructions.Add(CilOpCodes.Call, getClassPointerMethodInstantiated);
                             instructions.Add(CilOpCodes.Ldnull);
                             instructions.Add(CilOpCodes.Ldftn, il2CppObjectPool_ValueTypeInitializer.MakeGenericInstanceMethod(typeToInitialize));
                             instructions.Add(CilOpCodes.Newobj, funcConstructorInstantiated);
@@ -488,7 +485,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                                 ]
                             });
 
-                            instructions.Add(CilOpCodes.Ldsfld, concreteClassPointerField);
+                            instructions.Add(CilOpCodes.Call, getClassPointerMethodInstantiated);
                             instructions.Add(CilOpCodes.Ldnull);
                             instructions.Add(CilOpCodes.Ldftn, creationMethod.MaybeMakeConcreteGeneric(initializationType.GenericParameters, []));
                             instructions.Add(CilOpCodes.Newobj, funcConstructorInstantiated);
@@ -532,9 +529,9 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
             var processedTypes = new HashSet<TypeAnalysisContext>(TypeAnalysisContextEqualityComparer.Instance);
             // Ensure all generic instantiations are initialized
-            foreach (var il2CppType in appContext.Binary.AllTypes)
+            foreach (var typeToResolve in appContext.Binary.AllTypes)
             {
-                var typeContext = injectedAssembly.ResolveIl2CppType(il2CppType);
+                var typeContext = injectedAssembly.ResolveIl2CppType(typeToResolve);
 
                 if (typeContext is not ReferencedTypeAnalysisContext && typeContext.GenericParameters.Count > 0)
                     continue; // Skip open generics

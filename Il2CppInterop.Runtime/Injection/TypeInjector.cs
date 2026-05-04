@@ -38,7 +38,7 @@ public static unsafe class TypeInjector
     /// <returns>True if the type is preexisting, false otherwise.</returns>
     public static bool IsPreexistingType(Type type)
     {
-        return Il2CppClassPointerStore.GetNativeClassPointer(type) is not 0 && !RegisteredTypes.Contains(type);
+        return Il2CppType.GetClassPointer(type) is not 0 && !RegisteredTypes.Contains(type);
     }
 
     public static void RegisterTypeInIl2Cpp<T>() where T : IIl2CppType<T>
@@ -48,7 +48,7 @@ public static unsafe class TypeInjector
 
     private static void RegisterTypeInIl2Cpp(Type type)
     {
-        if (Il2CppClassPointerStore.GetNativeClassPointer(type) is not 0)
+        if (Il2CppType.GetClassPointer(type) is not 0)
         {
             // Already registered
             return;
@@ -91,13 +91,13 @@ public static unsafe class TypeInjector
 
         classPointer.Flags = TypeAttributesToClassAttributes(type.Attributes);
 
-        // This guarantees that any future calls to GetNativeClassPointer will return the class pointer,
+        // This guarantees that any future calls to GetClassPointer will return the class pointer,
         // even if the class is not fully registered yet, which allows us to handle circular dependencies between types.
         RegisteredTypes.Add(type);
         NeedsInitialized.Add(type);
         NeedsVTableSet.Add(type, vtableUpperBound);
         NeedsFieldsSet.Add(type);
-        Il2CppClassPointerStore.SetNativeClassPointer(type, (nint)classPointer.ClassPointer);
+        Il2CppType.SetClassPointer(type, (nint)classPointer.ClassPointer);
         InjectorHelpers.AddTypeToLookup(assemblyName, @namespace, name, (nint)classPointer.ClassPointer);
 
         // Ensure that all other types that this type depends on are at least registered
@@ -148,16 +148,16 @@ public static unsafe class TypeInjector
             SetFields(type, classPointer);
         }
 
-        static void EnsureNativeClassPointerNotNull(Type type) => GetNativeClassPointerNotNull(type);
+        static void EnsureNativeClassPointerNotNull(Type type) => GetClassPointerNotNull(type);
 
-        static nint GetNativeClassPointerNotNull(Type type)
+        static nint GetClassPointerNotNull(Type type)
         {
-            var classPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
+            var classPointer = Il2CppType.GetClassPointer(type);
             if (classPointer is 0)
             {
                 Logger.Instance.LogWarning("The static constructor of {Type} is malformed and did not call RegisterTypeInIl2Cpp. Registering it now.", type.FullName);
                 RegisterTypeInIl2Cpp(type);
-                classPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
+                classPointer = Il2CppType.GetClassPointer(type);
                 Debug.Assert(classPointer is not 0);
             }
             else if (!RegisteredTypes.Contains(type))
@@ -172,14 +172,14 @@ public static unsafe class TypeInjector
         {
             if (type.BaseType is not null && NeedsInitialized.Contains(type.BaseType))
             {
-                SetClassData(type.BaseType, UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(type.BaseType)));
+                SetClassData(type.BaseType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(type.BaseType)));
             }
 
             var baseClassPointer = type switch
             {
                 { BaseType: null } => null,
-                { IsValueType: true } => UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.ValueType>.NativeClassPointer),
-                _ => UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(type.BaseType)),
+                { IsValueType: true } => UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer<Il2CppSystem.ValueType>()),
+                _ => UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(type.BaseType)),
             };
 
             // Static classes get unsealed during generation so that they can be used as generic parameters, which might mislead users into thinking they can inherit from them.
@@ -238,7 +238,7 @@ public static unsafe class TypeInjector
             {
                 baseType = type.IsValueType ? typeof(Il2CppSystem.ValueType) : type.BaseType;
                 interfaceTypesNotImplementedByBaseType = type.GetInterfaces().Where(IsIl2CppInterface).Where(i => !i.IsAssignableFrom(baseType)).ToArray();
-                baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(baseType));
+                baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(baseType));
                 if (NeedsVTableSet.TryGetValue(baseType, out var baseTypeVTableMaxSize))
                 {
                     SetVTableAndInterfaces(baseType, baseClassPointer, baseTypeVTableMaxSize);
@@ -248,7 +248,7 @@ public static unsafe class TypeInjector
             {
                 if (NeedsVTableSet.TryGetValue(@interface, out var interfaceVTableMaxSize))
                 {
-                    var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(@interface));
+                    var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(@interface));
                     SetVTableAndInterfaces(@interface, interfaceClassPointer, interfaceVTableMaxSize);
                 }
             }
@@ -260,7 +260,7 @@ public static unsafe class TypeInjector
                 for (var i = 0; i < interfaceTypesNotImplementedByBaseType.Length; i++)
                 {
                     var interfaceType = interfaceTypesNotImplementedByBaseType[i];
-                    classPointer.ImplementedInterfaces[i] = (Il2CppClass*)GetNativeClassPointerNotNull(interfaceType);
+                    classPointer.ImplementedInterfaces[i] = (Il2CppClass*)GetClassPointerNotNull(interfaceType);
                 }
             }
             else
@@ -271,11 +271,11 @@ public static unsafe class TypeInjector
                 for (var i = 0; i < interfaceTypesNotImplementedByBaseType.Length; i++)
                 {
                     var interfaceType = interfaceTypesNotImplementedByBaseType[i];
-                    classPointer.ImplementedInterfaces[baseClassPointer.InterfaceCount + i] = (Il2CppClass*)GetNativeClassPointerNotNull(interfaceType);
+                    classPointer.ImplementedInterfaces[baseClassPointer.InterfaceCount + i] = (Il2CppClass*)GetClassPointerNotNull(interfaceType);
                 }
             }
 
-            var pointersToInterfaces = type.GetInterfaces().Where(IsIl2CppInterface).ToDictionary(Il2CppClassPointerStore.GetNativeClassPointer);
+            var pointersToInterfaces = type.GetInterfaces().Where(IsIl2CppInterface).ToDictionary(Il2CppType.GetClassPointer);
 
             var interfaceOffsets = new List<Il2CppRuntimeInterfaceOffsetPair>();
 
@@ -393,7 +393,7 @@ public static unsafe class TypeInjector
 
             foreach (var interfaceType in interfaceTypesNotImplementedByBaseType)
             {
-                var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(interfaceType));
+                var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(interfaceType));
                 var interfaceOffset = index;
                 var interfaceVtableCount = LowestInterfaceOffset(interfaceClassPointer); // Not sure this is correct
 
@@ -463,13 +463,13 @@ public static unsafe class TypeInjector
             {
                 if (fieldType.IsValueType && NeedsFieldsSet.Contains(fieldType))
                 {
-                    SetFields(fieldType, UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(fieldType)));
+                    SetFields(fieldType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(fieldType)));
                 }
             }
 
             if (type.BaseType is not null && NeedsFieldsSet.Contains(type.BaseType))
             {
-                SetFields(type.BaseType, UnityVersionHandler.Wrap((Il2CppClass*)GetNativeClassPointerNotNull(type.BaseType)));
+                SetFields(type.BaseType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(type.BaseType)));
             }
 
             var fieldsToInject = GetIl2CppFields(type).ToArray();
@@ -481,7 +481,7 @@ public static unsafe class TypeInjector
             {
                 var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
 
-                var fieldInfoClass = Il2CppClassPointerStore.GetNativeClassPointer(fieldType);
+                var fieldInfoClass = Il2CppType.GetClassPointer(fieldType);
                 if (fieldInfoClass == IntPtr.Zero)
                     throw new Exception($"Type {fieldType} in {type}.{fieldName} doesn't exist in Il2Cpp");
                 if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
@@ -803,7 +803,7 @@ public static unsafe class TypeInjector
         }
         if (type.IsValueType)
         {
-            count += UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.ValueType>.NativeClassPointer).VTableCount;
+            count += UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer<Il2CppSystem.ValueType>()).VTableCount;
         }
         return int.Min(count, ushort.MaxValue);
 
@@ -822,7 +822,7 @@ public static unsafe class TypeInjector
         if (!typeof(Il2CppSystem.IEnum).IsAssignableFrom(type))
             throw new ArgumentException("Type argument needs to be an enum", nameof(type));
 
-        var enumPtr = Il2CppClassPointerStore.GetNativeClassPointer(type);
+        var enumPtr = Il2CppType.GetClassPointer(type);
         if (enumPtr == IntPtr.Zero)
             throw new ArgumentException("Type needs to be an Il2Cpp enum", nameof(type));
 
@@ -893,14 +893,14 @@ public static unsafe class TypeInjector
 
     private static void RegisterEnumInIl2Cpp(Type type)
     {
-        var baseEnum = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppClassPointerStore<Il2CppSystem.Enum>.NativeClassPointer);
+        var baseEnum = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer<Il2CppSystem.Enum>());
 
         InjectorHelpers.ClassInit(baseEnum.ClassPointer);
 
         var il2cppEnum = UnityVersionHandler.NewClass(baseEnum.VTableCount);
         var elementClass =
             UnityVersionHandler.Wrap(
-                (Il2CppClass*)Il2CppClassPointerStore.GetNativeClassPointer(GetEnumUnderlyingType(type)));
+                (Il2CppClass*)Il2CppType.GetClassPointer(GetEnumUnderlyingType(type)));
 
         (var assemblyName, var @namespace, var name) = GetFullyQualifiedName(type);
         il2cppEnum.Image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
@@ -983,7 +983,7 @@ public static unsafe class TypeInjector
             il2cppEnum.TypeHierarchy[i] = baseEnum.TypeHierarchy[i];
         il2cppEnum.TypeHierarchy[il2cppEnum.TypeHierarchyDepth - 1] = il2cppEnum.ClassPointer;
 
-        Il2CppClassPointerStore.SetNativeClassPointer(type, il2cppEnum.Pointer);
+        Il2CppType.SetClassPointer(type, il2cppEnum.Pointer);
         InjectorHelpers.AddTypeToLookup(assemblyName, @namespace, name, il2cppEnum.Pointer);
     }
 
@@ -1051,7 +1051,7 @@ public static unsafe class TypeInjector
         converted.InvokerMethod = (nint)invoker;
         converted.MethodPointer = (nint)(delegate* unmanaged<IntPtr, Il2CppMethodInfo*, void>)&Method;
         converted.Slot = ushort.MaxValue;
-        converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppClassPointerStore<Il2CppSystem.Void>.NativeClassPointer);
+        converted.ReturnType = (Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(Il2CppType.GetClassPointer<Il2CppSystem.Void>());
 
         converted.Flags = Il2CppMethodFlags.METHOD_ATTRIBUTE_PUBLIC |
                           Il2CppMethodFlags.METHOD_ATTRIBUTE_HIDE_BY_SIG |
@@ -1222,9 +1222,10 @@ public static unsafe class TypeInjector
                 // Those get returned as-is, so we don't want to box them.
                 var returnValue = body.DeclareLocal(nativeReturnType);
                 body.Emit(OpCodes.Stloc, returnValue);
-                var classField = typeof(Il2CppClassPointerStore<>).MakeGenericType(monoMethod.ReturnType)
-                    .GetField(nameof(Il2CppClassPointerStore<>.NativeClassPointer))!;
-                body.Emit(OpCodes.Ldsfld, classField);
+                var getClassPointer = typeof(Il2CppType)
+                    .GetMethod(nameof(Il2CppType.GetClassPointer), 1, [])!
+                    .MakeGenericMethod(monoMethod.ReturnType);
+                body.Emit(OpCodes.Call, getClassPointer);
                 body.Emit(OpCodes.Ldloca, returnValue);
                 body.Emit(OpCodes.Call, typeof(IL2CPP).GetMethod(nameof(IL2CPP.il2cpp_value_box))!);
             }

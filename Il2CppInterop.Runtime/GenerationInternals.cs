@@ -44,7 +44,7 @@ public static partial class GenerationInternals
 
     public static Il2CppSystem.Type ManagedTypeToIl2CppType(Type type)
     {
-        var classPointer = Il2CppClassPointerStore.GetNativeClassPointer(type);
+        var classPointer = Il2CppType.GetClassPointer(type);
         if (classPointer == IntPtr.Zero)
         {
             throw new ArgumentException($"{type} does not have a corresponding IL2CPP class pointer");

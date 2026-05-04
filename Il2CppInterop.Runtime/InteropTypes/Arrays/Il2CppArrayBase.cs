@@ -96,10 +96,10 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array
     }
 
     private protected static void SetClassPointer<TArray, TElement>(uint rank)
-        where TArray : Il2CppArrayBase
+        where TArray : Il2CppArrayBase, IIl2CppType<TArray>
         where TElement : IIl2CppType<TElement>
     {
-        Il2CppClassPointerStore<TArray>.NativeClassPointer = IL2CPP.il2cpp_array_class_get(Il2CppClassPointerStore<TElement>.NativeClassPointer, rank);
+        Il2CppType.SetClassPointer<TArray>(IL2CPP.il2cpp_array_class_get(Il2CppType.GetClassPointer<TElement>(), rank));
     }
 }
 public abstract class Il2CppArrayBase<T> : Il2CppArrayBase

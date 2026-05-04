@@ -352,7 +352,7 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"static int global::Il2CppInterop.Common.IIl2CppType<{tn}>.Size => nint.Size;");
             writer.WriteLineNoTabs();
 
-            writer.WriteLine($"nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{tn}>.NativeClassPointer;");
+            writer.WriteLine($"nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<{tn}>();");
             writer.WriteLineNoTabs();
 
             writer.WriteLine($"static {tn}? global::Il2CppInterop.Common.IIl2CppType<{tn}>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)");
@@ -415,19 +415,19 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
         foreach (var member in model.Members)
         {
             if (member.IsStatic)
-                writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\");");
+                writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\");");
             else
-                writer.WriteLine($"FieldOffset_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, \"{member.Name}\"));");
+                writer.WriteLine($"FieldOffset_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\"));");
         }
 
         if (isValueType)
         {
-            writer.WriteLine($"Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, out _);");
+            writer.WriteLine($"Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<{model.TypeName}>(), out _);");
             writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
         }
         else if (!model.IsAbstract)
         {
-            writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<{model.TypeName}>.NativeClassPointer, ptr => new {model.TypeName}(ptr));");
+            writer.WriteLine($"global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<{model.TypeName}>(), ptr => new {model.TypeName}(ptr));");
         }
 
         writer.Indent--;

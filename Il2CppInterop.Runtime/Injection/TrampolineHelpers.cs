@@ -76,7 +76,7 @@ internal static class TrampolineHelpers
         {
             // Struct that's passed on the stack => handle as general struct
 
-            var nativeClassPtr = Il2CppClassPointerStore.GetNativeClassPointer(managedType);
+            var nativeClassPtr = Il2CppType.GetClassPointer(managedType);
             if (nativeClassPtr == IntPtr.Zero)
             {
                 throw new NotSupportedException($"Type {managedType.FullName} is not an Il2Cpp type.");

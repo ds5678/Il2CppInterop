@@ -8,11 +8,27 @@ namespace Il2CppInterop.Runtime;
 
 public static class Il2CppType
 {
-    public static bool IsBlittable<T>() where T : IIl2CppType<T>
+    private static readonly nint Il2CppSystemVoidClassPointer = GetIl2CppSystemVoidClassPointer();
+
+    private static unsafe nint GetIl2CppSystemVoidClassPointer()
     {
-        return T.Size == Unsafe.SizeOf<T>()
-            && !RuntimeHelpers.IsReferenceOrContainsReferences<T>()
-            && !typeof(T).IsGenericType;
+        var domain = IL2CPP.il2cpp_domain_get();
+        if (domain == nint.Zero)
+        {
+            return nint.Zero;
+        }
+
+        var assemblies = IL2CPP.il2cpp_domain_get_assemblies(domain, out var assembliesCount);
+        for (var i = 0; i < assembliesCount; i++)
+        {
+            var image = IL2CPP.il2cpp_assembly_get_image(assemblies[i]);
+            var imageName = IL2CPP.il2cpp_image_get_name(image);
+            if (imageName == "mscorlib.dll")
+            {
+                return IL2CPP.il2cpp_class_from_name(image, "System", "Void");
+            }
+        }
+        return nint.Zero;
     }
 
     public static int SizeOf<T>() where T : IIl2CppType<T>
@@ -172,9 +188,48 @@ public static class Il2CppType
         }
     }
 
-    // Temporary location for this method
-    public static ObjectPointer NewObjectPointer<T>()
+    public static nint GetClassPointer(Type type)
     {
-        return (ObjectPointer)IL2CPP.il2cpp_object_new(Il2CppClassPointerStore<T>.NativeClassPointer);
+        if (type == typeof(void))
+            return Il2CppSystemVoidClassPointer;
+
+        return (nint)typeof(Il2CppType)
+            .GetMethod(nameof(GetClassPointer), 1, [])!
+            .MakeGenericMethod(type)
+            .Invoke(null, null)!;
+    }
+
+    public static nint GetClassPointer<T>() where T : IIl2CppType<T>
+    {
+        return Il2CppClassPointerStore<T>.NativeClassPointer;
+    }
+
+    internal static void SetClassPointer(Type type, nint classPointer)
+    {
+        typeof(Il2CppType)
+            .GetMethod(nameof(SetClassPointer), 1, [typeof(nint)])!
+            .MakeGenericMethod(type)
+            .Invoke(null, [classPointer]);
+    }
+
+    public static void SetClassPointer<T>(nint classPointer) where T : IIl2CppType<T>
+    {
+        Il2CppClassPointerStore<T>.NativeClassPointer = classPointer;
+    }
+
+    private static class Il2CppClassPointerStore<T> where T : IIl2CppType<T>
+    {
+        public static nint NativeClassPointer;
+
+        static Il2CppClassPointerStore()
+        {
+            RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+        }
+    }
+
+    // Temporary location for this method
+    public static ObjectPointer NewObjectPointer<T>() where T : IIl2CppType<T>
+    {
+        return (ObjectPointer)IL2CPP.il2cpp_object_new(GetClassPointer<T>());
     }
 }

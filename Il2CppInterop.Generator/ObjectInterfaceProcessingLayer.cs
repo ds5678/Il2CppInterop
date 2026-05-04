@@ -3,6 +3,7 @@ using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
+using Il2CppInterop.Runtime;
 
 namespace Il2CppInterop.Generator;
 
@@ -91,6 +92,11 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
                 }
             }
         }
+
+        // Implement static constructors for interfaces to set class pointers
+        ImplementStaticConstructor(il2CppSystemObject, il2CppSystemIObject);
+        ImplementStaticConstructor(il2CppSystemValueType, il2CppSystemIValueType);
+        ImplementStaticConstructor(il2CppSystemEnum, il2CppSystemIEnum);
     }
 
     private static InjectedTypeAnalysisContext InjectInterface(ApplicationAnalysisContext appContext, string name)
@@ -176,5 +182,33 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
             classMethod.Attributes |= MethodAttributes.Final | MethodAttributes.NewSlot;
         }
         classMethod.Attributes |= MethodAttributes.Virtual | MethodAttributes.HideBySig;
+    }
+
+    private static void ImplementStaticConstructor(TypeAnalysisContext classType, TypeAnalysisContext interfaceType)
+    {
+        // Set the class pointer for the interface to the class pointer of the class
+        var il2CppType = interfaceType.AppContext.ResolveTypeOrThrow(typeof(Il2CppType));
+        var getClassPointerMethod = il2CppType.Methods.Single(m => m.Name == nameof(Il2CppType.GetClassPointer) && m.GenericParameters.Count == 1);
+        var setClassPointerMethod = il2CppType.Methods.Single(m => m.Name == nameof(Il2CppType.SetClassPointer) && m.GenericParameters.Count == 1);
+
+        var cctor = new InjectedMethodAnalysisContext(
+            interfaceType,
+            ".cctor",
+            interfaceType.AppContext.SystemTypes.SystemVoidType,
+            MethodAttributes.Private | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
+            [])
+        {
+            IsInjected = true,
+        };
+        interfaceType.Methods.Add(cctor);
+        cctor.PutExtraData(new NativeMethodBody()
+        {
+            Instructions =
+            [
+                new Instruction(CilOpCodes.Call, getClassPointerMethod.MakeGenericInstanceMethod(classType)),
+                new Instruction(CilOpCodes.Call, setClassPointerMethod.MakeGenericInstanceMethod(interfaceType)),
+                new Instruction(CilOpCodes.Ret),
+            ],
+        });
     }
 }

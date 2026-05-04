@@ -18,7 +18,7 @@ internal static class Il2CppTypePointerStore
     }
 }
 
-internal static unsafe class Il2CppTypePointerStore<T>
+internal static unsafe class Il2CppTypePointerStore<T> where T : IIl2CppType<T>
 {
     public static nint NativeTypePointer
     {
@@ -26,7 +26,7 @@ internal static unsafe class Il2CppTypePointerStore<T>
         {
             if (field == default)
             {
-                var classPointer = Il2CppClassPointerStore<T>.NativeClassPointer;
+                var classPointer = Il2CppType.GetClassPointer<T>();
                 if (classPointer != default)
                 {
                     field = IL2CPP.il2cpp_class_get_type(classPointer);

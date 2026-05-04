@@ -27,7 +27,7 @@ public class InjectedClassTests : SourceGenerationTests
 
                 static int global::Il2CppInterop.Common.IIl2CppType<Sample>.Size => nint.Size;
             
-                nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppClassPointerStore<Sample>.NativeClassPointer;
+                nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<Sample>();
 
                 static Sample? global::Il2CppInterop.Common.IIl2CppType<Sample>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)
                 {
@@ -51,7 +51,7 @@ public class InjectedClassTests : SourceGenerationTests
                 static Il2CppInternals()
                 {
                     global::Il2CppInterop.Runtime.Injection.TypeInjector.RegisterTypeInIl2Cpp<Sample>();
-                    global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppClassPointerStore<Sample>.NativeClassPointer, ptr => new Sample(ptr));
+                    global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<Sample>(), ptr => new Sample(ptr));
                 }
             }
 

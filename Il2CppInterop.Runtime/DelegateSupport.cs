@@ -178,13 +178,10 @@ public static class DelegateSupport
         return result;
     }
 
-    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate
+    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate, IIl2CppType<TIl2Cpp>
     {
         if (@delegate == null)
             return null;
-
-        if (!typeof(Il2CppSystem.Delegate).IsAssignableFrom(typeof(TIl2Cpp)))
-            throw new ArgumentException($"{typeof(TIl2Cpp)} is not a delegate");
 
         var managedInvokeMethod = @delegate.GetType().GetMethod("Invoke")!;
         var parameterInfos = managedInvokeMethod.GetParameters();
@@ -196,7 +193,7 @@ public static class DelegateSupport
                     $"Delegate has unsubstituted generic parameter ({parameterType}) which is not supported");
         }
 
-        var classTypePtr = Il2CppClassPointerStore<TIl2Cpp>.NativeClassPointer;
+        var classTypePtr = Il2CppType.GetClassPointer<TIl2Cpp>();
         if (classTypePtr == IntPtr.Zero)
             throw new ArgumentException($"Type {typeof(TIl2Cpp)} has uninitialized class pointer");
 
@@ -213,7 +210,7 @@ public static class DelegateSupport
             var nativeType = nativeParameters[i].ParameterType;
             var managedType = parameterInfos[i].ParameterType;
 
-            var classPointerFromManagedType = Il2CppClassPointerStore.GetNativeClassPointer(managedType);
+            var classPointerFromManagedType = Il2CppType.GetClassPointer(managedType);
 
             var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
 
