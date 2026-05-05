@@ -20,11 +20,11 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var getStaticFieldValue = fieldAccessHelper.GetMethodByName(nameof(FieldAccess.GetStaticFieldValue));
         var setStaticFieldValue = fieldAccessHelper.GetMethodByName(nameof(FieldAccess.SetStaticFieldValue));
         var getInstanceFieldValue = fieldAccessHelper.GetMethodByName(nameof(FieldAccess.GetInstanceFieldValue));
-        var setInstanceFieldValue_Wbarrior = fieldAccessHelper.GetMethodByName(nameof(FieldAccess.SetInstanceFieldValue_Wbarrior));
+        var setInstanceFieldValue_WriteBarrier = fieldAccessHelper.GetMethodByName(nameof(FieldAccess.SetInstanceFieldValue_WriteBarrier));
         var setInstanceFieldValue_Pointer = fieldAccessHelper.GetMethodByName(nameof(FieldAccess.SetInstanceFieldValue_Pointer));
 
         var setInstanceFieldValue = appContext.Binary.GetExportedFunctions().Any(pair => pair.Key == "il2cpp_gc_wbarrier_set_field")
-            ? setInstanceFieldValue_Wbarrior
+            ? setInstanceFieldValue_WriteBarrier
             : setInstanceFieldValue_Pointer;
 
         var il2CppFieldAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppFieldAttribute));
