@@ -42,7 +42,7 @@ public static unsafe class FieldAccess
         FunctionPointerCache<T>.SetInstanceFieldValue(instance, fieldOffset, value);
     }
 
-    public static void SetInstanceFieldValue_Wbarrior<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
+    public static void SetInstanceFieldValue_WriteBarrier<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
         var data = (byte*)instance.Pointer + fieldOffset;
@@ -81,14 +81,14 @@ public static unsafe class FieldAccess
         return field;
     }
 
-    public static int GetFieldOffset(nint field)
+    public static int GetFieldOffset(nint fieldInfo)
     {
-        if (field == nint.Zero)
+        if (fieldInfo == nint.Zero)
             return -1;
-        return (int)IL2CPP.il2cpp_field_get_offset(field);
+        return (int)IL2CPP.il2cpp_field_get_offset(fieldInfo);
     }
 
-    private static bool HasWbarriorSupport()
+    private static bool HasWriteBarrierSupport()
     {
         if (NativeLibrary.TryLoad("GameAssembly", out var handle))
         {
@@ -99,12 +99,12 @@ public static unsafe class FieldAccess
         return false;
     }
 
-    private static bool WbarriorSupport { get; } = HasWbarriorSupport();
+    private static bool WriteBarrierSupport { get; } = HasWriteBarrierSupport();
 
     private static class FunctionPointerCache<T> where T : IIl2CppType<T>
     {
-        public static readonly delegate*<Object, int, T?, void> SetInstanceFieldValue = WbarriorSupport
-            ? &FieldAccess.SetInstanceFieldValue_Wbarrior
+        public static readonly delegate*<Object, int, T?, void> SetInstanceFieldValue = WriteBarrierSupport
+            ? &FieldAccess.SetInstanceFieldValue_WriteBarrier
             : &FieldAccess.SetInstanceFieldValue_Pointer;
     }
 }
