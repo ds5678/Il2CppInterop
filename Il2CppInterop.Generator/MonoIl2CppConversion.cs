@@ -1,5 +1,4 @@
 ﻿using Cpp2IL.Core.Model.Contexts;
-using Il2CppInterop.Generator;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Runtime.InteropTypes;
 
@@ -13,7 +12,7 @@ internal static class MonoIl2CppConversion
     public static bool AddIl2CppToMonoConversion(List<Instruction> instructions, TypeAnalysisContext il2CppType)
     {
         // Depending on the type of the local variable, we may need to convert it.
-        // If the local variable is Pointer<T>, we need to convert it to T*.
+        // If the local variable is Pointer<T> or ByReference<T>, we need to convert it to void*.
         // If the local variable is an Il2Cpp primitive (like Il2CppSystem.Int32), we need to convert it to the corresponding C# type.
         // If the local variable is an Il2Cpp enum, we need to convert it to the underlying C# primitive type.
 

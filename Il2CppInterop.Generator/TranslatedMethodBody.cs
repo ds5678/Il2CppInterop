@@ -580,15 +580,20 @@ public class TranslatedMethodBody : MethodBodyBase
                         break;
                     case CilCode.Unbox:
                         {
-                            translatedInstruction.Code = originalCode;
-                            translatedInstruction.Operand = translatedType;
-                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
+                            // The unbox instruction extracts a pointer to the value type data from the boxed object.
+                            // To unstrip this, add `byte* backingData = stackalloc byte[Il2CppType.SizeOf<TypeArgument>()];` to the beginning of the method.
+                            // Replace this instruction with the following:
+                            // * unbox.any translatedType
+                            // * ldloc backingData
+                            // * call Il2CppType.WriteToPointer<>
+                            // * ldloc backingData
+                            return false;
                         }
-                        break;
                     case CilCode.Unbox_Any:
                         {
                             translatedInstruction.Code = originalCode;
                             translatedInstruction.Operand = translatedType;
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
                         }
                         break;
                     case CilCode.Ldtoken:
