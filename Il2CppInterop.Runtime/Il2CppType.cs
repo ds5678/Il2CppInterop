@@ -201,6 +201,7 @@ public static class Il2CppType
 
     public static nint GetClassPointer<T>() where T : IIl2CppType<T>
     {
+        RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
         return Il2CppClassPointerStore<T>.NativeClassPointer;
     }
 
@@ -214,17 +215,23 @@ public static class Il2CppType
 
     public static void SetClassPointer<T>(nint classPointer) where T : IIl2CppType<T>
     {
-        Il2CppClassPointerStore<T>.NativeClassPointer = classPointer;
+        RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+        if (Il2CppClassPointerStore<T>.NativeClassPointer != classPointer)
+        {
+            if (Il2CppClassPointerStore<T>.NativeClassPointer == nint.Zero)
+            {
+                Il2CppClassPointerStore<T>.NativeClassPointer = classPointer;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Class pointer for type {typeof(T).FullName} has already been set.");
+            }
+        }
     }
 
     private static class Il2CppClassPointerStore<T> where T : IIl2CppType<T>
     {
         public static nint NativeClassPointer;
-
-        static Il2CppClassPointerStore()
-        {
-            RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
-        }
     }
 
     // Temporary location for this method
