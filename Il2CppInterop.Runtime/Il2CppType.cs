@@ -111,26 +111,15 @@ public static class Il2CppType
         return T.ReadFromSpan(new ReadOnlySpan<byte>(ptr, T.Size));
     }
 
-    public static T? ReadReference<T>(ReadOnlySpan<byte> span) where T : IIl2CppType<T>
+    public static T? ReadReference<T>(ReadOnlySpan<byte> span) where T : class, IIl2CppType<T>
     {
-        return (T?)Il2CppObjectPool.Get(ReadPointer(span));
+        return T.Unbox(Il2CppObjectPool.Get(ReadPointer(span)));
     }
 
-    public static void WriteReference<T>(T? value, Span<byte> span) where T : IIl2CppType<T>
+    public static void WriteReference<T>(T? value, Span<byte> span) where T : class, IIl2CppType<T>
     {
-        WritePointer(value.Box(), span);
-    }
-
-    public static void WriteClass(Object? value, Span<byte> span)
-    {
-        if (value == null)
-        {
-            WritePointer(IntPtr.Zero, span);
-        }
-        else
-        {
-            WritePointer(value.Pointer, span);
-        }
+        var objectPointer = value?.BoxNative() ?? ObjectPointer.Null;
+        WritePointer((nint)objectPointer, span);
     }
 
     public static nint ReadPointer(ReadOnlySpan<byte> span)
@@ -154,37 +143,6 @@ public static class Il2CppType
         else
         {
             BinaryPrimitives.WriteIntPtrBigEndian(span, pointer);
-        }
-    }
-
-    public static unsafe IntPtr Box<T>(this T? value) where T : IIl2CppType<T>
-    {
-        if (typeof(T).IsValueType)
-        {
-            byte* data = stackalloc byte[T.Size];
-            WriteToPointer(value, data);
-            IntPtr boxedPtr = IL2CPP.il2cpp_value_box(value!.ObjectClass, (IntPtr)data);
-            return boxedPtr;
-        }
-        else if (value is null)
-        {
-            return IntPtr.Zero;
-        }
-        else if (value is Object @object)
-        {
-            return @object.Pointer;
-        }
-        else if (value is Il2CppSystem.IValueType valueType)
-        {
-            int size = valueType.Size;
-            byte* data = stackalloc byte[size];
-            valueType.WriteToSpan(new Span<byte>(data, size));
-            IntPtr boxedPtr = IL2CPP.il2cpp_value_box(value.ObjectClass, (IntPtr)data);
-            return boxedPtr;
-        }
-        else
-        {
-            throw new InvalidCastException();
         }
     }
 

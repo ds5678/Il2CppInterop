@@ -39,12 +39,11 @@ public static unsafe class RuntimeInvoke
         else if (IsValueType<TResult>())
         {
             // This is a performance optimization. The other code path would also return the correct result.
-            var data = (byte*)IL2CPP.il2cpp_object_unbox(result);
-            return Il2CppType.ReadFromPointer<TResult>(data);
+            return TResult.UnboxNative((ObjectPointer)result);
         }
         else
         {
-            return (TResult?)Il2CppObjectPool.Get(result);
+            return TResult.Unbox(Il2CppObjectPool.Get(result));
         }
     }
 
@@ -57,7 +56,7 @@ public static unsafe class RuntimeInvoke
         }
         else
         {
-            return @this.GetValue().Box();
+            return (IntPtr)NativeBoxing.Box(@this.GetValue());
         }
     }
 

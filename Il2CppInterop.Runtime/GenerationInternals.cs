@@ -53,6 +53,32 @@ public static partial class GenerationInternals
         return Il2CppSystem.Type.FromClassPointer(classPointer);
     }
 
+    public static object? BoxNullableValueType<T>(in Il2CppSystem.Nullable<T> nullable) where T : struct, IIl2CppType<T>, Il2CppSystem.IValueType
+    {
+        return nullable.hasValue
+            ? nullable.value.Box()
+            : null;
+    }
+
+    public static Il2CppSystem.Nullable<T> UnboxNullableValueType<T>(object? obj) where T : struct, IIl2CppType<T>, Il2CppSystem.IValueType
+    {
+        return obj switch
+        {
+            null => default,
+            T value => Constructor(true, value),
+            Il2CppSystem.Nullable<T> nullable => nullable,
+            _ => throw new InvalidCastException(),
+        };
+
+        static Il2CppSystem.Nullable<T> Constructor(bool hasValue, T value)
+        {
+            Il2CppSystem.Nullable<T> result = default;
+            result.hasValue = hasValue;
+            result.value = value;
+            return result;
+        }
+    }
+
     public static nint Il2CppGCHandleGetTargetOrThrow(nint gchandle)
     {
         var obj = IL2CPP.il2cpp_gchandle_get_target(gchandle);
