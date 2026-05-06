@@ -566,17 +566,22 @@ public class TranslatedMethodBody : MethodBodyBase
                         }
                         break;
                     case CilCode.Box:
-                        // This doesn't properly handle unboxing Nullable<>, either known or as a generic parameter
                         if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
                         {
+                            // Conversion happens before boxing
                             translatedInstruction.Code = CilOpCodes.Nop;
 
-                            translatedInstructions.Add(new Instruction(originalCode, translatedType));
+                            // Since this is an Il2Cpp primitive type, we can use the normal box instruction with the translated type.
+                            translatedInstructions.Add(originalCode, translatedType);
                         }
                         else
                         {
-                            translatedInstruction.Code = originalCode;
-                            translatedInstruction.Operand = translatedType;
+                            // This ensures that we properly box Nullable<>
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.Box))
+                                .MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Unbox:
@@ -591,12 +596,20 @@ public class TranslatedMethodBody : MethodBodyBase
                             return false;
                         }
                     case CilCode.Unbox_Any:
+                        if (MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType))
                         {
+                            // Since this is an Il2Cpp primitive type, we can use the normal unbox.any instruction with the translated type.
                             translatedInstruction.Code = originalCode;
                             translatedInstruction.Operand = translatedType;
-                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
-
-                            // This doesn't properly handle unboxing Nullable<>, either known or as a generic parameter
+                        }
+                        else
+                        {
+                            // This ensures that we properly unbox Nullable<>
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.Unbox))
+                                .MakeGenericInstanceMethod(translatedType);
                         }
                         break;
                     case CilCode.Ldtoken:

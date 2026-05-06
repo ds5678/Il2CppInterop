@@ -53,6 +53,18 @@ public static partial class GenerationInternals
         return Il2CppSystem.Type.FromClassPointer(classPointer);
     }
 
+    // For unstripping the box instruction
+    public static object? Box<T>(T? value) where T : IIl2CppType<T>
+    {
+        return value?.Box() ?? null;
+    }
+
+    // For unstripping the unbox.any instruction
+    public static T? Unbox<T>(object? obj) where T : IIl2CppType<T>
+    {
+        return T.Unbox(obj);
+    }
+
     public static object? BoxNullableValueType<T>(in Il2CppSystem.Nullable<T> nullable) where T : struct, IIl2CppType<T>, Il2CppSystem.IValueType
     {
         return nullable.hasValue
