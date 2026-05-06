@@ -21,14 +21,16 @@ public class InjectedClassTests : SourceGenerationTests
             [global::Il2CppInterop.Common.Attributes.Il2CppType(typeof(Il2CppInternals))]
             public partial class Sample : global::Il2CppInterop.Common.IIl2CppType<Sample>
             {
-                public Sample(global::Il2CppInterop.Common.ObjectPointer obj0) : base(obj0)
+                public Sample(global::Il2CppInterop.Common.ObjectPointer pointer) : base(pointer)
                 {
                 }
 
+                nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<Sample>();
+            
+                static Sample global::Il2CppInterop.Common.IIl2CppType<Sample>.UnboxNative(global::Il2CppInterop.Common.ObjectPointer pointer) => new Sample(pointer);
+
                 static int global::Il2CppInterop.Common.IIl2CppType<Sample>.Size => nint.Size;
             
-                nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<Sample>();
-
                 static Sample? global::Il2CppInterop.Common.IIl2CppType<Sample>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)
                 {
                     return global::Il2CppInterop.Runtime.Il2CppType.ReadReference<Sample>(span);
