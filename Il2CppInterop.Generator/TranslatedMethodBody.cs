@@ -566,6 +566,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         }
                         break;
                     case CilCode.Box:
+                        // This doesn't properly handle unboxing Nullable<>, either known or as a generic parameter
                         if (MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, translatedType))
                         {
                             translatedInstruction.Code = CilOpCodes.Nop;
@@ -594,6 +595,8 @@ public class TranslatedMethodBody : MethodBodyBase
                             translatedInstruction.Code = originalCode;
                             translatedInstruction.Operand = translatedType;
                             MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, translatedType);
+
+                            // This doesn't properly handle unboxing Nullable<>, either known or as a generic parameter
                         }
                         break;
                     case CilCode.Ldtoken:

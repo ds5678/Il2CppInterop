@@ -26,7 +26,7 @@ public static unsafe class FieldAccess
         }
         else
         {
-            IL2CPP.il2cpp_field_static_set_value(fieldInfo, (void*)value.Box());
+            IL2CPP.il2cpp_field_static_set_value(fieldInfo, (void*)NativeBoxing.Box(value));
         }
     }
 
@@ -48,11 +48,11 @@ public static unsafe class FieldAccess
         var data = (byte*)instance.Pointer + fieldOffset;
         if (typeof(T).IsValueType)
         {
-            value!.WriteToPointer(data);
+            value.WriteToPointer(data);
         }
         else
         {
-            IL2CPP.il2cpp_gc_wbarrier_set_field(instance.Pointer, (nint)data, value.Box());
+            IL2CPP.il2cpp_gc_wbarrier_set_field(instance.Pointer, (nint)data, (nint)NativeBoxing.Box(value));
         }
     }
 
@@ -62,11 +62,11 @@ public static unsafe class FieldAccess
         var data = (byte*)instance.Pointer + fieldOffset;
         if (typeof(T).IsValueType)
         {
-            value!.WriteToPointer(data);
+            value.WriteToPointer(data);
         }
         else
         {
-            *(nint*)data = value.Box();
+            *(nint*)data = (nint)NativeBoxing.Box(value);
         }
     }
 

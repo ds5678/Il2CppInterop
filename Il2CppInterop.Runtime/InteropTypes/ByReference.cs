@@ -98,6 +98,7 @@ public readonly unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByRefe
         }
     }
 
+    ObjectPointer IIl2CppType.BoxNative() => throw new NotSupportedException("Boxing is not supported for by reference types.");
     static void IIl2CppType<ByReference<T>>.WriteToSpan(ByReference<T> value, Span<byte> span) => Il2CppType.WritePointer((IntPtr)value._pointer, span);
     static ByReference<T> IIl2CppType<ByReference<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (ByReference<T>)(void*)Il2CppType.ReadPointer(span);
 }

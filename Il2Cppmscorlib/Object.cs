@@ -29,4 +29,5 @@ public class Object : IObject, IIl2CppType<Object>
     }
 
     public virtual String ToIl2CppString() => default;
+    ObjectPointer IIl2CppType.BoxNative() => throw new System.NotImplementedException();
 }

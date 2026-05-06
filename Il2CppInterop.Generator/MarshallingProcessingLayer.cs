@@ -43,49 +43,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
         var il2CppSystemValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
 
-        // IValueType.Size
-        MethodAnalysisContext il2cppSystemIValueType_get_Size;
-        {
-            il2cppSystemIValueType_get_Size = new InjectedMethodAnalysisContext(
-                il2CppSystemIValueType,
-                $"get_{nameof(Il2CppSystem.IValueType.Size)}",
-                appContext.SystemTypes.SystemInt32Type,
-                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Abstract | MethodAttributes.Virtual | MethodAttributes.SpecialName | MethodAttributes.NewSlot,
-                [])
-            {
-                IsInjected = true,
-            };
-            il2CppSystemIValueType.Methods.Add(il2cppSystemIValueType_get_Size);
-
-            var property = new InjectedPropertyAnalysisContext(
-                nameof(Il2CppSystem.IValueType.Size),
-                il2cppSystemIValueType_get_Size.ReturnType,
-                il2cppSystemIValueType_get_Size,
-                null,
-                PropertyAttributes.None,
-                il2CppSystemIValueType)
-            {
-                IsInjected = true,
-            };
-            il2CppSystemIValueType.Properties.Add(property);
-        }
-
-        // IValueType.WriteToSpan(Span<byte>)
-        MethodAnalysisContext il2cppSystemIValueType_WriteToSpan;
-        {
-            var spanOfByteType = il2CppTypeHelper_WriteToSpan.Parameters[^1].ParameterType;
-            il2cppSystemIValueType_WriteToSpan = new InjectedMethodAnalysisContext(
-                il2CppSystemIValueType,
-                nameof(Il2CppSystem.IValueType.WriteToSpan),
-                appContext.SystemTypes.SystemVoidType,
-                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Abstract | MethodAttributes.Virtual | MethodAttributes.NewSlot,
-                [spanOfByteType])
-            {
-                IsInjected = true,
-            };
-            il2CppSystemIValueType.Methods.Add(il2cppSystemIValueType_WriteToSpan);
-        }
-
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -196,45 +153,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         });
 
                         var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.Size)}";
-                        var property = new InjectedPropertyAnalysisContext(
-                            propertyName,
-                            method.ReturnType,
-                            method,
-                            null,
-                            PropertyAttributes.None,
-                            type)
-                        {
-                            IsInjected = true,
-                        };
-                        type.Properties.Add(property);
-                    }
-
-                    // IValueType.Size
-                    if (type.IsValueType || type == il2CppSystemValueType)
-                    {
-                        var methodName = $"{il2CppSystemIValueType.FullName}.get_{nameof(Il2CppSystem.IValueType.Size)}";
-                        var method = new InjectedMethodAnalysisContext(
-                            type,
-                            methodName,
-                            il2cppSystemIValueType_get_Size.ReturnType,
-                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.SpecialName | MethodAttributes.NewSlot,
-                            [])
-                        {
-                            IsInjected = true,
-                        };
-                        type.Methods.Add(method);
-                        method.Overrides.Add(il2cppSystemIValueType_get_Size);
-
-                        method.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions =
-                            [
-                                instantiatedSizeStorage is not null ? new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(CilOpCodes.Call, intPtr_get_Size),
-                                new Instruction(CilOpCodes.Ret),
-                            ],
-                        });
-
-                        var propertyName = $"{il2CppSystemIValueType.FullName}.{nameof(Il2CppSystem.IValueType.Size)}";
                         var property = new InjectedPropertyAnalysisContext(
                             propertyName,
                             method.ReturnType,
@@ -540,50 +458,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         method.PutExtraData(new NativeMethodBody()
                         {
                             Instructions = instructions,
-                        });
-                    }
-                }
-                // IValueType.WriteToSpan
-                if (type.IsValueType || type == il2CppSystemValueType)
-                {
-                    var methodName = $"{il2CppSystemIValueType.FullName}.{nameof(Il2CppSystem.IValueType.WriteToSpan)}";
-                    var method = new InjectedMethodAnalysisContext(
-                        type,
-                        methodName,
-                        il2cppSystemIValueType_WriteToSpan.ReturnType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.NewSlot,
-                        il2cppSystemIValueType_WriteToSpan.Parameters.Select(p => p.ParameterType).ToArray())
-                    {
-                        IsInjected = true,
-                    };
-                    type.Methods.Add(method);
-                    method.Overrides.Add(il2cppSystemIValueType_WriteToSpan);
-
-                    if (type.IsValueType)
-                    {
-                        method.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions =
-                            [
-                                new Instruction(CilOpCodes.Ldarg_0),
-                                new Instruction(CilOpCodes.Ldobj, instantiatedType),
-                                new Instruction(CilOpCodes.Ldarg_1),
-                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteToSpan.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(CilOpCodes.Ret),
-                            ],
-                        });
-                    }
-                    else
-                    {
-                        method.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions =
-                            [
-                                new Instruction(CilOpCodes.Ldarg_0),
-                                new Instruction(CilOpCodes.Ldarg_1),
-                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteReference.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(CilOpCodes.Ret),
-                            ],
                         });
                     }
                 }

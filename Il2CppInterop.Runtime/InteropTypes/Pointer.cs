@@ -43,6 +43,7 @@ public readonly unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>
 
     static Pointer<T> IIl2CppType<Pointer<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => (Pointer<T>)(void*)Il2CppType.ReadPointer(span);
     static void IIl2CppType<Pointer<T>>.WriteToSpan(Pointer<T> value, Span<byte> span) => Il2CppType.WritePointer((IntPtr)value._pointer, span);
+    public ObjectPointer BoxNative() => throw new NotSupportedException("Boxing is not supported for pointer types.");
 
     public static explicit operator Pointer<T>(void* value) => new(value);
     public static explicit operator void*(Pointer<T> pointer) => pointer._pointer;

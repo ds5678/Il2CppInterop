@@ -36,6 +36,7 @@ Il2CppGame.Process(
         new Il2CppTypeConstraintProcessingLayer(),
         new InitializationClassProcessingLayer(),
         new MarshallingProcessingLayer(),
+        new BoxingProcessingLayer(),
         new PrimitiveImplicitConversionProcessingLayer(),
         new EnumProcessingLayer(),
         new ObjectOverridesProcessingLayer(),
