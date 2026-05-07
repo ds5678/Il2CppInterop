@@ -48,21 +48,21 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
         // Add methods to interfaces
         foreach (var method in il2CppSystemObject.Methods)
         {
-            if (!method.IsConstructor && !method.IsStatic && !method.IsInjected)
+            if (ShouldCreateInterfaceMethod(method))
             {
                 CreateInterfaceMethod(method, il2CppSystemObject, il2CppSystemIObject);
             }
         }
         foreach (var method in il2CppSystemValueType.Methods)
         {
-            if (!method.IsConstructor && !method.IsStatic && !method.IsInjected)
+            if (ShouldCreateInterfaceMethod(method))
             {
                 CreateInterfaceMethod(method, il2CppSystemValueType, il2CppSystemIValueType);
             }
         }
         foreach (var method in il2CppSystemEnum.Methods)
         {
-            if (!method.IsConstructor && !method.IsStatic && !method.IsInjected)
+            if (ShouldCreateInterfaceMethod(method))
             {
                 CreateInterfaceMethod(method, il2CppSystemEnum, il2CppSystemIEnum);
             }
@@ -97,6 +97,21 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
         ImplementStaticConstructor(il2CppSystemObject, il2CppSystemIObject);
         ImplementStaticConstructor(il2CppSystemValueType, il2CppSystemIValueType);
         ImplementStaticConstructor(il2CppSystemEnum, il2CppSystemIEnum);
+    }
+
+    private static bool ShouldCreateInterfaceMethod(MethodAnalysisContext method)
+    {
+        if (method.IsConstructor || method.IsStatic || method.IsInjected)
+        {
+            return false;
+        }
+        if (method.DefaultName == "Finalize")
+        {
+            // Only reference types can have a Finalize method, and it can't be called, except by derived finalizers,
+            // so we can safely exclude it from the interface.
+            return false;
+        }
+        return true;
     }
 
     private static InjectedTypeAnalysisContext InjectInterface(ApplicationAnalysisContext appContext, string name)
