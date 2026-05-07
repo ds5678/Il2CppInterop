@@ -53,6 +53,31 @@ public static partial class GenerationInternals
         return Il2CppSystem.Type.FromClassPointer(classPointer);
     }
 
+    public static unsafe Il2CppSystem.TypedReference MakeRefAny<T>(void* value) where T : IIl2CppType<T>
+    {
+        Il2CppSystem.TypedReference result = default;
+        result.Value = (IntPtr)value;
+        result.Type = Il2CppTypePointerStore<T>.NativeTypePointer;
+        result.type = Il2CppSystem.Type.FromTypePointer(result.Type).TypeHandle;
+        return result;
+    }
+
+    public static unsafe T? RefAnyValue<T>(Il2CppSystem.TypedReference typedReference) where T : IIl2CppType<T>
+    {
+        return Il2CppType.ReadFromPointer<T>((void*)(nint)typedReference.Value);
+    }
+
+    public static Il2CppSystem.RuntimeTypeHandle RefAnyType(Il2CppSystem.TypedReference typedReference)
+    {
+        if (typedReference.type.value != nint.Zero)
+            return typedReference.type;
+
+        if (typedReference.Type != nint.Zero)
+            return Il2CppSystem.Type.FromTypePointer(typedReference.Type).TypeHandle;
+
+        throw new InvalidOperationException("TypedReference does not have a type");
+    }
+
     // For unstripping the box instruction
     public static object? Box<T>(T? value) where T : IIl2CppType<T>
     {
