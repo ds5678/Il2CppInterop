@@ -779,64 +779,80 @@ public class TranslatedMethodBody : MethodBodyBase
                 }
                 if (originalCode.Code is CilCode.Call && baseMethod.UnsafeInvokeMethod is not null)
                 {
-                    translatedInstruction.Code = CilOpCodes.Nop;
-
                     var targetMethod = baseMethod.UnsafeInvokeMethod?.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
 
                     Debug.Assert(targetMethod is not null);
                     Debug.Assert(targetMethod.IsStatic);
                     Debug.Assert(method.Parameters.Count == targetMethod.Parameters.Count - 1);
 
-                    var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
-                    for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
+                    if (targetMethod.Parameters.Count > 0)
                     {
-                        var methodParameter = targetMethod.Parameters[i];
-                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
-                        var temporaryVariable = new LocalVariable
+                        translatedInstruction.Code = CilOpCodes.Nop;
+
+                        var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
+                        for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
                         {
-                            Type = methodParameter.ParameterType,
-                        };
-                        translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
+                            var methodParameter = targetMethod.Parameters[i];
+                            MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
+                            var temporaryVariable = new LocalVariable
+                            {
+                                Type = methodParameter.ParameterType,
+                            };
+                            translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
 
-                        temporaryVariables[i] = temporaryVariable;
-                        localVariableList.Add(temporaryVariable);
+                            temporaryVariables[i] = temporaryVariable;
+                            localVariableList.Add(temporaryVariable);
+                        }
+
+                        foreach (var temporaryVariable in temporaryVariables)
+                        {
+                            translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
+                        }
+
+                        translatedInstructions.Add(CilOpCodes.Call, targetMethod);
                     }
-
-                    foreach (var temporaryVariable in temporaryVariables)
+                    else
                     {
-                        translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
+                        translatedInstruction.Code = CilOpCodes.Call;
+                        translatedInstruction.Operand = targetMethod;
                     }
-
-                    translatedInstructions.Add(originalCode, targetMethod);
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, targetMethod.ReturnType);
                 }
                 else if (originalCode.Code is CilCode.Call or CilCode.Callvirt or CilCode.Newobj)
                 {
-                    translatedInstruction.Code = CilOpCodes.Nop;
-
                     var targetMethod = baseMethod.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
 
-                    var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
-                    for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
+                    if (targetMethod.Parameters.Count > 0)
                     {
-                        var methodParameter = targetMethod.Parameters[i];
-                        MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
-                        var temporaryVariable = new LocalVariable
+                        translatedInstruction.Code = CilOpCodes.Nop;
+
+                        var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
+                        for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
                         {
-                            Type = methodParameter.ParameterType,
-                        };
-                        translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
+                            var methodParameter = targetMethod.Parameters[i];
+                            MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
+                            var temporaryVariable = new LocalVariable
+                            {
+                                Type = methodParameter.ParameterType,
+                            };
+                            translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
 
-                        temporaryVariables[i] = temporaryVariable;
-                        localVariableList.Add(temporaryVariable);
+                            temporaryVariables[i] = temporaryVariable;
+                            localVariableList.Add(temporaryVariable);
+                        }
+
+                        foreach (var temporaryVariable in temporaryVariables)
+                        {
+                            translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
+                        }
+
+                        translatedInstructions.Add(originalCode, targetMethod);
                     }
-
-                    foreach (var temporaryVariable in temporaryVariables)
+                    else
                     {
-                        translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
+                        translatedInstruction.Code = originalCode;
+                        translatedInstruction.Operand = targetMethod;
                     }
-
-                    translatedInstructions.Add(originalCode, targetMethod);
 
                     var returnType = originalCode == CilOpCodes.Newobj ? targetMethod.DeclaringType! : targetMethod.ReturnType;
                     MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, returnType);
