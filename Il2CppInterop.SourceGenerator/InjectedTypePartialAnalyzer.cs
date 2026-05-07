@@ -55,10 +55,10 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static DiagnosticDescriptor CannotHaveIl2CppFieldOnStruct { get; } = new(
+    public static DiagnosticDescriptor CannotHaveIl2CppFieldOnStructOrInterface { get; } = new(
         id: "IL2CPP0006",
-        title: "Structs cannot have instance properties marked with [Il2CppField]",
-        messageFormat: "Type '{0}' is a struct and cannot have instance properties marked with [Il2CppField]",
+        title: "Structs and interfaces cannot have instance properties marked with [Il2CppField]",
+        messageFormat: "Type '{0}' is a {1} and cannot have instance properties marked with [Il2CppField]",
         category: "Il2CppInterop",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -79,12 +79,52 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static DiagnosticDescriptor ShouldNotHaveUninjectedInstanceMembers { get; } = new(
+    public static DiagnosticDescriptor ShouldNotHaveUninjectedInstanceFields { get; } = new(
         id: "IL2CPP0009",
-        title: "Injected types should not have uninjected instance members",
-        messageFormat: "Type '{0}' has instance member '{1}' which is not managed by Il2CppInterop. Use [ManagedField] or [Il2CppField] properties instead.",
+        title: "Injected types should not have uninjected instance fields",
+        messageFormat: "Type '{0}' has instance field '{1}' which is not managed by Il2CppInterop. Use [ManagedField] or [Il2CppField] properties instead.",
         category: "Il2CppInterop",
         defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor Il2CppFinalizerMustHaveNoParameters { get; } = new(
+        id: "IL2CPP0010",
+        title: "Methods annotated with [Il2CppFinalizer] should have no parameters",
+        messageFormat: "Method '{0}' is annotated with [Il2CppFinalizer] but has parameters. The finalizer must be parameterless.",
+        category: "Il2CppInterop",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor Il2CppFinalizerMustReturnVoid { get; } = new(
+        id: "IL2CPP0011",
+        title: "Methods annotated with [Il2CppFinalizer] should return nothing",
+        messageFormat: "Method '{0}' is annotated with [Il2CppFinalizer] but does not return void.",
+        category: "Il2CppInterop",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor OnlyObjectPointerConstructorCanCallBase { get; } = new(
+        id: "IL2CPP0012",
+        title: "Only the ObjectPointer constructor can call a base constructor",
+        messageFormat: "Constructor in type '{0}' calls a base constructor, but only the ObjectPointer constructor is allowed to do so.",
+        category: "Il2CppInterop",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor Il2CppFieldCannotBeStatic { get; } = new(
+        id: "IL2CPP0013",
+        title: "Static fields cannot be annotated with [Il2CppField]",
+        messageFormat: "Property '{0}' is static and cannot be annotated with [Il2CppField].",
+        category: "Il2CppInterop",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor Il2CppFieldCannotBeInstanceInClass { get; } = new(
+        id: "IL2CPP0014",
+        title: "Instance fields in classes cannot be annotated with [Il2CppField]",
+        messageFormat: "Property '{0}' in class '{1}' is an instance member annotated with [Il2CppField]. [Il2CppField] is only valid on static members in classes.",
+        category: "Il2CppInterop",
+        defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
@@ -94,10 +134,15 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         CannotHaveStaticConstructor,
         CannotOverrideIl2CppFinalize,
         CannotHaveManagedFieldOnStructOrInterface,
-        CannotHaveIl2CppFieldOnStruct,
+        CannotHaveIl2CppFieldOnStructOrInterface,
         ManagedFieldMustBeInstance,
         FieldPropertyMustBePartial,
-        ShouldNotHaveUninjectedInstanceMembers,
+        ShouldNotHaveUninjectedInstanceFields,
+        Il2CppFinalizerMustHaveNoParameters,
+        Il2CppFinalizerMustReturnVoid,
+        OnlyObjectPointerConstructorCanCallBase,
+        Il2CppFieldCannotBeStatic,
+        Il2CppFieldCannotBeInstanceInClass,
     ];
 
     #endregion
@@ -137,10 +182,14 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         CheckNoStaticConstructor(context, tds, symbol);
         CheckNoIl2CppFinalizeOverride(context, tds, symbol);
         CheckNoManagedFieldOnStructOrInterface(context, tds, symbol);
-        CheckNoIl2CppFieldOnStruct(context, tds, symbol);
+        CheckNoIl2CppFieldOnStructOrInterface(context, tds, symbol);
         CheckManagedFieldMustBeInstance(context, tds);
         CheckFieldPropertiesMustBePartial(context, tds);
         CheckNoUninjectedInstanceMembers(context, tds, symbol);
+        CheckIl2CppFinalizerMethods(context, tds);
+        CheckConstructorsDoNotCallBase(context, tds, symbol);
+        CheckIl2CppFieldOnStaticProperties(context, tds);
+        CheckIl2CppFieldOnInstancePropertiesInClass(context, tds, symbol);
     }
 
     #endregion
@@ -259,10 +308,10 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
     }
 
     // IL2CPP0006
-    private static void CheckNoIl2CppFieldOnStruct(
+    private static void CheckNoIl2CppFieldOnStructOrInterface(
         SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds, INamedTypeSymbol symbol)
     {
-        if (tds is not StructDeclarationSyntax)
+        if (tds is not (StructDeclarationSyntax or InterfaceDeclarationSyntax))
             return;
 
         var offending = tds.Members
@@ -274,9 +323,10 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         foreach (var prop in offending)
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                CannotHaveIl2CppFieldOnStruct,
+                CannotHaveIl2CppFieldOnStructOrInterface,
                 prop.Identifier.GetLocation(),
-                symbol.Name));
+                symbol.Name,
+                symbol.TypeKind == TypeKind.Struct ? "struct" : "interface"));
         }
     }
 
@@ -332,32 +382,117 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
     private static void CheckNoUninjectedInstanceMembers(
         SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds, INamedTypeSymbol symbol)
     {
-        // Plain instance fields
         foreach (var field in tds.Members.OfType<FieldDeclarationSyntax>()
                      .Where(f => !f.Modifiers.Any(SyntaxKind.StaticKeyword)))
         {
             foreach (var variable in field.Declaration.Variables)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    ShouldNotHaveUninjectedInstanceMembers,
+                    ShouldNotHaveUninjectedInstanceFields,
                     variable.Identifier.GetLocation(),
                     symbol.Name,
                     variable.Identifier.Text));
             }
         }
+    }
 
-        // Instance properties without [ManagedField] or [Il2CppField]
-        foreach (var prop in tds.Members.OfType<PropertyDeclarationSyntax>()
-                     .Where(p =>
-                         !p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
-                         !HasAttribute(p, "ManagedField", "ManagedFieldAttribute") &&
-                         !HasAttribute(p, "Il2CppField", "Il2CppFieldAttribute")))
+    // IL2CPP0010 + IL2CPP0011
+    private static void CheckIl2CppFinalizerMethods(
+        SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds)
+    {
+        var finalizerMethods = tds.Members
+            .OfType<MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists
+                .SelectMany(al => al.Attributes)
+                .Any(a => a.Name.ToString() is "Il2CppFinalizer" or "Il2CppFinalizerAttribute"));
+
+        foreach (var method in finalizerMethods)
+        {
+            if (method.ParameterList.Parameters.Count > 0)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Il2CppFinalizerMustHaveNoParameters,
+                    method.Identifier.GetLocation(),
+                    method.Identifier.Text));
+            }
+
+            if (method.ReturnType.ToString() != "void")
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Il2CppFinalizerMustReturnVoid,
+                    method.ReturnType.GetLocation(),
+                    method.Identifier.Text));
+            }
+        }
+    }
+
+    // IL2CPP0012
+    private static void CheckConstructorsDoNotCallBase(
+        SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds, INamedTypeSymbol symbol)
+    {
+        var offending = tds.Members
+            .OfType<ConstructorDeclarationSyntax>()
+            .Where(c =>
+                c.Initializer is { ThisOrBaseKeyword.RawKind: (int)SyntaxKind.BaseKeyword } &&
+                !IsObjectPointerConstructor(c));
+
+        foreach (var ctor in offending)
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                ShouldNotHaveUninjectedInstanceMembers,
+                OnlyObjectPointerConstructorCanCallBase,
+                ctor.Initializer!.GetLocation(),
+                symbol.Name));
+        }
+    }
+
+    private static bool IsObjectPointerConstructor(ConstructorDeclarationSyntax ctor)
+    {
+        if (ctor.ParameterList.Parameters.Count != 1)
+            return false;
+
+        var paramType = ctor.ParameterList.Parameters[0].Type?.ToString() ?? "";
+        return paramType is "IntPtr" or "System.IntPtr";
+    }
+
+    // IL2CPP0013
+    private static void CheckIl2CppFieldOnStaticProperties(
+        SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds)
+    {
+        var offending = tds.Members
+            .OfType<PropertyDeclarationSyntax>()
+            .Where(p =>
+                p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
+                HasAttribute(p, "Il2CppField", "Il2CppFieldAttribute"));
+
+        foreach (var prop in offending)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Il2CppFieldCannotBeStatic,
                 prop.Identifier.GetLocation(),
-                symbol.Name,
                 prop.Identifier.Text));
+        }
+    }
+
+    // IL2CPP0014
+    private static void CheckIl2CppFieldOnInstancePropertiesInClass(
+        SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds, INamedTypeSymbol symbol)
+    {
+        if (tds is not ClassDeclarationSyntax || symbol.TypeKind != TypeKind.Class)
+            return;
+
+        var offending = tds.Members
+            .OfType<PropertyDeclarationSyntax>()
+            .Where(p =>
+                !p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
+                HasAttribute(p, "Il2CppField", "Il2CppFieldAttribute"));
+
+        foreach (var prop in offending)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Il2CppFieldCannotBeInstanceInClass,
+                prop.Identifier.GetLocation(),
+                prop.Identifier.Text,
+                symbol.Name));
         }
     }
 
