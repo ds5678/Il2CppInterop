@@ -6,7 +6,7 @@ public static class Il2CppObjectPool
 {
     private static readonly ConcurrentDictionary<nint, WeakReference<object>> s_cache = new();
 
-    private static readonly ConcurrentDictionary<nint, FunctionInitializer> s_initializers = new();
+    private static readonly ConcurrentDictionary<nint, InitializerFunction> s_initializers = new();
 
     public static void Remove(nint ptr)
     {
@@ -39,7 +39,7 @@ public static class Il2CppObjectPool
         return newObj;
     }
 
-    private static void RegisterInitializer(nint classPtr, FunctionInitializer initializer)
+    private static void RegisterInitializer(nint classPtr, InitializerFunction initializer)
     {
         ArgumentOutOfRangeException.ThrowIfZero(classPtr);
         if (!s_initializers.TryAdd(classPtr, initializer))
@@ -51,7 +51,7 @@ public static class Il2CppObjectPool
 
     internal static unsafe void RegisterInitializer<T>() where T : IIl2CppType<T>
     {
-        RegisterInitializer(Il2CppType.GetClassPointer<T>(), new FunctionInitializer(&TypeInitializer));
+        RegisterInitializer(Il2CppType.GetClassPointer<T>(), new InitializerFunction(&TypeInitializer));
 
         static object TypeInitializer(ObjectPointer obj)
         {
@@ -59,11 +59,11 @@ public static class Il2CppObjectPool
         }
     }
 
-    private readonly unsafe struct FunctionInitializer
+    private readonly unsafe struct InitializerFunction
     {
         private readonly delegate*<ObjectPointer, object> initializer;
 
-        public FunctionInitializer(delegate*<ObjectPointer, object> initializer)
+        public InitializerFunction(delegate*<ObjectPointer, object> initializer)
         {
             this.initializer = initializer;
         }
