@@ -68,7 +68,7 @@ public sealed class BoxingProcessingLayer : Cpp2IlProcessingLayer
                 $"{interfaceMethod.DeclaringType!.FullName}.{interfaceMethod.Name}",
                 interfaceMethod.ReturnType,
                 MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
-                [objectPointer])
+                [interfaceMethod.Parameters[0].ParameterType])
             {
                 IsInjected = true,
             };
@@ -117,7 +117,7 @@ public sealed class BoxingProcessingLayer : Cpp2IlProcessingLayer
                 $"{interfaceMethod.DeclaringType!.FullName}.{interfaceMethod.Name}",
                 interfaceMethod.ReturnType,
                 MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
-                [objectPointer])
+                [interfaceMethod.Parameters[0].ParameterType])
             {
                 IsInjected = true,
             };
@@ -182,7 +182,7 @@ public sealed class BoxingProcessingLayer : Cpp2IlProcessingLayer
                         $"{interfaceMethod.DeclaringType!.FullName}.{interfaceMethod.Name}",
                         interfaceMethod.ReturnType,
                         MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
-                        [objectPointer])
+                        [interfaceMethod.Parameters[0].ParameterType])
                     {
                         IsInjected = true,
                     };
