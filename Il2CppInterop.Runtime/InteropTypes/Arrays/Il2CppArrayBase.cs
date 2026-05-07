@@ -44,6 +44,22 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array
         element = value;
     }
 
+    public IIl2CppType? LoadReferenceElementUnsafe(int index)
+    {
+        ThrowIfIndexOutOfRange(index);
+        var span = GetUnsafeSpanForElement(index);
+        var ptr = Il2CppType.ReadPointer(span);
+        return (IIl2CppType?)Il2CppObjectPool.Get(ptr);
+    }
+
+    public void StoreReferenceElementUnsafe(int index, IIl2CppType? value)
+    {
+        ThrowIfIndexOutOfRange(index);
+        var span = GetUnsafeSpanForElement(index);
+        var ptr = (nint)NativeBoxing.Box(value);
+        Il2CppType.WritePointer(ptr, span);
+    }
+
     private protected virtual Span<byte> GetUnsafeSpanForElement(int index)
     {
         throw new NotSupportedException("Only rank 1 arrays support unsafe element access");
