@@ -327,11 +327,23 @@ public class TranslatedMethodBody : MethodBodyBase
 
                     case CilCode.Ldind_Ref:
                         // This is for by ref and pointers
-                        return false;
+                        {
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.LoadIndirectReference));
+                        }
+                        break;
 
                     case CilCode.Stind_Ref:
                         // This is for by ref and pointers
-                        return false;
+                        {
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.StoreIndirectReference));
+                        }
+                        break;
 
                     case > CilCode.Stind_Ref and <= CilCode.Stind_R8:
                         // This is for by ref and pointers
