@@ -53,7 +53,6 @@ public class InjectedClassTests : SourceGenerationTests
                 static Il2CppInternals()
                 {
                     global::Il2CppInterop.Runtime.Injection.TypeInjector.RegisterTypeInIl2Cpp<Sample>();
-                    global::Il2CppInterop.Common.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), ptr => new Sample(ptr));
                 }
             }
 

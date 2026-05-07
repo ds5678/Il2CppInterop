@@ -39,7 +39,7 @@ public static class Il2CppObjectPool
         return newObj;
     }
 
-    public static void RegisterInitializer(nint classPtr, Func<ObjectPointer, object> initializer)
+    private static void RegisterInitializer(nint classPtr, Func<ObjectPointer, object> initializer)
     {
         ArgumentOutOfRangeException.ThrowIfZero(classPtr);
         if (!s_initializers.TryAdd(classPtr, initializer))
@@ -49,14 +49,13 @@ public static class Il2CppObjectPool
         }
     }
 
-    public static void RegisterValueTypeInitializer<T>() where T : struct, IIl2CppType<T>
+    internal static void RegisterInitializer<T>() where T : IIl2CppType<T>
     {
-        RegisterInitializer(Il2CppType.GetClassPointer<T>(), ValueTypeInitializer<T>);
+        RegisterInitializer(Il2CppType.GetClassPointer<T>(), TypeInitializer<T>);
     }
 
-    public static unsafe object ValueTypeInitializer<T>(ObjectPointer obj) where T : struct, IIl2CppType<T>
+    private static object TypeInitializer<T>(ObjectPointer obj) where T : IIl2CppType<T>
     {
-        var unboxed = IL2CPP.il2cpp_object_unbox((nint)obj);
-        return Il2CppType.ReadFromPointer<T>((void*)unboxed);
+        return T.UnboxNative(obj)!;
     }
 }
