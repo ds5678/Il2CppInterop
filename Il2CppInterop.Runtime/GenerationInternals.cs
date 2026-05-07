@@ -78,10 +78,24 @@ public static partial class GenerationInternals
         throw new InvalidOperationException("TypedReference does not have a type");
     }
 
+    public static unsafe IIl2CppType? LoadIndirectReference(void* address)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+        var objectPointer = *(nint*)address;
+        return (IIl2CppType?)Il2CppObjectPool.Get(objectPointer);
+    }
+
+    public static unsafe void StoreIndirectReference(void* address, IIl2CppType? obj)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+        var objectPointer = obj?.BoxNative() ?? ObjectPointer.Null;
+        *(nint*)address = (nint)objectPointer;
+    }
+
     // For unstripping the box instruction
     public static object? Box<T>(T? value) where T : IIl2CppType<T>
     {
-        return value?.Box() ?? null;
+        return value?.Box();
     }
 
     // For unstripping the unbox.any instruction
