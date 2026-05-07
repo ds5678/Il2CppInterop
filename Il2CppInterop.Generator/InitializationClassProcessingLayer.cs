@@ -5,16 +5,17 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Cpp2IL.Core.Api;
-using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Model.CustomAttributes;
 using Cpp2IL.Core.Utils;
+using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator;
 
@@ -504,7 +505,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
             }
         }
 
-        Logger.Info($"Tokenless method count: {tokenLessMethodCount}", nameof(InitializationClassProcessingLayer));
+        Logger.Instance.LogTrace($"Tokenless method count: {tokenLessMethodCount}", nameof(InitializationClassProcessingLayer));
 
         // Il2CppInterop.Initialization.dll
         {

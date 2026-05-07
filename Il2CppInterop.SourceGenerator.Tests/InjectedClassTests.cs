@@ -25,7 +25,7 @@ public class InjectedClassTests : SourceGenerationTests
                 {
                 }
 
-                nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<Sample>();
+                nint global::Il2CppInterop.Common.IIl2CppType.ObjectClass => global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>();
             
                 static Sample global::Il2CppInterop.Common.IIl2CppType<Sample>.UnboxNative(global::Il2CppInterop.Common.ObjectPointer pointer) => new Sample(pointer);
 
@@ -33,12 +33,12 @@ public class InjectedClassTests : SourceGenerationTests
             
                 static Sample? global::Il2CppInterop.Common.IIl2CppType<Sample>.ReadFromSpan(global::System.ReadOnlySpan<byte> span)
                 {
-                    return global::Il2CppInterop.Runtime.Il2CppType.ReadReference<Sample>(span);
+                    return global::Il2CppInterop.Common.Il2CppType.ReadReference<Sample>(span);
                 }
 
                 static void global::Il2CppInterop.Common.IIl2CppType<Sample>.WriteToSpan(Sample? value, global::System.Span<byte> span)
                 {
-                    global::Il2CppInterop.Runtime.Il2CppType.WriteReference(value, span);
+                    global::Il2CppInterop.Common.Il2CppType.WriteReference(value, span);
                 }
             
                 static Sample()
@@ -53,7 +53,7 @@ public class InjectedClassTests : SourceGenerationTests
                 static Il2CppInternals()
                 {
                     global::Il2CppInterop.Runtime.Injection.TypeInjector.RegisterTypeInIl2Cpp<Sample>();
-                    global::Il2CppInterop.Runtime.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Runtime.Il2CppType.GetClassPointer<Sample>(), ptr => new Sample(ptr));
+                    global::Il2CppInterop.Common.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), ptr => new Sample(ptr));
                 }
             }
 
