@@ -409,22 +409,17 @@ public sealed class Il2CppTypeGenerator : IIncrementalGenerator
 
         writer.WriteLine($"global::Il2CppInterop.Runtime.Injection.TypeInjector.RegisterTypeInIl2Cpp<{model.TypeName}>();");
 
+        if (isValueType)
+        {
+            writer.WriteLine($"Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), out _);");
+        }
+
         foreach (var member in model.Members)
         {
             if (member.IsStatic)
                 writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\");");
             else
                 writer.WriteLine($"FieldOffset_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\"));");
-        }
-
-        if (isValueType)
-        {
-            writer.WriteLine($"Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), out _);");
-            writer.WriteLine($"global::Il2CppInterop.Common.Il2CppObjectPool.RegisterValueTypeInitializer<{model.TypeName}>();");
-        }
-        else if (!model.IsAbstract)
-        {
-            writer.WriteLine($"global::Il2CppInterop.Common.Il2CppObjectPool.RegisterInitializer(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), ptr => new {model.TypeName}(ptr));");
         }
 
         writer.Indent--;

@@ -14,7 +14,6 @@ public sealed class Il2CppArrayRank2<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     static Il2CppArrayRank2()
     {
         SetClassPointer<Il2CppArrayRank2<T>, T>(2);
-        Il2CppObjectPool.RegisterInitializer(Il2CppType.GetClassPointer<Il2CppArrayRank2<T>>(), static (ptr) => new Il2CppArrayRank2<T>(ptr));
     }
 
     public Il2CppArrayRank2(ObjectPointer pointer) : base(pointer)

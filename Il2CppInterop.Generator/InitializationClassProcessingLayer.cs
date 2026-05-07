@@ -65,15 +65,6 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var il2CppType_GetClassPointer = il2CppType.Methods.Single(m => m.Name == nameof(Il2CppType.GetClassPointer) && m.GenericParameters.Count == 1);
         var il2CppType_SetClassPointer = il2CppType.Methods.Single(m => m.Name == nameof(Il2CppType.SetClassPointer) && m.GenericParameters.Count == 1);
 
-        var il2CppObjectPool = appContext.ResolveTypeOrThrow(typeof(Il2CppObjectPool));
-        var il2CppObjectPool_RegisterInitializer = il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.RegisterInitializer));
-        var il2CppObjectPool_ValueTypeInitializer = il2CppObjectPool.GetMethodByName(nameof(Il2CppObjectPool.ValueTypeInitializer));
-
-        var funcTypeInstantiated = (GenericInstanceTypeAnalysisContext)il2CppObjectPool_RegisterInitializer.Parameters[1].ParameterType;
-        var funcType = funcTypeInstantiated.GenericType;
-        var funcConstructor = funcType.Methods.Single(m => m.IsInstanceConstructor && m.Parameters.Count == 2);
-        var funcConstructorInstantiated = funcConstructor.MakeConcreteGeneric(funcTypeInstantiated.GenericArguments, []);
-
         var il2CppTypeAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeAttribute));
         var il2CppTypeAttributeConstructor = il2CppTypeAttribute.GetMethodByName(".ctor");
 
@@ -446,51 +437,6 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(new Instruction(CilOpCodes.Ldstr, $"{type.DefaultFullName}::{method.DefaultName}"));
                             instructions.Add(new Instruction(CilOpCodes.Call, new ConcreteGenericMethodAnalysisContext(resolveICall, [], [delegateType])));
                             instructions.Add(new Instruction(CilOpCodes.Stsfld, delegateField));
-                        }
-                    }
-
-                    // Il2CppObjectPool.RegisterInitializer
-                    {
-                        if (type.IsAbstract || type.IsInterface)
-                        {
-                            // Cannot register initializers for abstract types or interfaces
-                        }
-                        else if (type.IsValueType)
-                        {
-                            instructions.Add(CilOpCodes.Call, getClassPointerMethodInstantiated);
-                            instructions.Add(CilOpCodes.Ldnull);
-                            instructions.Add(CilOpCodes.Ldftn, il2CppObjectPool_ValueTypeInitializer.MakeGenericInstanceMethod(typeToInitialize));
-                            instructions.Add(CilOpCodes.Newobj, funcConstructorInstantiated);
-                            instructions.Add(CilOpCodes.Call, il2CppObjectPool_RegisterInitializer);
-                        }
-                        else
-                        {
-                            var creationMethod = new InjectedMethodAnalysisContext(
-                                initializationType,
-                                "Create",
-                                funcTypeInstantiated.GenericArguments[1],
-                                MethodAttributes.Private | MethodAttributes.Static | MethodAttributes.HideBySig,
-                                [funcTypeInstantiated.GenericArguments[0]]);
-                            initializationType.Methods.Add(creationMethod);
-
-                            var pointerConstructor = type.PointerConstructor;
-                            Debug.Assert(pointerConstructor is not null);
-
-                            creationMethod.PutExtraData(new NativeMethodBody()
-                            {
-                                Instructions =
-                                [
-                                    new Instruction(CilOpCodes.Ldarg_0),
-                                    new Instruction(CilOpCodes.Newobj, pointerConstructor.MaybeMakeConcreteGeneric(initializationType.GenericParameters, [])),
-                                    new Instruction(CilOpCodes.Ret),
-                                ]
-                            });
-
-                            instructions.Add(CilOpCodes.Call, getClassPointerMethodInstantiated);
-                            instructions.Add(CilOpCodes.Ldnull);
-                            instructions.Add(CilOpCodes.Ldftn, creationMethod.MaybeMakeConcreteGeneric(initializationType.GenericParameters, []));
-                            instructions.Add(CilOpCodes.Newobj, funcConstructorInstantiated);
-                            instructions.Add(CilOpCodes.Call, il2CppObjectPool_RegisterInitializer);
                         }
                     }
 
