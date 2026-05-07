@@ -19,11 +19,11 @@ public class MethodBodyTranslationProcessingLayer : Cpp2IlProcessingLayer
             {
                 totalCount++;
             }
-            method.RemoveExtraData<OriginalMethodBody>();
             if (TranslatedMethodBody.TryTranslateOriginalMethodBody(method))
             {
                 successfulCount++;
             }
+            method.RemoveExtraData<OriginalMethodBody>();
         }
 
         // Report how many method bodies were successfully translated.
