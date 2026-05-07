@@ -302,12 +302,24 @@ public class TranslatedMethodBody : MethodBodyBase
                         break;
 
                     case CilCode.Ldelem_Ref:
-                        // This is Il2CppReferenceArray<T>.get_Item but the T is not known because the operand is null.
-                        return false;
+                        // This is Il2CppArrayBase.LoadReferenceElementUnsafe
+                        {
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
+                            translatedInstruction.Operand = methodContext.AppContext
+                                .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
+                                .GetMethodByName(nameof(Il2CppArrayBase.LoadReferenceElementUnsafe));
+                        }
+                        break;
 
                     case CilCode.Stelem_Ref:
-                        // This is Il2CppReferenceArray<T>.set_Item but the T is not known because the operand is null.
-                        return false;
+                        // This is Il2CppArrayBase.StoreReferenceElementUnsafe
+                        {
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
+                            translatedInstruction.Operand = methodContext.AppContext
+                                .ResolveTypeOrThrow(typeof(Il2CppArrayBase))
+                                .GetMethodByName(nameof(Il2CppArrayBase.StoreReferenceElementUnsafe));
+                        }
+                        break;
 
                     case >= CilCode.Ldind_I1 and < CilCode.Ldind_Ref:
                         // This is for by ref and pointers
