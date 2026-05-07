@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
-using Il2CppInterop.Common;
+﻿using System.Collections.Concurrent;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Common;
 
 public static class Il2CppObjectPool
 {

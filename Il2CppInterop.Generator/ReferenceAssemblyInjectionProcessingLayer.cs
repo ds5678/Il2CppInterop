@@ -21,6 +21,8 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
         [
             typeof(IL2CPP),
             typeof(ObjectPointer),
+            typeof(Il2CppType),
+            typeof(Il2CppObjectPool),
 
             typeof(Il2CppMemberAttribute),
             typeof(Il2CppMethodAttribute),
@@ -43,7 +45,6 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppArrayRank3<>),
 
             typeof(Il2CppException),
-            typeof(Il2CppObjectPool),
             typeof(TypeInjector),
             typeof(DelegateSupport),
             typeof(Pointer<>),
@@ -52,7 +53,6 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(FieldAccess),
             typeof(IIl2CppException),
             typeof(RuntimeInvoke),
-            typeof(Il2CppType),
             typeof(NativeBoxing),
             typeof(GenerationInternals),
         ];

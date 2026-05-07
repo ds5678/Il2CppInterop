@@ -1,10 +1,8 @@
-using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Il2CppInterop.Common;
 
-namespace Il2CppInterop.Runtime;
+namespace Il2CppInterop.Common;
 
 public static class Il2CppType
 {
@@ -163,7 +161,7 @@ public static class Il2CppType
         return Il2CppClassPointerStore<T>.NativeClassPointer;
     }
 
-    internal static void SetClassPointer(Type type, nint classPointer)
+    public static void SetClassPointer(Type type, nint classPointer)
     {
         typeof(Il2CppType)
             .GetMethod(nameof(SetClassPointer), 1, [typeof(nint)])!

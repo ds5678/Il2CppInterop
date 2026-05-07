@@ -4,7 +4,6 @@ using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Common;
 using Il2CppInterop.Generator.Operands;
-using Il2CppInterop.Runtime;
 
 namespace Il2CppInterop.Generator;
 
