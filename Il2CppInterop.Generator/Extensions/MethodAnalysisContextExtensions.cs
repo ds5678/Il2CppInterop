@@ -71,6 +71,7 @@ internal static class MethodAnalysisContextExtensions
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;
         public bool IsPublic => (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public;
         public bool IsSpecialName => (method.Attributes & MethodAttributes.SpecialName) != default;
+        public bool IsFinal => (method.Attributes & MethodAttributes.Final) != default;
 
         public bool ImplementsAnInterfaceMethod => method.Overrides.Count > 0;
 

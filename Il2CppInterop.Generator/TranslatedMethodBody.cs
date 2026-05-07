@@ -765,25 +765,52 @@ public class TranslatedMethodBody : MethodBodyBase
                     typeGenericArguments = [];
                     methodGenericArguments = [];
                 }
-                if (originalCode.Code is CilCode.Callvirt)
+                if (originalCode.Code is CilCode.Call or CilCode.Callvirt or CilCode.Newobj)
                 {
-                    while (baseMethod.InterfaceRedirectMethod is not null)
+                    MethodAnalysisContext targetMethod;
+                    CilOpCode targetOpCode;
+                    if (originalCode.Code is CilCode.Call && baseMethod.InterfaceRedirectMethod is not null)
                     {
-                        baseMethod = baseMethod.InterfaceRedirectMethod!;
+                        if (baseMethod.IsFinal)
+                        {
+                            targetMethod = baseMethod.InterfaceRedirectMethod!;
+                            targetOpCode = CilOpCodes.Callvirt;
+                        }
+                        else if (baseMethod.UnsafeInvokeMethod is not null)
+                        {
+                            targetMethod = baseMethod.UnsafeInvokeMethod!.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
+                            Debug.Assert(targetMethod.IsStatic);
+                            Debug.Assert(method.Parameters.Count == targetMethod.Parameters.Count - 1);
+                            Debug.Assert(baseMethod.InterfaceRedirectMethod!.DeclaringType == targetMethod.Parameters[0].ParameterType);
+                            targetOpCode = CilOpCodes.Call;
+                        }
+                        else
+                        {
+                            // This should not happen
+                            return false;
+                        }
                     }
-                }
-                if (originalCode.Code is CilCode.Call && baseMethod.InterfaceRedirectMethod is not null)
-                {
-                    // This is unsupported
-                    return false;
-                }
-                if (originalCode.Code is CilCode.Call && baseMethod.UnsafeInvokeMethod is not null)
-                {
-                    var targetMethod = baseMethod.UnsafeInvokeMethod?.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
-
-                    Debug.Assert(targetMethod is not null);
-                    Debug.Assert(targetMethod.IsStatic);
-                    Debug.Assert(method.Parameters.Count == targetMethod.Parameters.Count - 1);
+                    else if (originalCode.Code is CilCode.Call && baseMethod.UnsafeInvokeMethod is not null)
+                    {
+                        targetMethod = baseMethod.UnsafeInvokeMethod!.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
+                        Debug.Assert(targetMethod.IsStatic);
+                        Debug.Assert(method.Parameters.Count == targetMethod.Parameters.Count - 1);
+                        targetOpCode = CilOpCodes.Call;
+                    }
+                    else
+                    {
+                        if (originalCode.Code is CilCode.Callvirt && baseMethod.InterfaceRedirectMethod is not null)
+                        {
+                            // Interface redirects are only used for IObject, IValueType, and IEnum
+                            // Which have no generic methods
+                            targetMethod = baseMethod.InterfaceRedirectMethod!;
+                        }
+                        else
+                        {
+                            targetMethod = baseMethod.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
+                        }
+                        targetOpCode = originalCode;
+                    }
 
                     if (targetMethod.Parameters.Count > 0)
                     {
@@ -809,48 +836,11 @@ public class TranslatedMethodBody : MethodBodyBase
                             translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
                         }
 
-                        translatedInstructions.Add(CilOpCodes.Call, targetMethod);
+                        translatedInstructions.Add(targetOpCode, targetMethod);
                     }
                     else
                     {
-                        translatedInstruction.Code = CilOpCodes.Call;
-                        translatedInstruction.Operand = targetMethod;
-                    }
-                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, targetMethod.ReturnType);
-                }
-                else if (originalCode.Code is CilCode.Call or CilCode.Callvirt or CilCode.Newobj)
-                {
-                    var targetMethod = baseMethod.MaybeMakeConcreteGeneric(typeGenericArguments, methodGenericArguments);
-
-                    if (targetMethod.Parameters.Count > 0)
-                    {
-                        translatedInstruction.Code = CilOpCodes.Nop;
-
-                        var temporaryVariables = new LocalVariable[targetMethod.Parameters.Count];
-                        for (var i = targetMethod.Parameters.Count - 1; i >= 0; i--) // Order matters
-                        {
-                            var methodParameter = targetMethod.Parameters[i];
-                            MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, methodParameter.ParameterType);
-                            var temporaryVariable = new LocalVariable
-                            {
-                                Type = methodParameter.ParameterType,
-                            };
-                            translatedInstructions.Add(CilOpCodes.Stloc, temporaryVariable);
-
-                            temporaryVariables[i] = temporaryVariable;
-                            localVariableList.Add(temporaryVariable);
-                        }
-
-                        foreach (var temporaryVariable in temporaryVariables)
-                        {
-                            translatedInstructions.Add(CilOpCodes.Ldloc, temporaryVariable);
-                        }
-
-                        translatedInstructions.Add(originalCode, targetMethod);
-                    }
-                    else
-                    {
-                        translatedInstruction.Code = originalCode;
+                        translatedInstruction.Code = targetOpCode;
                         translatedInstruction.Operand = targetMethod;
                     }
 
