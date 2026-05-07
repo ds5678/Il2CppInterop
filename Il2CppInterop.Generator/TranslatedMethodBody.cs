@@ -326,8 +326,13 @@ public class TranslatedMethodBody : MethodBodyBase
                         goto default;
 
                     case CilCode.Refanytype:
-                        // Not implemented yet
-                        return false;
+                        {
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.RefAnyType));
+                        }
+                        break;
 
                     case CilCode.Throw:
                         {
@@ -674,9 +679,24 @@ public class TranslatedMethodBody : MethodBodyBase
                             MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, getElementAddress.ReturnType);
                         }
                         break;
-                    case CilCode.Mkrefany or CilCode.Refanyval:
-                        // Not implemented yet
-                        return false;
+                    case CilCode.Mkrefany:
+                        {
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.MakeRefAny))
+                                .MakeGenericInstanceMethod(translatedType);
+                        }
+                        break;
+                    case CilCode.Refanyval:
+                        {
+                            translatedInstruction.Code = CilOpCodes.Call;
+                            translatedInstruction.Operand = appContext
+                                .ResolveTypeOrThrow(typeof(GenerationInternals))
+                                .GetMethodByName(nameof(GenerationInternals.RefAnyValue))
+                                .MakeGenericInstanceMethod(translatedType);
+                        }
+                        break;
                     default:
                         Debug.Fail($"Unexpected CIL code: {originalCode}");
                         return false;
