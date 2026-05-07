@@ -51,6 +51,12 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         continue;
                     if (method.IsAbstract)
                         continue;
+                    if (method.IsUnstripped && method.DefaultAttributes.HasFlag(MethodAttributes.Abstract))
+                    {
+                        // Unstripped abstract methods get converted to virtual methods with a throw implementation.
+                        Debug.Assert(method.IsVirtual);
+                        continue;
+                    }
 
                     var redirectedType = instantiatedType.KnownType switch
                     {
