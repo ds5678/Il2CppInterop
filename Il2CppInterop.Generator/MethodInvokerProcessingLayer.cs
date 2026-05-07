@@ -27,7 +27,8 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
 
         var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
         var il2CppTypeHelper_SizeOf = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.SizeOf));
-        var newObjectPointer = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.NewObjectPointer));
+
+        var newObjectPointer = appContext.ResolveTypeOrThrow(typeof(ObjectPointer)).GetMethodByName(nameof(ObjectPointer.New));
 
         foreach (var assembly in appContext.Assemblies)
         {

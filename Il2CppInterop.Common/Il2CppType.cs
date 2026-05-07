@@ -189,10 +189,4 @@ public static class Il2CppType
     {
         public static nint NativeClassPointer;
     }
-
-    // Temporary location for this method
-    public static ObjectPointer NewObjectPointer<T>() where T : IIl2CppType<T>
-    {
-        return (ObjectPointer)IL2CPP.il2cpp_object_new(GetClassPointer<T>());
-    }
 }
