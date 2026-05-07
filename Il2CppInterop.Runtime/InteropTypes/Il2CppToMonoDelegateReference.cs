@@ -14,7 +14,7 @@ internal sealed partial class Il2CppToMonoDelegateReference : Object
     [ManagedField]
     public partial Delegate ReferencedDelegate { get; set; }
 
-    public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : this(Il2CppType.NewObjectPointer<Il2CppToMonoDelegateReference>())
+    public Il2CppToMonoDelegateReference(Delegate referencedDelegate, IntPtr methodInfo) : this(ObjectPointer.New<Il2CppToMonoDelegateReference>())
     {
         ReferencedDelegate = referencedDelegate;
         MethodInfo = methodInfo;
