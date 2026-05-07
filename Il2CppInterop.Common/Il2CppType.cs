@@ -177,7 +177,10 @@ public static class Il2CppType
             if (Il2CppClassPointerStore<T>.NativeClassPointer == nint.Zero)
             {
                 Il2CppClassPointerStore<T>.NativeClassPointer = classPointer;
-                Il2CppObjectPool.RegisterInitializer<T>();
+                if (!typeof(T).IsAbstract && !typeof(T).IsInterface)
+                {
+                    Il2CppObjectPool.RegisterInitializer<T>();
+                }
             }
             else
             {
