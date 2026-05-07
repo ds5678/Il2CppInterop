@@ -10,6 +10,7 @@ public class MethodBodyTranslationProcessingLayer : Cpp2IlProcessingLayer
     public override string Name => "Method Body Translation";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
+        Logger.InfoNewline("Translating method bodies...", nameof(MethodBodyTranslationProcessingLayer));
         var successfulCount = 0;
         var totalCount = 0;
         foreach (var method in appContext.AllTypes.SelectMany(t => t.Methods))
@@ -26,8 +27,7 @@ public class MethodBodyTranslationProcessingLayer : Cpp2IlProcessingLayer
         }
 
         // Report how many method bodies were successfully translated.
-        // Note: this total count is less than the count of methods with original bodies that were unstripped earlier.
-        // This is because static constructors were removed.
+        // This total count should be the same as the count of methods with original bodies that were unstripped earlier.
         Logger.InfoNewline($"Translated the original method body for {successfulCount}/{totalCount} attempts.", nameof(MethodBodyTranslationProcessingLayer));
     }
 }

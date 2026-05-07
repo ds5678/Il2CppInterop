@@ -385,7 +385,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 {
                     methodContext.Attributes &= ~System.Reflection.MethodAttributes.Abstract; // We convert abstract methods to virtual methods
 
-                    methodContext.PutExtraData(new OriginalMethodBody()
+                    methodContext.PutExtraData(new NativeMethodBody()
                     {
                         Instructions =
                         [

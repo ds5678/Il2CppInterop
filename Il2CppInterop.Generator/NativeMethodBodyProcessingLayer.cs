@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
@@ -36,6 +37,12 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                         continue;
                     if (method.IsAbstract)
                         continue;
+                    if (method.IsUnstripped && method.DefaultAttributes.HasFlag(MethodAttributes.Abstract))
+                    {
+                        // Unstripped abstract methods get converted to virtual methods with a throw implementation.
+                        Debug.Assert(method.IsVirtual);
+                        continue;
+                    }
 
                     var implementation = method.UnsafeImplementationMethod;
                     Debug.Assert(implementation is not null);
