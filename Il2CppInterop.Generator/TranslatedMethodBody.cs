@@ -1033,10 +1033,60 @@ public class TranslatedMethodBody : MethodBodyBase
                     return false;
                 }
             }
-            else if (originalOperand is MultiDimensionalArrayMethod)
+            else if (originalOperand is MultiDimensionalArrayMethod multiDimensionalArrayMethod)
             {
-                // Not implemented yet
-                return false;
+                var arrayType = multiDimensionalArrayMethod.Rank switch
+                {
+                    2 => appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank2<>)),
+                    3 => appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank3<>)),
+                    _ => null,
+                };
+                if (arrayType is null)
+                    return false;
+
+                switch (multiDimensionalArrayMethod.MethodType)
+                {
+                    case MultiDimensionalArrayMethodType.Get:
+                        {
+                            var genericMethod = arrayType.Methods.Single(m => m.Name == "get_Item" && m.Parameters.Count == multiDimensionalArrayMethod.Rank);
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
+                            translatedInstruction.Operand = genericMethod.MakeConcreteGeneric([multiDimensionalArrayMethod.ArrayType.ElementType], []);
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, genericMethod.ReturnType);
+                        }
+                        break;
+                    case MultiDimensionalArrayMethodType.Set:
+                        {
+                            var genericMethod = arrayType.Methods.Single(m => m.Name == "set_Item" && m.Parameters.Count == multiDimensionalArrayMethod.Rank + 1);
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
+                            translatedInstruction.Operand = genericMethod.MakeConcreteGeneric([multiDimensionalArrayMethod.ArrayType.ElementType], []);
+                            MonoIl2CppConversion.AddMonoToIl2CppConversion(translatedInstructions, genericMethod.Parameters[^1].ParameterType);
+                        }
+                        break;
+                    case MultiDimensionalArrayMethodType.Address:
+                        {
+                            var genericMethod = arrayType.Methods.Single(m => m.Name == nameof(Il2CppArrayRank2<>.GetElementAddress) && m.Parameters.Count == multiDimensionalArrayMethod.Rank);
+                            translatedInstruction.Code = CilOpCodes.Callvirt;
+                            translatedInstruction.Operand = genericMethod.MakeConcreteGeneric([multiDimensionalArrayMethod.ArrayType.ElementType], []);
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, genericMethod.ReturnType);
+                        }
+                        break;
+                    case MultiDimensionalArrayMethodType.Constructor:
+                        {
+                            var genericMethod = arrayType.Methods.Single(m =>
+                            {
+                                return m.IsInstanceConstructor
+                                    && m.Parameters.Count == multiDimensionalArrayMethod.Rank
+                                    && m.Parameters.All(p => p.ParameterType == appContext.SystemTypes.SystemInt32Type);
+                            });
+                            translatedInstruction.Code = CilOpCodes.Newobj;
+                            translatedInstruction.Operand = genericMethod.MakeConcreteGeneric([multiDimensionalArrayMethod.ArrayType.ElementType], []);
+                            MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, genericMethod.ReturnType);
+                        }
+                        break;
+                    default:
+                        Debug.Fail("Unexpected multidimensional array method type");
+                        return false;
+                }
             }
             else
             {
