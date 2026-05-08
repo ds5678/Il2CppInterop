@@ -95,7 +95,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static DiagnosticDescriptor Il2CppFinalizerMustReturnVoid { get; } = new(
+    public static DiagnosticDescriptor Il2CppFinalizerShouldReturnVoid { get; } = new(
         id: "IL2CPP0011",
         title: "Methods annotated with [Il2CppFinalizer] should return nothing",
         messageFormat: "Method '{0}' is annotated with [Il2CppFinalizer] but does not return void.",
@@ -119,10 +119,10 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static DiagnosticDescriptor Il2CppFieldCannotBeInstanceInClass { get; } = new(
+    public static DiagnosticDescriptor InstanceFieldsInClassesCannotBeInjected { get; } = new(
         id: "IL2CPP0014",
         title: "Instance fields in classes cannot be annotated with [Il2CppField]",
-        messageFormat: "Property '{0}' in class '{1}' is an instance member annotated with [Il2CppField]. [Il2CppField] is only valid on static members in classes.",
+        messageFormat: "Field '{0}' in class '{1}' is an instance member annotated with [Il2CppField]. [Il2CppField] is only valid on properties in classes.",
         category: "Il2CppInterop",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -139,10 +139,10 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         FieldPropertyMustBePartial,
         ShouldNotHaveUninjectedInstanceFields,
         Il2CppFinalizerMustHaveNoParameters,
-        Il2CppFinalizerMustReturnVoid,
+        Il2CppFinalizerShouldReturnVoid,
         OnlyObjectPointerConstructorCanCallBase,
         Il2CppFieldCannotBeStatic,
-        Il2CppFieldCannotBeInstanceInClass,
+        InstanceFieldsInClassesCannotBeInjected,
     ];
 
     #endregion
@@ -194,12 +194,17 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
 
     #endregion
 
-    #region Syntax Helpers
+    #region Helpers
 
-    private static bool HasAttribute(PropertyDeclarationSyntax prop, params string[] names) =>
-        prop.AttributeLists
-            .SelectMany(al => al.Attributes)
-            .Any(a => names.Contains(a.Name.ToString()));
+    private static bool HasAttribute(
+        SyntaxNodeAnalysisContext context,
+        PropertyDeclarationSyntax prop,
+        string attributeName,
+        string[] attributeNamespace)
+    {
+        var symbol = context.SemanticModel.GetDeclaredSymbol(prop, context.CancellationToken);
+        return symbol?.HasAttribute(attributeName, attributeNamespace) ?? false;
+    }
 
     #endregion
 
@@ -295,7 +300,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
 
         var offending = tds.Members
             .OfType<PropertyDeclarationSyntax>()
-            .Where(p => HasAttribute(p, "ManagedField", "ManagedFieldAttribute"));
+            .Where(p => HasAttribute(context, p, "ManagedFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
 
         foreach (var prop in offending)
         {
@@ -318,7 +323,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
             .OfType<PropertyDeclarationSyntax>()
             .Where(p =>
                 !p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
-                HasAttribute(p, "Il2CppField", "Il2CppFieldAttribute"));
+                HasAttribute(context, p, "Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
 
         foreach (var prop in offending)
         {
@@ -338,7 +343,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
             .OfType<PropertyDeclarationSyntax>()
             .Where(p =>
                 p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
-                HasAttribute(p, "ManagedField", "ManagedFieldAttribute"));
+                HasAttribute(context, p, "ManagedFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
 
         foreach (var prop in offending)
         {
@@ -359,16 +364,13 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
 
         foreach (var prop in offending)
         {
-            var matchingAttr = prop.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .FirstOrDefault(a => a.Name.ToString() is
-                    "ManagedField" or "ManagedFieldAttribute" or
-                    "Il2CppField" or "Il2CppFieldAttribute");
+            var hasManagedField = HasAttribute(context, prop, "ManagedFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]);
+            var hasIl2CppField = HasAttribute(context, prop, "Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]);
 
-            if (matchingAttr is null)
+            if (!hasManagedField && !hasIl2CppField)
                 continue;
 
-            var attrName = matchingAttr.Name.ToString().Replace("Attribute", "");
+            var attrName = hasManagedField ? "ManagedField" : "Il2CppField";
 
             context.ReportDiagnostic(Diagnostic.Create(
                 FieldPropertyMustBePartial,
@@ -402,9 +404,11 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
     {
         var finalizerMethods = tds.Members
             .OfType<MethodDeclarationSyntax>()
-            .Where(m => m.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(a => a.Name.ToString() is "Il2CppFinalizer" or "Il2CppFinalizerAttribute"));
+            .Where(m =>
+            {
+                var sym = context.SemanticModel.GetDeclaredSymbol(m, context.CancellationToken);
+                return sym?.HasAttribute("Il2CppFinalizerAttribute", ["Il2CppInterop", "Common", "Attributes"]) ?? false;
+            });
 
         foreach (var method in finalizerMethods)
         {
@@ -415,11 +419,11 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
                     method.Identifier.GetLocation(),
                     method.Identifier.Text));
             }
-
-            if (method.ReturnType.ToString() != "void")
+            var methodSymbol = context.SemanticModel.GetDeclaredSymbol(method, context.CancellationToken);
+            if (methodSymbol?.ReturnType.SpecialType != SpecialType.System_Void)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Il2CppFinalizerMustReturnVoid,
+                    Il2CppFinalizerShouldReturnVoid,
                     method.ReturnType.GetLocation(),
                     method.Identifier.Text));
             }
@@ -434,7 +438,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
             .OfType<ConstructorDeclarationSyntax>()
             .Where(c =>
                 c.Initializer is { ThisOrBaseKeyword.RawKind: (int)SyntaxKind.BaseKeyword } &&
-                !IsObjectPointerConstructor(c));
+                !IsObjectPointerConstructor(context, c));
 
         foreach (var ctor in offending)
         {
@@ -445,13 +449,14 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static bool IsObjectPointerConstructor(ConstructorDeclarationSyntax ctor)
+    private static bool IsObjectPointerConstructor(SyntaxNodeAnalysisContext context, ConstructorDeclarationSyntax ctor)
     {
         if (ctor.ParameterList.Parameters.Count != 1)
             return false;
 
-        var paramType = ctor.ParameterList.Parameters[0].Type?.ToString() ?? "";
-        return paramType is "IntPtr" or "System.IntPtr";
+        var paramSyntax = ctor.ParameterList.Parameters[0];
+        var paramSymbol = context.SemanticModel.GetDeclaredSymbol(paramSyntax, context.CancellationToken);
+        return (paramSymbol?.Type as INamedTypeSymbol).IsType("ObjectPointer", ["Il2CppInterop", "Common"]);
     }
 
     // IL2CPP0013
@@ -462,7 +467,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
             .OfType<PropertyDeclarationSyntax>()
             .Where(p =>
                 p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
-                HasAttribute(p, "Il2CppField", "Il2CppFieldAttribute"));
+                HasAttribute(context, p, "Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]));
 
         foreach (var prop in offending)
         {
@@ -480,19 +485,21 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         if (tds is not ClassDeclarationSyntax || symbol.TypeKind != TypeKind.Class)
             return;
 
-        var offending = tds.Members
-            .OfType<PropertyDeclarationSyntax>()
-            .Where(p =>
-                !p.Modifiers.Any(SyntaxKind.StaticKeyword) &&
-                HasAttribute(p, "Il2CppField", "Il2CppFieldAttribute"));
-
-        foreach (var prop in offending)
+        foreach (var field in tds.Members.OfType<FieldDeclarationSyntax>()
+                     .Where(f => !f.Modifiers.Any(SyntaxKind.StaticKeyword)))
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Il2CppFieldCannotBeInstanceInClass,
-                prop.Identifier.GetLocation(),
-                prop.Identifier.Text,
-                symbol.Name));
+            foreach (var variable in field.Declaration.Variables)
+            {
+                var fieldSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken);
+                if (fieldSymbol?.HasAttribute("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"]) != true)
+                    continue;
+
+                context.ReportDiagnostic(Diagnostic.Create(
+                    InstanceFieldsInClassesCannotBeInjected,
+                    variable.Identifier.GetLocation(),
+                    variable.Identifier.Text,
+                    symbol.Name));
+            }
         }
     }
 
