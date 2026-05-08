@@ -61,15 +61,6 @@ public class AsmResolverDllOutputFormatBinding : AsmResolverDllOutputFormatThrow
                         reference.Culture = dotNetCorLib.Culture;
                     }
                 }
-
-                // Temporary fix
-                foreach (var type in module.GetAllTypes())
-                {
-                    if (type.IsInterface)
-                    {
-                        type.BaseType = null;
-                    }
-                }
             }
         }
 
