@@ -82,10 +82,33 @@ public readonly struct SystemTypeResolver
         // Custom modifiers might be possible to support, but probably not necessary
 
         var assemblyName = type.Assembly.GetName().Name!;
+        var fullName = type.FullName!;
         if (assemblyName == "System.Private.CoreLib")
-            assemblyName = "mscorlib";
+        {
+            return ResolveSystemType(fullName);
+        }
+        else
+        {
+            return ResolveSimpleType(assemblyName, fullName);
+        }
+    }
+
+    private TypeAnalysisContext? ResolveSystemType(string fullName)
+    {
+        TypeAnalysisContext? type = null;
+        foreach (var assemblyName in MscorlibAssemblyInjectionProcessingLayer.InjectedAssemblies)
+        {
+            type = ResolveSimpleType(assemblyName, fullName);
+            if (type is not null)
+                break;
+        }
+        return type;
+    }
+
+    private TypeAnalysisContext? ResolveSimpleType(string assemblyName, string fullName)
+    {
         var assembly = referencedFrom.AppContext.GetAssemblyByName(assemblyName);
-        return assembly?.GetTypeByFullName(type.FullName!);
+        return assembly?.GetTypeByFullName(fullName);
     }
 
     private static GenericParameterTypeAnalysisContext? TryGetGenericParameter(List<GenericParameterTypeAnalysisContext>? genericParameters, int index)
