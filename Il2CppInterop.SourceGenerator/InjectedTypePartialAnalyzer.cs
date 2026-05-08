@@ -114,7 +114,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
     public static DiagnosticDescriptor Il2CppFieldCannotBeStatic { get; } = new(
         id: "IL2CPP0013",
         title: "Static fields cannot be annotated with [Il2CppField]",
-        messageFormat: "Property '{0}' is static and cannot be annotated with [Il2CppField].",
+        messageFormat: "Field '{0}' is static and cannot be annotated with [Il2CppField].",
         category: "Il2CppInterop",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -189,7 +189,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         CheckIl2CppFinalizerMethods(context, tds);
         CheckConstructorsDoNotCallBase(context, tds, symbol);
         CheckIl2CppFieldOnStaticProperties(context, tds);
-        CheckIl2CppFieldOnInstancePropertiesInClass(context, tds, symbol);
+        CheckIl2CppFieldOnInstanceFieldsInClass(context, tds, symbol);
     }
 
     #endregion
@@ -200,7 +200,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         SyntaxNodeAnalysisContext context,
         PropertyDeclarationSyntax prop,
         string attributeName,
-        string[] attributeNamespace)
+        ReadOnlySpan<string>  attributeNamespace)
     {
         var symbol = context.SemanticModel.GetDeclaredSymbol(prop, context.CancellationToken);
         return symbol?.HasAttribute(attributeName, attributeNamespace) ?? false;
@@ -370,13 +370,23 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
             if (!hasManagedField && !hasIl2CppField)
                 continue;
 
-            var attrName = hasManagedField ? "ManagedField" : "Il2CppField";
+            if (hasManagedField)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    FieldPropertyMustBePartial,
+                    prop.Identifier.GetLocation(),
+                    prop.Identifier.Text,
+                    "ManagedField"));
+            }
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                FieldPropertyMustBePartial,
-                prop.Identifier.GetLocation(),
-                prop.Identifier.Text,
-                attrName));
+            if (hasIl2CppField)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    FieldPropertyMustBePartial,
+                    prop.Identifier.GetLocation(),
+                    prop.Identifier.Text,
+                    "Il2CppField"));
+            }
         }
     }
 
@@ -479,7 +489,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
     }
 
     // IL2CPP0014
-    private static void CheckIl2CppFieldOnInstancePropertiesInClass(
+    private static void CheckIl2CppFieldOnInstanceFieldsInClass(
         SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds, INamedTypeSymbol symbol)
     {
         if (tds is not ClassDeclarationSyntax || symbol.TypeKind != TypeKind.Class)
