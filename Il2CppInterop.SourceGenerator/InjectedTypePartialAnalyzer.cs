@@ -200,7 +200,7 @@ public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
         SyntaxNodeAnalysisContext context,
         PropertyDeclarationSyntax prop,
         string attributeName,
-        ReadOnlySpan<string>  attributeNamespace)
+        ReadOnlySpan<string> attributeNamespace)
     {
         var symbol = context.SemanticModel.GetDeclaredSymbol(prop, context.CancellationToken);
         return symbol?.HasAttribute(attributeName, attributeNamespace) ?? false;
