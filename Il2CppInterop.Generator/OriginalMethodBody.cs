@@ -34,7 +34,7 @@ public class OriginalMethodBody : MethodBodyBase
         var resolver = new ContextResolver(methodContext, runtimeContext);
 
         var originalInstructions = body.Instructions;
-        originalInstructions.ExpandMacrosBackport();
+        originalInstructions.ExpandMacros();
 
         var newInstructions = new Instruction[originalInstructions.Count];
         for (var i = 0; i < newInstructions.Length; i++)
