@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
-using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Image;
+using Il2CppInterop.Runtime.Structs;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.Image;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;

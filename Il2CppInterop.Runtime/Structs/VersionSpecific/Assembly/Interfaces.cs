@@ -1,0 +1,15 @@
+using Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName;
+namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Assembly
+{
+    public interface INativeAssemblyStructHandler : INativeStructHandler
+    {
+        INativeAssemblyStruct CreateNewStruct();
+        unsafe INativeAssemblyStruct Wrap(Il2CppAssembly* pointer);
+    }
+    public interface INativeAssemblyStruct : INativeStruct
+    {
+        unsafe Il2CppAssembly* AssemblyPointer { get; }
+        INativeAssemblyNameStruct Name { get; set; }
+        unsafe ref Il2CppImage* Image { get; }
+    }
+}

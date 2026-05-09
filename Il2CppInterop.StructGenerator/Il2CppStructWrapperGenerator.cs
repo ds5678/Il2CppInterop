@@ -40,7 +40,7 @@ public static partial class Il2CppStructWrapperGenerator
                 generator.NativeStructGenerator.FieldsToImport.Remove(field);
                 if (Config.ClassNames.Contains(gen.NativeStructGenerator.CppClass.Name))
                     generator.ExtraUsings.Add(
-                        $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{gen.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}");
+                        $"Il2CppInterop.Runtime.Structs.VersionSpecific.{gen.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}");
             }
         }
         generator.SetupElements();
@@ -142,7 +142,7 @@ public static partial class Il2CppStructWrapperGenerator
             Directory.CreateDirectory(generatorOutputDirectory);
             CodeGenFile file = new()
             {
-                Namespace = $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
+                Namespace = $"Il2CppInterop.Runtime.Structs.VersionSpecific.{generator.NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
                 Usings =
                 {
                     "System.Runtime.InteropServices"

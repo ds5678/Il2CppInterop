@@ -1,7 +1,7 @@
 ﻿using AssetRipper.Primitives;
 using Il2CppInterop.Common.Host;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Structs;
 
 namespace Il2CppInterop.Runtime.Startup;
 

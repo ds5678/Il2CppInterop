@@ -1,7 +1,7 @@
 using System;
-using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Class;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.Type;
+using Il2CppInterop.Runtime.Structs;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.Class;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.Type;
 
 namespace Il2CppInterop.Runtime.Injection;
 
