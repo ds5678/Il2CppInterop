@@ -68,7 +68,7 @@ namespace Il2CppInterop.Runtime.Injection
         {
             if (proxyMethod == null) return IntPtr.Zero;
 
-            var methodInfoPointerField = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(proxyMethod)
+            var methodInfoPointerField = Il2CppInternalsAccess.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(proxyMethod)
                 ?? throw new ArgumentException($"Couldn't find the generated method info pointer for {proxyMethod.Name}");
 
             // Il2CppClassPointerStore calls the static constructor for the type

@@ -3,7 +3,7 @@ using Il2CppInterop.Common.Attributes;
 
 namespace Il2CppInterop.Common;
 
-public static class Il2CppInteropUtils
+public static class Il2CppInternalsAccess
 {
     private static FieldInfo? GetFieldInfo(Type declaringType, string prefix, int index)
     {
