@@ -786,7 +786,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         }
                         else
                         {
-                            // This should not happen
+                            Debug.Fail("This should not happen");
                             return false;
                         }
                     }
@@ -942,6 +942,7 @@ public class TranslatedMethodBody : MethodBodyBase
 
                         if (!operandIsReferenceType)
                         {
+                            Debug.Fail("Operand was unexpectedly not a reference type.");
                             return false;
                         }
 
@@ -969,7 +970,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     }
                     else
                     {
-                        // This should not occur.
+                        Debug.Fail("This should not occur.");
                         return false;
                     }
 
@@ -1002,7 +1003,7 @@ public class TranslatedMethodBody : MethodBodyBase
                         Debug.Assert(!baseField.IsStatic, "There should be no static fields.");
                         Debug.Assert(baseField.FieldType.DeclaringAssembly == appContext.Mscorlib);
 
-                        // This should not occur because the primitive fields are readonly.
+                        Debug.Fail("Unexpected store to a primitive field because the primitive fields are readonly.");
                         return false;
                     }
                     else if (baseField.DeclaringType.Fields.Contains(baseField))
@@ -1025,7 +1026,7 @@ public class TranslatedMethodBody : MethodBodyBase
                     }
                     else
                     {
-                        // This should not occur.
+                        Debug.Fail("This should not occur.");
                         return false;
                     }
                 }
@@ -1120,6 +1121,7 @@ public class TranslatedMethodBody : MethodBodyBase
             }
             else
             {
+                Debug.Fail($"Unexpected operand type: {originalInstruction.Operand?.GetType().Name}");
                 return false;
             }
         }

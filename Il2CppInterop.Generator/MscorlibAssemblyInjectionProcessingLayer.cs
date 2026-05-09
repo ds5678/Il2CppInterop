@@ -1,4 +1,5 @@
-﻿using AsmResolver.DotNet;
+﻿using System.Diagnostics;
+using AsmResolver.DotNet;
 using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
 
@@ -78,6 +79,7 @@ public class MscorlibAssemblyInjectionProcessingLayer : UnstripBaseProcessingLay
     {
         public ResolutionStatus Resolve(AssemblyDescriptor assembly, ModuleDefinition? originModule, out AssemblyDefinition? result)
         {
+            Debug.Fail("Resolution of external assemblies should not be necessary.");
             result = null;
             return ResolutionStatus.AssemblyNotFound;
         }
