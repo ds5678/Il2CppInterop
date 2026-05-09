@@ -3,7 +3,7 @@ using System;
 namespace Il2CppInterop.Runtime.Runtime;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-internal class ApplicableToUnityVersionsSinceAttribute : Attribute
+internal sealed class ApplicableToUnityVersionsSinceAttribute : Attribute
 {
     public ApplicableToUnityVersionsSinceAttribute(string startVersion)
     {

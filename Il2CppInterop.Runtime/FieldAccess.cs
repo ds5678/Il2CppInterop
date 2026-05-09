@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,7 @@ public static unsafe class FieldAccess
         FunctionPointerCache<T>.SetInstanceFieldValue(instance, fieldOffset, value);
     }
 
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static void SetInstanceFieldValue_WriteBarrier<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
@@ -56,6 +58,7 @@ public static unsafe class FieldAccess
         }
     }
 
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static void SetInstanceFieldValue_Pointer<T>(Object instance, int fieldOffset, T? value) where T : IIl2CppType<T>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
