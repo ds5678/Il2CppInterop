@@ -125,8 +125,7 @@ public readonly struct ContextResolver
         if (assemblyName == null)
             return null;
 
-        var targetAssembly = referencedFrom.AppContext.Assemblies.FirstOrDefault(a => a.Name == assemblyName);
-        if (targetAssembly == null)
+        if (!referencedFrom.AppContext.AssembliesByName.TryGetValue(assemblyName, out var targetAssembly))
             return null;
 
         return targetAssembly.GetTypeByFullName(typeDefOrRef.FullName);
@@ -277,9 +276,6 @@ public readonly struct ContextResolver
 
         foreach (var methodContext in referencingType.Methods)
         {
-            if (methodContext.Name != methodDefOrRef.Name)
-                continue;
-
             if (methodContext.Parameters.Count != methodDefOrRef.Signature.ParameterTypes.Count)
                 continue;
 
@@ -290,6 +286,9 @@ public readonly struct ContextResolver
                 continue;
 
             if (methodContext.IsVoid == methodDefOrRef.Signature.ReturnsValue)
+                continue;
+
+            if (methodContext.Name != (string?)methodDefOrRef.Name)
                 continue;
 
             // We need to use a resolver for the method context to resolve potential method generic parameters correctly.
