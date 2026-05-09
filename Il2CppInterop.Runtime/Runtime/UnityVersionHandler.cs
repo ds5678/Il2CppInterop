@@ -128,7 +128,7 @@ public static class UnityVersionHandler
 
     public static int AssemblySize()
     {
-        return assemblyStructHandler.Size();
+        return assemblyStructHandler.Size;
     }
 
     //Assembly Names
@@ -144,7 +144,7 @@ public static class UnityVersionHandler
 
     public static int AssemblyNameSize()
     {
-        return assemblyNameStructHandler.Size();
+        return assemblyNameStructHandler.Size;
     }
 
     //Classes
@@ -160,7 +160,7 @@ public static class UnityVersionHandler
 
     public static int ClassSize()
     {
-        return classStructHandler.Size();
+        return classStructHandler.Size;
     }
 
     //Events
@@ -176,7 +176,7 @@ public static class UnityVersionHandler
 
     public static int EventSize()
     {
-        return eventInfoStructHandler.Size();
+        return eventInfoStructHandler.Size;
     }
 
     //Exceptions
@@ -192,7 +192,7 @@ public static class UnityVersionHandler
 
     public static int ExceptionSize()
     {
-        return exceptionStructHandler.Size();
+        return exceptionStructHandler.Size;
     }
 
     //Fields
@@ -208,7 +208,7 @@ public static class UnityVersionHandler
 
     public static int FieldInfoSize()
     {
-        return fieldInfoStructHandler.Size();
+        return fieldInfoStructHandler.Size;
     }
 
     //Images
@@ -224,7 +224,7 @@ public static class UnityVersionHandler
 
     public static int ImageSize()
     {
-        return imageStructHandler.Size();
+        return imageStructHandler.Size;
     }
 
     //Methods
@@ -240,7 +240,7 @@ public static class UnityVersionHandler
 
     public static int MethodSize()
     {
-        return methodInfoStructHandler.Size();
+        return methodInfoStructHandler.Size;
     }
 
     //Parameters
@@ -249,7 +249,7 @@ public static class UnityVersionHandler
         if (count == 0)
             return [];
 
-        var elementSize = parameterInfoStructHandler.Size();
+        var elementSize = parameterInfoStructHandler.Size;
         var totalSize = elementSize * count;
         var startPointer = Marshal.AllocHGlobal(totalSize);
         new Span<byte>(startPointer.ToPointer(), totalSize).Clear();
@@ -268,7 +268,7 @@ public static class UnityVersionHandler
 
     public static unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* parameterInfo, int index)
     {
-        var address = (nint)parameterInfo + index * parameterInfoStructHandler.Size();
+        var address = (nint)parameterInfo + index * parameterInfoStructHandler.Size;
         return parameterInfoStructHandler.Wrap((Il2CppParameterInfo*)address);
     }
 
@@ -285,7 +285,7 @@ public static class UnityVersionHandler
 
     public static int ParameterInfoSize()
     {
-        return parameterInfoStructHandler.Size();
+        return parameterInfoStructHandler.Size;
     }
 
     //Types
@@ -301,6 +301,6 @@ public static class UnityVersionHandler
 
     public static int TypeSize()
     {
-        return typeStructHandler.Size();
+        return typeStructHandler.Size;
     }
 }

@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo
     [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativePropertyInfoStructHandler_16_0 : INativePropertyInfoStructHandler
     {
-        public int Size() => sizeof(Il2CppPropertyInfo_16_0);
         public INativePropertyInfoStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppPropertyInfo_16_0* _ = (Il2CppPropertyInfo_16_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.PropertyInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppPropertyInfo_16_0);
         internal unsafe struct Il2CppPropertyInfo_16_0
         {
             public Il2CppClass* parent;

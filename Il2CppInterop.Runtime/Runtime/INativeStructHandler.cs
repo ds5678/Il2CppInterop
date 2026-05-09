@@ -2,5 +2,5 @@
 
 public interface INativeStructHandler
 {
-    public int Size();
+    public int Size { get; }
 }

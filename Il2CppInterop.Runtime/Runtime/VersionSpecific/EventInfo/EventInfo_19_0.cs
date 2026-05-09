@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.EventInfo
     [ApplicableToUnityVersionsSince("5.3.1p3")]
     public unsafe class NativeEventInfoStructHandler_19_0 : INativeEventInfoStructHandler
     {
-        public int Size() => sizeof(Il2CppEventInfo_19_0);
         public INativeEventInfoStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppEventInfo_19_0* _ = (Il2CppEventInfo_19_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.EventInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppEventInfo_19_0);
         internal unsafe struct Il2CppEventInfo_19_0
         {
             public byte* name;

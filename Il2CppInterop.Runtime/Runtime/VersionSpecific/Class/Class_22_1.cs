@@ -5,10 +5,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
     [ApplicableToUnityVersionsSince("5.5.0p2")]
     public unsafe class NativeClassStructHandler_22_1 : INativeClassStructHandler
     {
-        public int Size() => sizeof(Il2CppClass_22_1);
         public INativeClassStruct CreateNewStruct(int vTableSlots)
         {
-            nint ptr = Marshal.AllocHGlobal(Size() + sizeof(VirtualInvokeData) * vTableSlots);
+            nint ptr = Marshal.AllocHGlobal(Size + sizeof(VirtualInvokeData) * vTableSlots);
             Il2CppClass_22_1* _ = (Il2CppClass_22_1*)ptr;
             *_ = default;
             _->byval_arg = UnityVersionHandler.NewType().TypePointer;
@@ -20,6 +19,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Class
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppClass_22_1);
         internal unsafe struct Il2CppClass_22_1
         {
             public Il2CppImage* image;

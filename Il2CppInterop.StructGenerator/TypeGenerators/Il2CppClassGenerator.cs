@@ -22,7 +22,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
 
     protected override IEnumerable<CodeGenParameter>? CreateNewParameters => [new CodeGenParameter("int", "vTableSlots")];
 
-    protected override string? SizeOverride => "Size() + sizeof(VirtualInvokeData) * vTableSlots";
+    protected override string? SizeOverride => "Size + sizeof(VirtualInvokeData) * vTableSlots";
     private bool ByValArgIsPointer => GetNativeField("byval_arg")?.FieldType.EndsWith('*') ?? false;
     private bool ThisArgIsPointer => GetNativeField("this_arg")?.FieldType.EndsWith('*') ?? false;
 

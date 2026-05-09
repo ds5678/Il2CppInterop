@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo
     [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativeFieldInfoStructHandler_16_0 : INativeFieldInfoStructHandler
     {
-        public int Size() => sizeof(Il2CppFieldInfo_16_0);
         public INativeFieldInfoStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppFieldInfo_16_0* _ = (Il2CppFieldInfo_16_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.FieldInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppFieldInfo_16_0);
         internal unsafe struct Il2CppFieldInfo_16_0
         {
             public byte* name;

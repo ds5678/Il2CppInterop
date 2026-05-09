@@ -15,9 +15,9 @@ internal class StructHandlerGenerator
             IsUnsafe = true,
             InterfaceNames = { handlerInterface }
         };
-        HandlerClass.Methods.Add(new CodeGenMethod("int", ElementProtection.Public, "Size")
+        HandlerClass.Properties.Add(new CodeGenProperty("int", ElementProtection.Public, "Size")
         {
-            ImmediateReturn = $"sizeof({nativeStructGen.NativeStruct.Name})"
+            ImmediateGet = $"sizeof({nativeStructGen.NativeStruct.Name})"
         });
         CodeGenMethod createNewMethod = new(nativeInterface, ElementProtection.Public, "CreateNewStruct")
         {
@@ -27,7 +27,7 @@ internal class StructHandlerGenerator
                 if (SizeProviderOverride != null)
                     writer.WriteLine($"{SizeProviderOverride});");
                 else
-                    writer.WriteLine("Size());");
+                    writer.WriteLine("Size);");
                 writer.WriteLine(
                     $"{nativeStructGen.NativeStruct.Name}* _ = ({nativeStructGen.NativeStruct.Name}*)ptr;");
                 writer.WriteLine("*_ = default;");
