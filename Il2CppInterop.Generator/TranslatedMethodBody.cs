@@ -1070,6 +1070,8 @@ public class TranslatedMethodBody : MethodBodyBase
                 {
                     2 => appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank2<>)),
                     3 => appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank3<>)),
+                    4 => appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank4<>)),
+                    5 => appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank5<>)),
                     _ => null,
                 };
                 if (arrayType is null)

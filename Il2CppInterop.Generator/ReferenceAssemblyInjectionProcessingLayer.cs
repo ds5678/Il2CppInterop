@@ -43,6 +43,8 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppArrayRank1<>),
             typeof(Il2CppArrayRank2<>),
             typeof(Il2CppArrayRank3<>),
+            typeof(Il2CppArrayRank4<>),
+            typeof(Il2CppArrayRank5<>),
 
             typeof(Il2CppException),
             typeof(TypeInjector),

@@ -1,5 +1,4 @@
 ﻿using Cpp2IL.Core.Model.Contexts;
-using Il2CppInterop.Generator;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 
@@ -16,6 +15,8 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
     public required TypeAnalysisContext ArrayRank1 { get; init; }
     public required TypeAnalysisContext ArrayRank2 { get; init; }
     public required TypeAnalysisContext ArrayRank3 { get; init; }
+    public required TypeAnalysisContext ArrayRank4 { get; init; }
+    public required TypeAnalysisContext ArrayRank5 { get; init; }
 
     public static TypeConversionVisitor Create(ApplicationAnalysisContext appContext)
     {
@@ -28,6 +29,8 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
         var arrayRank1 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank1<>));
         var arrayRank2 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank2<>));
         var arrayRank3 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank3<>));
+        var arrayRank4 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank4<>));
+        var arrayRank5 = il2CppInteropRuntime.GetTypeByFullNameOrThrow(typeof(Il2CppArrayRank5<>));
 
         (string, string)[] replacements =
         [
@@ -45,6 +48,8 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
             ArrayRank1 = arrayRank1,
             ArrayRank2 = arrayRank2,
             ArrayRank3 = arrayRank3,
+            ArrayRank4 = arrayRank4,
+            ArrayRank5 = arrayRank5,
         };
     }
 
@@ -55,6 +60,8 @@ internal sealed class TypeConversionVisitor : TypeReplacementVisitor
             1 => ArrayRank1.MakeGenericInstanceType([elementResult]),
             2 => ArrayRank2.MakeGenericInstanceType([elementResult]),
             3 => ArrayRank3.MakeGenericInstanceType([elementResult]),
+            4 => ArrayRank4.MakeGenericInstanceType([elementResult]),
+            5 => ArrayRank5.MakeGenericInstanceType([elementResult]),
             _ => throw new NotImplementedException($"Support for arrays with rank {type.Rank} has not been implemented."),
         };
     }
