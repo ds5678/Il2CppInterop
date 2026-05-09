@@ -51,7 +51,7 @@ Il2CppGame.Process(
         new DelegateConversionProcessingLayer(),
         new ByRefParameterOverloadProcessingLayer(),
         new UserFriendlyOverloadProcessingLayer(),
-        // new SystemInterfaceRecoveryProcessingLayer(), // Should handle INotifyCompletion, IEnumerable, IEquatable, etc
+        new SystemInterfaceProcessingLayer(),
         new ConstantInitializationProcessingLayer(),
         new StaticConstructorProcessingLayer(),
     ],
@@ -62,6 +62,5 @@ Console.WriteLine("Done!");
 Todo
 - System interfaces
 - overloads with delegates, primitives
-- Source generation for user-injected types
 - Add attributes to "Unsafe" methods so that users cannot see them
 */
