@@ -7,7 +7,7 @@ namespace Il2CppInterop.SourceGenerator.Tests;
 
 public abstract class AnalyzerTests
 {
-    protected CSharpAnalyzerTest<InjectedTypePartialAnalyzer, DefaultVerifier> Context { get; private set; }
+    protected CSharpAnalyzerTest<InjectedTypeAnalyzer, DefaultVerifier> Context { get; private set; }
 
     [SetUp]
     public void Setup()

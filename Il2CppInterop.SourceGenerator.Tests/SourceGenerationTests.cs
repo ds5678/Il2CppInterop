@@ -9,7 +9,7 @@ namespace Il2CppInterop.SourceGenerator.Tests;
 
 public abstract class SourceGenerationTests
 {
-    protected CSharpSourceGeneratorTest<Il2CppTypeGenerator, DefaultVerifier> Context { get; private set; }
+    protected CSharpSourceGeneratorTest<InjectedTypeGenerator, DefaultVerifier> Context { get; private set; }
 
     [SetUp]
     public void Setup()
@@ -26,7 +26,7 @@ public abstract class SourceGenerationTests
     protected async Task TestGeneration(string testCode, string expectedFileName, string expectedGeneratedCode)
     {
         Context.TestCode = testCode;
-        Context.TestState.GeneratedSources.Add((typeof(Il2CppTypeGenerator), expectedFileName, SourceText.From(expectedGeneratedCode.Replace("\r", null), Encoding.UTF8, SourceHashAlgorithm.Sha256)));
+        Context.TestState.GeneratedSources.Add((typeof(InjectedTypeGenerator), expectedFileName, SourceText.From(expectedGeneratedCode.Replace("\r", null), Encoding.UTF8, SourceHashAlgorithm.Sha256)));
         await Context.RunAsync(TestContext.CurrentContext.CancellationToken);
     }
 }

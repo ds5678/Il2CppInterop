@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Il2CppInterop.SourceGenerator;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed class InjectedTypePartialAnalyzer : DiagnosticAnalyzer
+public sealed class InjectedTypeAnalyzer : DiagnosticAnalyzer
 {
     #region Diagnostic Descriptors
 
