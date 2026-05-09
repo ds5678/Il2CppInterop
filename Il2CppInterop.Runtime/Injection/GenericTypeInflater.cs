@@ -14,6 +14,8 @@ internal static unsafe class GenericTypeInflater
 
     private static nint InflateGenericType(INativeClassStruct genericClassPointer, nint[] genericArgClassPtrs)
     {
+        // This is an extremely naive implementation of generic type inflation and likely breaks the moment someone touches an inflated type.
+
         var inflatedClassPointer = UnityVersionHandler.NewClass(genericClassPointer.VTableCount);
 
         CopyFrom(inflatedClassPointer.ByValArg, genericClassPointer.ByValArg);
