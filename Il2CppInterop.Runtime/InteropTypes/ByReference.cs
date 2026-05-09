@@ -36,6 +36,7 @@ public readonly unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByRefe
 {
     private readonly void* _pointer = pointer;
 
+    public static ByReference<T> Null => new(null);
     public readonly bool IsNull => _pointer is null;
 
     public readonly T? GetValue()

@@ -9,6 +9,7 @@ public readonly unsafe struct Pointer<T>(void* pointer) : IIl2CppType<Pointer<T>
 {
     private readonly void* _pointer = pointer;
 
+    public static Pointer<T> Null => new(null);
     public readonly bool IsNull => _pointer is null;
 
     public readonly T? this[int index]
