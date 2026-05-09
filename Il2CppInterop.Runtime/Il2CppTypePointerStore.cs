@@ -1,6 +1,6 @@
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
-using Il2CppInterop.Runtime.Runtime;
+using Il2CppInterop.Runtime.Structs;
 
 namespace Il2CppInterop.Runtime;
 

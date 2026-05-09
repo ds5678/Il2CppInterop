@@ -249,7 +249,7 @@ internal abstract class VersionSpecificGenerator
         }
         var file = new CodeGenFile()
         {
-            Namespace = $"Il2CppInterop.Runtime.Runtime.VersionSpecific.{NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
+            Namespace = $"Il2CppInterop.Runtime.Structs.VersionSpecific.{NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
             Elements =
             {
                 handlerInterface,

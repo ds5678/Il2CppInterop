@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppInterop.Runtime.Runtime;
-using Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo;
+using Il2CppInterop.Runtime.Structs;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
 using MonoMod.Core;
 
 namespace Il2CppInterop.HarmonySupport;
