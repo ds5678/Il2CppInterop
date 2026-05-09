@@ -42,10 +42,10 @@ public sealed class Il2CppArrayRank3<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
         }
     }
 
-    public T this[int index0, int index1]
+    public T this[int index0, int index1, int index2]
     {
-        get => this[[index0, index1]];
-        set => this[[index0, index1]] = value;
+        get => this[[index0, index1, index2]];
+        set => this[[index0, index1, index2]] = value;
     }
     public ByReference<T> GetElementAddress(int index0, int index1, int index2) => GetElementAddress([index0, index1, index2]);
 
