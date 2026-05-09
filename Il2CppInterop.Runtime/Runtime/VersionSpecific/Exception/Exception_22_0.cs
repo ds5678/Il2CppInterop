@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
     [ApplicableToUnityVersionsSince("5.5.0")]
     public unsafe class NativeExceptionStructHandler_22_0 : INativeExceptionStructHandler
     {
-        public int Size() => sizeof(Il2CppException_22_0);
         public INativeExceptionStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppException_22_0* _ = (Il2CppException_22_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Exception
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppException_22_0);
         internal unsafe struct Il2CppException_22_0
         {
             public Il2CppObject _object;

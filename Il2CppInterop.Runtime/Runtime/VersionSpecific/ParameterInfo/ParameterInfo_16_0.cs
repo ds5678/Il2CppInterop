@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
     [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativeParameterInfoStructHandler_16_0 : INativeParameterInfoStructHandler
     {
-        public int Size() => sizeof(Il2CppParameterInfo_16_0);
         public INativeParameterInfoStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppParameterInfo_16_0* _ = (Il2CppParameterInfo_16_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.ParameterInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppParameterInfo_16_0);
         internal unsafe struct Il2CppParameterInfo_16_0
         {
             public byte* name;

@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
     [ApplicableToUnityVersionsSince("2018.4.34")]
     public unsafe class NativeAssemblyNameStructHandler_24_1 : INativeAssemblyNameStructHandler
     {
-        public int Size() => sizeof(Il2CppAssemblyName_24_1);
         public INativeAssemblyNameStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppAssemblyName_24_1* _ = (Il2CppAssemblyName_24_1*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.AssemblyName
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppAssemblyName_24_1);
         internal unsafe struct Il2CppAssemblyName_24_1
         {
             public byte* name;

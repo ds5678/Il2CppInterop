@@ -5,10 +5,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
     [ApplicableToUnityVersionsSince("6000.5.0")]
     public unsafe class NativeAssemblyStructHandler_104_0 : INativeAssemblyStructHandler
     {
-        public int Size() => sizeof(Il2CppAssembly_104_0);
         public INativeAssemblyStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppAssembly_104_0* _ = (Il2CppAssembly_104_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -18,6 +17,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Assembly
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppAssembly_104_0);
         internal unsafe struct Il2CppAssembly_104_0
         {
             public Il2CppImage* image;

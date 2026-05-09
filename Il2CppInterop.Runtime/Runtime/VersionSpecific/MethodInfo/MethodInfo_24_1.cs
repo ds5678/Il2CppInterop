@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
     [ApplicableToUnityVersionsSince("2018.1.0f1")]
     public unsafe class NativeMethodInfoStructHandler_24_1 : INativeMethodInfoStructHandler
     {
-        public int Size() => sizeof(Il2CppMethodInfo_24_1);
         public INativeMethodInfoStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppMethodInfo_24_1* _ = (Il2CppMethodInfo_24_1*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.MethodInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppMethodInfo_24_1);
         internal unsafe struct Il2CppMethodInfo_24_1
         {
             public void* methodPointer;

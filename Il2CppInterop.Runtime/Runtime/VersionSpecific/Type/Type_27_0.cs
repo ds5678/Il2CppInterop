@@ -4,10 +4,9 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Type
     [ApplicableToUnityVersionsSince("2021.1.0")]
     public unsafe class NativeTypeStructHandler_27_0 : INativeTypeStructHandler
     {
-        public int Size() => sizeof(Il2CppType_27_0);
         public INativeTypeStruct CreateNewStruct()
         {
-            nint ptr = Marshal.AllocHGlobal(Size());
+            nint ptr = Marshal.AllocHGlobal(Size);
             Il2CppType_27_0* _ = (Il2CppType_27_0*)ptr;
             *_ = default;
             return new NativeStructWrapper(ptr);
@@ -17,6 +16,7 @@ namespace Il2CppInterop.Runtime.Runtime.VersionSpecific.Type
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public int Size => sizeof(Il2CppType_27_0);
         internal unsafe struct Il2CppType_27_0
         {
             public void* data;
