@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Il2CppInterop.SourceGenerator;
 
 [Generator]
-public sealed class Il2CppTypeGenerator : IIncrementalGenerator
+public sealed class InjectedTypeGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {

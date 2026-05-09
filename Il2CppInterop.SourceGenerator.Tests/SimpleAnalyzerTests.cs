@@ -16,7 +16,7 @@ public class SimpleAnalyzerTests : AnalyzerTests
             }
             """;
 
-        var expectedDiagnostic = new DiagnosticResult(InjectedTypePartialAnalyzer.MustBePartial)
+        var expectedDiagnostic = new DiagnosticResult(InjectedTypeAnalyzer.MustBePartial)
             .WithSpan(LinePositionSpan.FindInSource(testCode, "Sample"))
             .WithArguments("Sample");
 
