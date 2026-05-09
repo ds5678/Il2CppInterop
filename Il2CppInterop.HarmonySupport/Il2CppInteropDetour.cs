@@ -126,7 +126,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         cursor.Goto(0)
             .GotoNext(x =>
-                x.MatchLdsfld(Il2CppInteropUtils
+                x.MatchLdsfld(Il2CppInternalsAccess
                     .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(Source)!))
             .Remove();
 

@@ -34,11 +34,11 @@ public sealed class Il2CppInteropDetourFactory(IDetourFactory? fallback = null) 
                 throw new InvalidOperationException("IDetourFactory consumer has to support CreateSourceCloneIfNotILClone");
             }
 
-            var methodField = Il2CppInteropUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(request.Source);
+            var methodField = Il2CppInternalsAccess.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(request.Source);
 
             if (methodField == null)
             {
-                var fieldInfoField = Il2CppInteropUtils.GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(request.Source);
+                var fieldInfoField = Il2CppInternalsAccess.GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(request.Source);
 
                 if (fieldInfoField != null)
                 {
