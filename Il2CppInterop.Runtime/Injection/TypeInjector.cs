@@ -1402,9 +1402,15 @@ public static unsafe class TypeInjector
 
     private static (string AssemblyName, string Namespace, string Name) GetFullyQualifiedName(Type type)
     {
-        return typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetFullyQualifiedName))!.MakeGenericMethod(type).Invoke(null, null) is ValueTuple<string, string, string> result
+        var methodInfo = typeof(TypeInjector).GetMethod(nameof(GetFullyQualifiedNameGeneric), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type);
+        return methodInfo.Invoke(null, null) is ValueTuple<string, string, string> result
             ? result
             : throw new InvalidOperationException("GetFullyQualifiedName should return a ValueTuple<string, string, string>");
+    }
+
+    private static (string AssemblyName, string Namespace, string Name) GetFullyQualifiedNameGeneric<T>() where T : IIl2CppType<T>
+    {
+        return (T.AssemblyName, T.Namespace, T.Name);
     }
 
     private static Il2CppClassAttributes TypeAttributesToClassAttributes(TypeAttributes typeAttributes)
