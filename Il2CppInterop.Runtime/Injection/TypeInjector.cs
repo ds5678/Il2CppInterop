@@ -280,8 +280,6 @@ public static unsafe class TypeInjector
             var interfaceOffsets = new List<Il2CppRuntimeInterfaceOffsetPair>();
 
             var map1 = CreateMethodInfoToHashDictionary(type);
-            var map2 = CreateHashToMethodInfoDictionary(type);
-            var map3 = CreateNativeMethodInfoToHashDictionary(classPointer);
             var map4 = CreateHashToNativeMethodInfoDictionary(classPointer);
 
             var index = 0;
@@ -291,10 +289,8 @@ public static unsafe class TypeInjector
 
                 var baseMethodToMethodMap = GetIl2CppMethods(type).ToDictionary(m => m.GetBaseDefinition(), m => m);
 
-                var baseMap1 = CreateMethodInfoToHashDictionary(baseType);
                 var baseMap2 = CreateHashToMethodInfoDictionary(baseType);
                 var baseMap3 = CreateNativeMethodInfoToHashDictionary(baseClassPointer);
-                var baseMap4 = CreateHashToNativeMethodInfoDictionary(baseClassPointer);
 
                 var lowestedInterfaceOffset = LowestInterfaceOffset(baseClassPointer);
                 for (; index < lowestedInterfaceOffset; index++)
@@ -363,10 +359,8 @@ public static unsafe class TypeInjector
                         }
                     }
 
-                    var interfaceMap1 = CreateMethodInfoToHashDictionary(interfaceType);
                     var interfaceMap2 = CreateHashToMethodInfoDictionary(interfaceType);
                     var interfaceMap3 = CreateNativeMethodInfoToHashDictionary(interfaceClassPointer);
-                    var interfaceMap4 = CreateHashToNativeMethodInfoDictionary(interfaceClassPointer);
 
                     for (var i = 0; i < interfaceVtableCount; i++)
                     {
@@ -416,10 +410,8 @@ public static unsafe class TypeInjector
                     }
                 }
 
-                var interfaceMap1 = CreateMethodInfoToHashDictionary(interfaceType);
                 var interfaceMap2 = CreateHashToMethodInfoDictionary(interfaceType);
                 var interfaceMap3 = CreateNativeMethodInfoToHashDictionary(interfaceClassPointer);
-                var interfaceMap4 = CreateHashToNativeMethodInfoDictionary(interfaceClassPointer);
 
                 for (var i = 0; i < interfaceVtableCount; i++)
                 {
