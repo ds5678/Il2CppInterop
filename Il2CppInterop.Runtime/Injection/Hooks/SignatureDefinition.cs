@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Linq;
 
-namespace Il2CppInterop.Runtime.Injection;
+namespace Il2CppInterop.Runtime.Injection.Hooks;
 
 internal struct SignatureDefinition
 {
