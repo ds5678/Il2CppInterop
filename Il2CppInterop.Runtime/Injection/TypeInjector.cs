@@ -29,7 +29,7 @@ public static unsafe class TypeInjector
     private static readonly HashSet<Type> NeedsInitialized = new();
     private static readonly Dictionary<Type, int> NeedsVTableSet = new();
     private static readonly HashSet<Type> NeedsFieldsSet = new();
-    private static readonly ConcurrentDictionary<NamedSignatureHash, Delegate> InvokerCache = new();
+    private static readonly ConcurrentDictionary<SignatureHash, Delegate> InvokerCache = new();
 
     /// <summary>
     /// If true, this type is part of the game and not something we are trying to inject nor something that has already been injected by us.
@@ -1048,11 +1048,11 @@ public static unsafe class TypeInjector
 
     private static Delegate GetOrCreateInvoker(MethodInfo monoMethod)
     {
-        return InvokerCache.GetOrAdd(new NamedSignatureHash(monoMethod),
-            static (_, monoMethodInner) => CreateInvoker(monoMethodInner), monoMethod);
+        return InvokerCache.GetOrAdd(new SignatureHash(monoMethod),
+            static (signatureHash, monoMethodInner) => CreateInvoker(signatureHash, monoMethodInner), monoMethod);
     }
 
-    private static Delegate CreateInvoker(MethodInfo monoMethod)
+    private static Delegate CreateInvoker(SignatureHash signatureHash, MethodInfo monoMethod)
     {
         Debug.Assert(monoMethod.DeclaringType is not null);
 
@@ -1066,7 +1066,7 @@ public static unsafe class TypeInjector
             // arguments pointer
             // return value pointer (if not void)
 
-            method = new DynamicMethod($"Invoker_{new NamedSignatureHash(monoMethod)}",
+            method = new DynamicMethod($"Invoker_{signatureHash}",
                 MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, typeof(void),
                 parameterTypes, typeof(TypeInjector), true);
         }
@@ -1078,7 +1078,7 @@ public static unsafe class TypeInjector
             // this pointer
             // arguments pointer
 
-            method = new DynamicMethod($"Invoker_{new NamedSignatureHash(monoMethod)}",
+            method = new DynamicMethod($"Invoker_{signatureHash}",
                 MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, typeof(IntPtr),
                 parameterTypes, typeof(TypeInjector), true);
         }
