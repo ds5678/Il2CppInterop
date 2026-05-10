@@ -31,7 +31,7 @@ internal unsafe class Class_FromIl2CppType_Hook : Hook<Class_FromIl2CppType_Hook
 
         if ((nint)type->data < 0 && (type->type is Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE))
         {
-            InjectorHelpers.s_InjectedClasses.TryGetValue((nint)type->data, out var classPointer);
+            TokenAllocator.TryGetClassPointer((nint)type->data, out var classPointer);
             return (Il2CppClass*)classPointer;
         }
 
@@ -40,7 +40,7 @@ internal unsafe class Class_FromIl2CppType_Hook : Hook<Class_FromIl2CppType_Hook
 
     public override IntPtr FindTargetMethod()
     {
-        var classFromTypeAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_il2cpp_type));
+        var classFromTypeAPI = Il2CppModule.GetExport(nameof(IL2CPP.il2cpp_class_from_il2cpp_type));
         Logger.Instance.LogTrace("il2cpp_class_from_il2cpp_type: 0x{ClassFromTypeApiAddress}", classFromTypeAPI.ToInt64().ToString("X2"));
 
         return XrefScanner.JumpTargets(classFromTypeAPI).Single();

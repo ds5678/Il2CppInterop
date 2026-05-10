@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
@@ -8,6 +9,19 @@ namespace Il2CppInterop.Runtime.Injection;
 
 internal static class Hook
 {
+    private static readonly MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook GetTypeInfoFromTypeDefinitionIndexHook = new();
+    private static readonly Class_GetFieldDefaultValue_Hook GetFieldDefaultValueHook = new();
+    private static readonly Class_FromIl2CppType_Hook FromIl2CppTypeHook = new();
+    private static readonly Class_FromName_Hook FromNameHook = new();
+
+    internal static void ApplyInjectionHooks()
+    {
+        GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
+        GetFieldDefaultValueHook.ApplyHook();
+        FromIl2CppTypeHook.ApplyHook();
+        FromNameHook.ApplyHook();
+    }
+
     public static IDisposable ApplyDetour<T>(nint original, T target, out T trampoline) where T : Delegate
     {
         return Il2CppInteropRuntime.Instance.DetourProvider.Create(original, target, out trampoline);
@@ -15,10 +29,12 @@ internal static class Hook
 }
 internal abstract class Hook<T> where T : Delegate
 {
+#nullable disable
     private bool _isApplied;
     private T _detour;
     private T _method;
     private T _original;
+#nullable restore
 
     public T Original => _original;
 
