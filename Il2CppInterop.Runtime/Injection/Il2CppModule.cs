@@ -9,7 +9,7 @@ internal static class Il2CppModule
 {
     internal static readonly ProcessModule Module = Process.GetCurrentProcess()
         .Modules.OfType<ProcessModule>()
-        .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.so" or "UserAssembly.dll");
+        .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.dylib" or "GameAssembly.so" or "UserAssembly.dll");
 
     private static readonly IntPtr Handle = NativeLibrary.Load("GameAssembly", typeof(Il2CppModule).Assembly, null);
 
