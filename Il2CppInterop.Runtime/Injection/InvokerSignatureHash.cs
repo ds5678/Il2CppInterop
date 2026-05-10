@@ -7,11 +7,14 @@ using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal readonly record struct SignatureHash
+/// <summary>
+/// A hash representing the signature of a generated invoker method
+/// </summary>
+internal readonly record struct InvokerSignatureHash
 {
     private readonly UInt128 _hash;
 
-    public unsafe SignatureHash(INativeMethodInfoStruct methodInfo)
+    public unsafe InvokerSignatureHash(INativeMethodInfoStruct methodInfo)
     {
         XxHash128 hash = new();
         hash.Append((methodInfo.Flags & Il2CppMethodFlags.METHOD_ATTRIBUTE_STATIC) != 0);
@@ -24,7 +27,7 @@ internal readonly record struct SignatureHash
         _hash = hash.GetCurrentHashAsUInt128();
     }
 
-    public SignatureHash(MethodInfo methodInfo)
+    public InvokerSignatureHash(MethodInfo methodInfo)
     {
         XxHash128 hash = new();
         hash.Append(methodInfo.IsStatic);
