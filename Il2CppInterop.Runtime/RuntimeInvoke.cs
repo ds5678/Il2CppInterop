@@ -147,7 +147,7 @@ public static unsafe class RuntimeInvoke
             // Parameter is a ByReference<T>, and we need to get the underlying type T
             var elementType = parameterType.GenericTypeArguments[0];
 
-            var nativeStruct = TrampolineHelpers.NativeType(elementType);
+            var nativeStruct = TrampolineBuilder.GetNativeType(elementType);
             parameterTypes[i] = nativeStruct;
 
             var nativeLocal = bodyBuilder.DeclareLocal(nativeStruct);
@@ -173,7 +173,7 @@ public static unsafe class RuntimeInvoke
         else
         {
             var returnType = invoke.ReturnType;
-            var nativeStruct = TrampolineHelpers.NativeType(returnType);
+            var nativeStruct = TrampolineBuilder.GetNativeType(returnType);
 
             bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeStruct, parameterTypes, null);
 

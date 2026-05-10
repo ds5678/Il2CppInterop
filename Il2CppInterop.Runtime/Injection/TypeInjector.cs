@@ -1092,7 +1092,7 @@ public static unsafe class TypeInjector
             body.Emit(OpCodes.Ldarg_3);
             body.Emit(OpCodes.Ldc_I4, i * IntPtr.Size);
             body.Emit(OpCodes.Add_Ovf_Un);
-            var nativeType = parameterInfo.ParameterType.NativeType();
+            var nativeType = TrampolineBuilder.GetNativeType(parameterInfo.ParameterType);
             body.Emit(OpCodes.Ldobj, typeof(IntPtr));
             if (nativeType != typeof(IntPtr))
                 body.Emit(OpCodes.Ldobj, nativeType);
@@ -1101,11 +1101,11 @@ public static unsafe class TypeInjector
         body.Emit(OpCodes.Ldarg_1); // methodMetadata
         body.Emit(OpCodes.Ldarg_0); // methodPointer
 
-        var nativeReturnType = monoMethod.ReturnType.NativeType();
+        var nativeReturnType = TrampolineBuilder.GetNativeType(monoMethod.ReturnType);
         Type[] nativeParameterTypes =
         [
             ..(ReadOnlySpan<Type>)(monoMethod.IsStatic ? [] : [typeof(IntPtr)]),
-            ..monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()),
+            ..monoMethod.GetParameters().Select(it => TrampolineBuilder.GetNativeType(it.ParameterType)),
             typeof(Il2CppMethodInfo*),
         ];
         body.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeReturnType, nativeParameterTypes, null);
@@ -1159,11 +1159,11 @@ public static unsafe class TypeInjector
     {
         Debug.Assert(monoMethod.DeclaringType is not null);
 
-        var nativeReturnType = monoMethod.ReturnType.NativeType();
+        var nativeReturnType = TrampolineBuilder.GetNativeType(monoMethod.ReturnType);
         Type[] nativeParameterTypes =
         [
             ..(ReadOnlySpan<Type>)(monoMethod.IsStatic ? [] : [typeof(IntPtr)]),
-            ..monoMethod.GetParameters().Select(it => it.ParameterType.NativeType()),
+            ..monoMethod.GetParameters().Select(it => TrampolineBuilder.GetNativeType(it.ParameterType)),
             typeof(Il2CppMethodInfo*),
         ];
 

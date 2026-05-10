@@ -57,12 +57,12 @@ public static class DelegateSupport
 
         parameterTypes[parameterTypes.Length - 1] = typeof(Il2CppMethodInfo*);
         for (var i = 0; i < managedParameters.Length; i++)
-            parameterTypes[i + parameterOffset] = managedParameters[i].ParameterType.NativeType();
+            parameterTypes[i + parameterOffset] = TrampolineBuilder.GetNativeType(managedParameters[i].ParameterType);
 
         newType.DefineMethod("Invoke",
             MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
             CallingConventions.HasThis,
-            managedMethodInner.ReturnType.NativeType(),
+            TrampolineBuilder.GetNativeType(managedMethodInner.ReturnType),
             parameterTypes).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         newType.DefineMethod("BeginInvoke",
@@ -75,7 +75,7 @@ public static class DelegateSupport
         newType.DefineMethod("EndInvoke",
             MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
             CallingConventions.HasThis,
-            managedMethodInner.ReturnType.NativeType(),
+            TrampolineBuilder.GetNativeType(managedMethodInner.ReturnType),
             new[] { typeof(IAsyncResult) }).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         return newType.CreateType();
@@ -106,14 +106,14 @@ public static class DelegateSupport
 
     private static Delegate GenerateNativeToManagedTrampoline(MethodInfo managedMethod, MethodSignature signature)
     {
-        var returnType = managedMethod.ReturnType.NativeType();
+        var returnType = TrampolineBuilder.GetNativeType(managedMethod.ReturnType);
 
         var managedParameters = managedMethod.GetParameters();
         var parameterTypes = new Type[managedParameters.Length + 1 + 1]; // thisptr for target, methodInfo last arg
         parameterTypes[0] = typeof(IntPtr);
         parameterTypes[managedParameters.Length + 1] = typeof(Il2CppMethodInfo*);
         for (var i = 0; i < managedParameters.Length; i++)
-            parameterTypes[i + 1] = managedParameters[i].ParameterType.NativeType();
+            parameterTypes[i + 1] = TrampolineBuilder.GetNativeType(managedParameters[i].ParameterType);
 
         var trampoline = new DynamicMethod("(il2cpp delegate trampoline) " + ExtractSignature(managedMethod),
             MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, returnType, parameterTypes,
@@ -286,11 +286,11 @@ public static class DelegateSupport
 
             var hashCode = new HashCode();
 
-            hashCode.Add(methodInfo.ReturnType.NativeType());
-            if (hasThis) hashCode.Add(methodInfo.DeclaringType!.NativeType());
+            hashCode.Add(TrampolineBuilder.GetNativeType(methodInfo.ReturnType));
+            if (hasThis) hashCode.Add(TrampolineBuilder.GetNativeType(methodInfo.DeclaringType!));
             foreach (var parameterInfo in methodInfo.GetParameters())
             {
-                hashCode.Add(parameterInfo.ParameterType.NativeType());
+                hashCode.Add(TrampolineBuilder.GetNativeType(parameterInfo.ParameterType));
             }
 
             _hashCode = hashCode.ToHashCode();
