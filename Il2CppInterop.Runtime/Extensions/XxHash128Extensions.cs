@@ -11,7 +11,7 @@ internal static class XxHash128Extensions
 {
     public static void Append(this XxHash128 hash, byte value)
     {
-        ReadOnlySpan<byte> data = [value];
+        ReadOnlySpan<byte> data = new ReadOnlySpan<byte>(ref value);
         hash.Append(data);
     }
 
