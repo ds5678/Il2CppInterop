@@ -5,7 +5,7 @@ using System.Linq;
 using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
 
-namespace Il2CppInterop.Runtime.Injection;
+namespace Il2CppInterop.Runtime.Injection.Hooks;
 
 internal struct SignatureDefinition
 {
