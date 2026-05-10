@@ -1,10 +1,18 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Startup;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;
 
+internal static class Hook
+{
+    public static IDisposable ApplyDetour<T>(nint original, T target, out T trampoline) where T : Delegate
+    {
+        return Il2CppInteropRuntime.Instance.DetourProvider.Create(original, target, out trampoline);
+    }
+}
 internal abstract class Hook<T> where T : Delegate
 {
     private bool _isApplied;
@@ -38,7 +46,7 @@ internal abstract class Hook<T> where T : Delegate
         Logger.Instance.LogTrace("{MethodName} found: 0x{MethodPtr}", TargetMethodName, methodPtr.ToInt64().ToString("X2"));
 
         _detour = GetDetour();
-        Detour.Apply(methodPtr, _detour, out _original);
+        Hook.ApplyDetour(methodPtr, _detour, out _original);
         _method = Marshal.GetDelegateForFunctionPointer<T>(methodPtr);
         _isApplied = true;
     }
