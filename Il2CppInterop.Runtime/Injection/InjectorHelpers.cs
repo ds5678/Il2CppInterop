@@ -16,7 +16,6 @@ namespace Il2CppInterop.Runtime.Injection
 {
     internal static unsafe class InjectorHelpers
     {
-        internal static Assembly Il2CppMscorlib = typeof(Il2CppSystem.Type).Assembly;
         internal static ProcessModule Il2CppModule = Process.GetCurrentProcess()
             .Modules.OfType<ProcessModule>()
             .Single((x) => x.ModuleName is "GameAssembly.dll" or "GameAssembly.dylib" or "GameAssembly.so" or "UserAssembly.dll" || string.Equals(x.ModuleName, "GameAssembly.dll", StringComparison.OrdinalIgnoreCase));
