@@ -29,7 +29,7 @@ public static unsafe class TypeInjector
     private static readonly HashSet<Type> NeedsInitialized = new();
     private static readonly Dictionary<Type, int> NeedsVTableSet = new();
     private static readonly HashSet<Type> NeedsFieldsSet = new();
-    private static readonly ConcurrentDictionary<UInt128, Delegate> InvokerCache = new();
+    private static readonly ConcurrentDictionary<NamedSignatureHash, Delegate> InvokerCache = new();
 
     /// <summary>
     /// If true, this type is part of the game and not something we are trying to inject nor something that has already been injected by us.
@@ -546,26 +546,26 @@ public static unsafe class TypeInjector
         return result;
     }
 
-    private static Dictionary<UInt128, MethodInfo> CreateHashToMethodInfoDictionary(Type type)
+    private static Dictionary<NamedSignatureHash, MethodInfo> CreateHashToMethodInfoDictionary(Type type)
     {
-        return GetAllIl2CppMethods(type).ToDictionary(HashSignature);
+        return GetAllIl2CppMethods(type).ToDictionary(m => new NamedSignatureHash(m));
     }
 
-    private static Dictionary<MethodInfo, UInt128> CreateMethodInfoToHashDictionary(Type type)
+    private static Dictionary<MethodInfo, NamedSignatureHash> CreateMethodInfoToHashDictionary(Type type)
     {
-        return GetAllIl2CppMethods(type).ToDictionary(m => m, HashSignature);
+        return GetAllIl2CppMethods(type).ToDictionary(m => m, m => new NamedSignatureHash(m));
     }
 
-    private static Dictionary<UInt128, INativeMethodInfoStruct> CreateHashToNativeMethodInfoDictionary(INativeClassStruct classPointer)
+    private static Dictionary<NamedSignatureHash, INativeMethodInfoStruct> CreateHashToNativeMethodInfoDictionary(INativeClassStruct classPointer)
     {
-        var dict = new Dictionary<UInt128, INativeMethodInfoStruct>(classPointer.MethodCount);
+        var dict = new Dictionary<NamedSignatureHash, INativeMethodInfoStruct>(classPointer.MethodCount);
         var currentClassPointer = classPointer;
         while (true)
         {
             for (var i = 0; i < currentClassPointer.MethodCount; i++)
             {
                 var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
-                dict.TryAdd(HashSignature(methodInfo), methodInfo);
+                dict.TryAdd(new NamedSignatureHash(methodInfo), methodInfo);
             }
             if (currentClassPointer.Parent is null)
                 break;
@@ -574,100 +574,22 @@ public static unsafe class TypeInjector
         return dict;
     }
 
-    private static Dictionary<IntPtr, UInt128> CreateNativeMethodInfoToHashDictionary(INativeClassStruct classPointer)
+    private static Dictionary<IntPtr, NamedSignatureHash> CreateNativeMethodInfoToHashDictionary(INativeClassStruct classPointer)
     {
-        var dict = new Dictionary<IntPtr, UInt128>(classPointer.MethodCount);
+        var dict = new Dictionary<IntPtr, NamedSignatureHash>(classPointer.MethodCount);
         var currentClassPointer = classPointer;
         while (true)
         {
             for (var i = 0; i < currentClassPointer.MethodCount; i++)
             {
                 var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
-                dict.Add(methodInfo.Pointer, HashSignature(methodInfo));
+                dict.Add(methodInfo.Pointer, new NamedSignatureHash(methodInfo));
             }
             if (currentClassPointer.Parent is null)
                 break;
             currentClassPointer = UnityVersionHandler.Wrap(currentClassPointer.Parent);
         }
         return dict;
-    }
-
-    private static UInt128 HashSignature(INativeMethodInfoStruct methodInfo)
-    {
-        // The probability of a hash collision is infinitesimal.
-        XxHash128 hash = new();
-        hash.Append(GetName(methodInfo));
-        hash.Append((byte)((methodInfo.Flags & Il2CppMethodFlags.METHOD_ATTRIBUTE_STATIC) != 0 ? 1 : 0));
-        hash.Append(GetFullName(methodInfo.ReturnType));
-        for (var i = 0; i < methodInfo.ParametersCount; i++)
-        {
-            var parameter = UnityVersionHandler.Wrap(methodInfo.Parameters, i);
-            hash.Append(GetFullName(parameter.ParameterType));
-        }
-        return hash.GetCurrentHashAsUInt128();
-    }
-
-    private static UInt128 HashSignature(MethodInfo methodInfo)
-    {
-        // The probability of a hash collision is infinitesimal.
-        XxHash128 hash = new();
-        var name = methodInfo.GetCustomAttribute<Il2CppMethodAttribute>()?.Name ?? methodInfo.Name;
-        hash.Append(System.Text.Encoding.UTF8.GetBytes(name));
-        hash.Append((byte)(methodInfo.IsStatic ? 1 : 0));
-        hash.Append(GetFullName(methodInfo.ReturnType));
-        foreach (var parameter in methodInfo.GetParameters())
-        {
-            hash.Append(GetFullName(parameter.ParameterType));
-        }
-        return hash.GetCurrentHashAsUInt128();
-    }
-
-    private static void Append(this XxHash128 hash, byte b)
-    {
-        ReadOnlySpan<byte> data = [b];
-        hash.Append(data);
-    }
-
-    private static void Append(this XxHash128 hash, Il2CppSystem.String? str)
-    {
-        var data = MemoryMarshal.AsBytes(GetSpan(str));
-        hash.Append(data);
-    }
-
-    private static ReadOnlySpan<byte> GetName(INativeMethodInfoStruct methodInfo)
-    {
-        var namePtr = methodInfo.Name;
-        if (namePtr == IntPtr.Zero)
-            return default;
-
-        // Find null terminator
-        int length = 0;
-        while (Marshal.ReadByte(namePtr, length) != 0)
-        {
-            length++;
-        }
-        return new ReadOnlySpan<byte>((void*)namePtr, length);
-    }
-
-    private static Il2CppSystem.String GetFullName(Type type)
-    {
-        return GetFullName((Il2CppTypeStruct*)Il2CppTypePointerStore.GetNativeTypePointer(type));
-    }
-
-    private static Il2CppSystem.String GetFullName(Il2CppTypeStruct* type)
-    {
-        return Il2CppSystem.Type.FromTypePointer((nint)type).FullName;
-    }
-
-    private static ReadOnlySpan<char> GetSpan(Il2CppSystem.String? str)
-    {
-        if (str is null)
-            return default;
-
-        var pointer = str.Pointer;
-        var length = IL2CPP.il2cpp_string_length(pointer);
-        var characters = IL2CPP.il2cpp_string_chars(pointer);
-        return new ReadOnlySpan<char>(characters, length);
     }
 
     private static IEnumerable<MethodInfo> GetAllIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).Where(IsIl2CppMethod);
@@ -1134,7 +1056,7 @@ public static unsafe class TypeInjector
 
     private static Delegate GetOrCreateInvoker(MethodInfo monoMethod)
     {
-        return InvokerCache.GetOrAdd(HashSignature(monoMethod),
+        return InvokerCache.GetOrAdd(new NamedSignatureHash(monoMethod),
             static (_, monoMethodInner) => CreateInvoker(monoMethodInner), monoMethod);
     }
 
@@ -1152,7 +1074,7 @@ public static unsafe class TypeInjector
             // arguments pointer
             // return value pointer (if not void)
 
-            method = new DynamicMethod($"Invoker_{HashSignature(monoMethod)}",
+            method = new DynamicMethod($"Invoker_{new NamedSignatureHash(monoMethod)}",
                 MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, typeof(void),
                 parameterTypes, typeof(TypeInjector), true);
         }
@@ -1164,7 +1086,7 @@ public static unsafe class TypeInjector
             // this pointer
             // arguments pointer
 
-            method = new DynamicMethod($"Invoker_{HashSignature(monoMethod)}",
+            method = new DynamicMethod($"Invoker_{new NamedSignatureHash(monoMethod)}",
                 MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, typeof(IntPtr),
                 parameterTypes, typeof(TypeInjector), true);
         }
@@ -1261,7 +1183,7 @@ public static unsafe class TypeInjector
         ];
 
         var method = new DynamicMethod(
-            $"Trampoline_{monoMethod.DeclaringType}_{monoMethod.Name}_{HashSignature(monoMethod)}{(callVirt ? "_Virtual" : "")}",
+            $"Trampoline_{monoMethod.DeclaringType}_{monoMethod.Name}_{new NamedSignatureHash(monoMethod)}{(callVirt ? "_Virtual" : "")}",
             MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard,
             nativeReturnType, nativeParameterTypes,
             typeof(TypeInjector), true);
