@@ -85,7 +85,8 @@ namespace Il2CppInterop.Runtime.Injection.Hooks
             if (forceICallMethod)
             {
                 // MonoField isn't present on 2021.2.0+
-                var monoFieldType = InjectorHelpers.Il2CppMscorlib.GetTypesSafe().SingleOrDefault((x) => x.Name is nameof(Il2CppSystem.Reflection.MonoField));
+                var il2Cppmscorlib = typeof(Il2CppSystem.Type).Assembly;
+                var monoFieldType = il2Cppmscorlib.GetTypesSafe().SingleOrDefault((x) => x.Name is nameof(Il2CppSystem.Reflection.MonoField));
                 if (monoFieldType == null)
                     throw new Exception($"Unity {Il2CppInteropRuntime.Instance.UnityVersion} is not supported at the moment: MonoField isn't present in Il2Cppmscorlib.dll for unity version, unable to fetch icall");
 
