@@ -1179,8 +1179,7 @@ public static unsafe class TypeInjector
             nativeReturnType, nativeParameterTypes,
             typeof(TypeInjector), true);
 
-        var signature = new DelegateSupport.MethodSignature(monoMethod, !monoMethod.IsStatic);
-        var delegateType = DelegateSupport.GetOrCreateDelegateType(signature, monoMethod);
+        var delegateType = TrampolineBuilder.GetOrCreateDelegateType(monoMethod);
 
         var body = method.GetILGenerator();
 
