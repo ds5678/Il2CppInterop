@@ -15,12 +15,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Il2CppInterop.HarmonySupport</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.7" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22621.2" />

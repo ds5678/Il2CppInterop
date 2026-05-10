@@ -2,7 +2,6 @@
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
-using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.Structs;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
@@ -52,7 +51,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         try
         {
             var thunk = GenerateNativeToManagedThunk().Generate();
-            var thunkDelegateType = DelegateSupport.GetOrCreateDelegateType(new DelegateSupport.MethodSignature((MethodInfo)source, !source.IsStatic), (MethodInfo)source);
+            var thunkDelegateType = TrampolineBuilder.GetOrCreateDelegateType((MethodInfo)source);
             _thunkDelegate = thunk.CreateDelegate(thunkDelegateType);
         }
         catch (Exception e)

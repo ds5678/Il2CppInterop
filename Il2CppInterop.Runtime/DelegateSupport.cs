@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -19,67 +18,7 @@ namespace Il2CppInterop.Runtime;
 
 public static class DelegateSupport
 {
-    private static readonly ConcurrentDictionary<MethodSignature, Type> ourDelegateTypes = new();
-
-    private static readonly AssemblyBuilder AssemblyBuilder =
-        AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Il2CppTrampolineDelegates"), AssemblyBuilderAccess.Run);
-
-    private static readonly ModuleBuilder ModuleBuilder =
-        AssemblyBuilder.DefineDynamicModule("Il2CppTrampolineDelegates");
-
     private static readonly ConcurrentDictionary<MethodInfo, Delegate> NativeToManagedTrampolines = new();
-
-    internal static Type GetOrCreateDelegateType(MethodSignature signature, MethodInfo managedMethod)
-    {
-        return ourDelegateTypes.GetOrAdd(signature, CreateDelegateType, managedMethod);
-    }
-
-    private static Type CreateDelegateType(MethodSignature signature, MethodInfo managedMethodInner)
-    {
-        var typeName = "Il2CppToManagedDelegate_" + managedMethodInner.DeclaringType + "_" + signature.GetHashCode() +
-                       (signature.HasThis ? "HasThis" : "") +
-                       (signature.ConstructedFromNative ? "FromNative" : "");
-
-        var newType = ModuleBuilder.DefineType(typeName, TypeAttributes.Sealed | TypeAttributes.Public,
-            typeof(MulticastDelegate));
-
-        var ctor = newType.DefineConstructor(
-            MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName |
-            MethodAttributes.Public, CallingConventions.HasThis, new[] { typeof(object), typeof(IntPtr) });
-        ctor.SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
-
-        var parameterOffset = signature.HasThis ? 1 : 0;
-        var managedParameters = managedMethodInner.GetParameters();
-        var parameterTypes = new Type[managedParameters.Length + 1 + parameterOffset];
-
-        if (signature.HasThis)
-            parameterTypes[0] = typeof(IntPtr);
-
-        parameterTypes[parameterTypes.Length - 1] = typeof(Il2CppMethodInfo*);
-        for (var i = 0; i < managedParameters.Length; i++)
-            parameterTypes[i + parameterOffset] = TrampolineBuilder.GetNativeType(managedParameters[i].ParameterType);
-
-        newType.DefineMethod("Invoke",
-            MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
-            CallingConventions.HasThis,
-            TrampolineBuilder.GetNativeType(managedMethodInner.ReturnType),
-            parameterTypes).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
-
-        newType.DefineMethod("BeginInvoke",
-                MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot |
-                MethodAttributes.Public,
-                CallingConventions.HasThis, typeof(IAsyncResult),
-                parameterTypes.Concat(new[] { typeof(AsyncCallback), typeof(object) }).ToArray())
-            .SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
-
-        newType.DefineMethod("EndInvoke",
-            MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.Public,
-            CallingConventions.HasThis,
-            TrampolineBuilder.GetNativeType(managedMethodInner.ReturnType),
-            new[] { typeof(IAsyncResult) }).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
-
-        return newType.CreateType();
-    }
 
     private static string ExtractSignature(MethodInfo methodInfo)
     {
@@ -99,12 +38,12 @@ public static class DelegateSupport
         return builder.ToString();
     }
 
-    private static Delegate GetOrCreateNativeToManagedTrampoline(MethodSignature signature, MethodInfo managedMethod)
+    private static Delegate GetOrCreateNativeToManagedTrampoline(MethodInfo managedMethod)
     {
-        return NativeToManagedTrampolines.GetOrAdd(managedMethod, GenerateNativeToManagedTrampoline, signature);
+        return NativeToManagedTrampolines.GetOrAdd(managedMethod, GenerateNativeToManagedTrampoline);
     }
 
-    private static Delegate GenerateNativeToManagedTrampoline(MethodInfo managedMethod, MethodSignature signature)
+    private static Delegate GenerateNativeToManagedTrampoline(MethodInfo managedMethod)
     {
         var returnType = TrampolineBuilder.GetNativeType(managedMethod.ReturnType);
 
@@ -152,7 +91,7 @@ public static class DelegateSupport
             bodyBuilder.Emit(OpCodes.Ldloc, returnLocal);
         bodyBuilder.Emit(OpCodes.Ret);
 
-        return trampoline.CreateDelegate(GetOrCreateDelegateType(signature, managedMethod));
+        return trampoline.CreateDelegate(TrampolineBuilder.GetOrCreateDelegateType(managedMethod));
     }
 
     private static void LogError(Exception exception)
@@ -219,8 +158,7 @@ public static class DelegateSupport
                     $"Parameter type at {i} has mismatched native type pointers; types: {nativeType.FullName} != {managedType.FullName}");
         }
 
-        var signature = new MethodSignature(nativeDelegateInvokeMethod, true);
-        var managedTrampoline = GetOrCreateNativeToManagedTrampoline(signature, managedInvokeMethod);
+        var managedTrampoline = GetOrCreateNativeToManagedTrampoline(managedInvokeMethod);
 
         var methodInfo = UnityVersionHandler.NewMethod();
         methodInfo.MethodPointer = Marshal.GetFunctionPointerForDelegate(managedTrampoline);
@@ -254,73 +192,5 @@ public static class DelegateSupport
     private static IReadOnlyList<Il2CppSystem.Reflection.ParameterInfo> GetParameters(this Il2CppSystem.Reflection.MethodBase method)
     {
         return (IReadOnlyList<Il2CppSystem.Reflection.ParameterInfo>)GetParametersInternal(method);
-    }
-
-    internal sealed class MethodSignature : IEquatable<MethodSignature>
-    {
-        public readonly bool ConstructedFromNative;
-        public readonly bool HasThis;
-        private readonly int _hashCode;
-
-        public MethodSignature(Il2CppSystem.Reflection.MethodInfo methodInfo, bool hasThis)
-        {
-            HasThis = hasThis;
-            ConstructedFromNative = true;
-
-            var hashCode = new HashCode();
-
-            hashCode.Add(methodInfo.ReturnType.GetHashCode());
-            if (hasThis) hashCode.Add(methodInfo.DeclaringType.GetHashCode());
-            foreach (var parameterInfo in methodInfo.GetParameters())
-            {
-                hashCode.Add(parameterInfo.ParameterType.GetHashCode());
-            }
-
-            _hashCode = hashCode.ToHashCode();
-        }
-
-        public MethodSignature(MethodInfo methodInfo, bool hasThis)
-        {
-            HasThis = hasThis;
-            ConstructedFromNative = false;
-
-            var hashCode = new HashCode();
-
-            hashCode.Add(TrampolineBuilder.GetNativeType(methodInfo.ReturnType));
-            if (hasThis) hashCode.Add(TrampolineBuilder.GetNativeType(methodInfo.DeclaringType!));
-            foreach (var parameterInfo in methodInfo.GetParameters())
-            {
-                hashCode.Add(TrampolineBuilder.GetNativeType(parameterInfo.ParameterType));
-            }
-
-            _hashCode = hashCode.ToHashCode();
-        }
-
-        public override int GetHashCode()
-        {
-            return _hashCode;
-        }
-
-        public bool Equals(MethodSignature? other)
-        {
-            if (other is null) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return _hashCode.GetHashCode() == other.GetHashCode();
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return Equals(obj as MethodSignature);
-        }
-
-        public static bool operator ==(MethodSignature? left, MethodSignature? right)
-        {
-            return Equals(left, right);
-        }
-
-        public static bool operator !=(MethodSignature? left, MethodSignature? right)
-        {
-            return !Equals(left, right);
-        }
     }
 }
