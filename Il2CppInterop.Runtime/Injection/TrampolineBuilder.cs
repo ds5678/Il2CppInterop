@@ -9,7 +9,7 @@ using Il2CppInterop.Runtime.InteropTypes;
 
 namespace Il2CppInterop.Runtime.Injection;
 
-internal static class TrampolineHelpers
+public static class TrampolineBuilder
 {
     private static AssemblyBuilder? _fixedStructAssembly;
     private static ModuleBuilder? _fixedStructModuleBuilder;
@@ -38,7 +38,7 @@ internal static class TrampolineHelpers
         return _fixedStructCache[size] = type;
     }
 
-    internal static Type NativeType(this Type managedType)
+    public static Type GetNativeType(Type managedType)
     {
         if (managedType == typeof(void))
         {

@@ -216,7 +216,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         var paramStartIndex = 0;
 
         var managedReturnType = GetReturnType(Source);
-        var unmanagedReturnType = managedReturnType.NativeType();
+        var unmanagedReturnType = TrampolineBuilder.GetNativeType(managedReturnType);
 
         var returnSize = IntPtr.Size;
 
@@ -258,7 +258,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         }
 
         unmanagedParams[^1] = typeof(Il2CppMethodInfo*);
-        Array.Copy(managedParams.Select(TrampolineHelpers.NativeType).ToArray(), 0,
+        Array.Copy(managedParams.Select(TrampolineBuilder.GetNativeType).ToArray(), 0,
             unmanagedParams, paramStartIndex, managedParams.Length);
 
         var dmd = new DynamicMethodDefinition("(il2cpp -> managed) " + Source.Name,
