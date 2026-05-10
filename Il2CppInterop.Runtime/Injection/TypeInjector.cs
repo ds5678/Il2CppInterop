@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO.Hashing;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -10,6 +9,7 @@ using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Extensions;
+using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.Structs;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
@@ -58,7 +58,7 @@ public static unsafe class TypeInjector
         // * the static constructor is malformed and does not call this method.
 
         ValidateTypeUsingReflection(type);
-        InjectorHelpers.Setup();
+        Hook.ApplyInjectionHooks();
         if (typeof(Il2CppSystem.IEnum).IsAssignableFrom(type))
         {
             RegisterEnumInIl2Cpp(type);
@@ -85,7 +85,7 @@ public static unsafe class TypeInjector
         classPointer.ValueType = type.IsValueType;
 
         classPointer.ThisArg.Type = classPointer.ByValArg.Type = type.IsValueType ? Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE : Il2CppTypeEnum.IL2CPP_TYPE_CLASS;
-        classPointer.ThisArg.Data = classPointer.ByValArg.Data = (nint)InjectorHelpers.CreateClassToken(classPointer.Pointer);
+        classPointer.ThisArg.Data = classPointer.ByValArg.Data = (nint)TokenAllocator.Assign(classPointer.Pointer);
         classPointer.ThisArg.ValueType = classPointer.ByValArg.ValueType = type.IsValueType;
         classPointer.ThisArg.ByRef = true;
 
@@ -98,7 +98,7 @@ public static unsafe class TypeInjector
         NeedsVTableSet.Add(type, vtableUpperBound);
         NeedsFieldsSet.Add(type);
         Il2CppType.SetClassPointer(type, (nint)classPointer.ClassPointer);
-        InjectorHelpers.AddTypeToLookup(assemblyName, @namespace, name, (nint)classPointer.ClassPointer);
+        Class_FromName_Hook.AddTypeToLookup(assemblyName, @namespace, name, (nint)classPointer.ClassPointer);
 
         // Ensure that all other types that this type depends on are at least registered
         {
@@ -163,7 +163,7 @@ public static unsafe class TypeInjector
             else if (!RegisteredTypes.Contains(type))
             {
                 // Ensure that the vtable is initialized for this preexisting type
-                InjectorHelpers.ClassInit((Il2CppClass*)classPointer);
+                ClassInitializer.Invoke((Il2CppClass*)classPointer);
             }
             return classPointer;
         }
@@ -740,9 +740,9 @@ public static unsafe class TypeInjector
         if (enumPtr == IntPtr.Zero)
             throw new ArgumentException("Type needs to be an Il2Cpp enum", nameof(type));
 
-        InjectorHelpers.Setup();
+        Hook.ApplyInjectionHooks();
 
-        InjectorHelpers.ClassInit((Il2CppClass*)enumPtr);
+        ClassInitializer.Invoke((Il2CppClass*)enumPtr);
 
         var il2cppEnum = UnityVersionHandler.Wrap((Il2CppClass*)enumPtr);
         var newFieldCount = il2cppEnum.FieldCount + valuesToAdd.Count;
@@ -809,7 +809,7 @@ public static unsafe class TypeInjector
     {
         var baseEnum = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer<Il2CppSystem.Enum>());
 
-        InjectorHelpers.ClassInit(baseEnum.ClassPointer);
+        ClassInitializer.Invoke(baseEnum.ClassPointer);
 
         var il2cppEnum = UnityVersionHandler.NewClass(baseEnum.VTableCount);
         var elementClass =
@@ -835,8 +835,7 @@ public static unsafe class TypeInjector
         il2cppEnum.Name = Marshal.StringToCoTaskMemUTF8(name);
         il2cppEnum.Namespace = Marshal.StringToCoTaskMemUTF8(@namespace);
 
-        var token = InjectorHelpers.CreateClassToken(il2cppEnum.Pointer);
-        il2cppEnum.ThisArg.Data = il2cppEnum.ByValArg.Data = (IntPtr)token;
+        il2cppEnum.ThisArg.Data = il2cppEnum.ByValArg.Data = (nint)TokenAllocator.Assign(il2cppEnum.Pointer);
 
         // Has to be IL2CPP_TYPE_VALUETYPE because IL2CPP_TYPE_ENUM isn't used
         il2cppEnum.ThisArg.Type = il2cppEnum.ByValArg.Type = Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE;
@@ -898,7 +897,7 @@ public static unsafe class TypeInjector
         il2cppEnum.TypeHierarchy[il2cppEnum.TypeHierarchyDepth - 1] = il2cppEnum.ClassPointer;
 
         Il2CppType.SetClassPointer(type, il2cppEnum.Pointer);
-        InjectorHelpers.AddTypeToLookup(assemblyName, @namespace, name, il2cppEnum.Pointer);
+        Class_FromName_Hook.AddTypeToLookup(assemblyName, @namespace, name, il2cppEnum.Pointer);
     }
 
     private static bool IsIl2CppInterface(Type type)

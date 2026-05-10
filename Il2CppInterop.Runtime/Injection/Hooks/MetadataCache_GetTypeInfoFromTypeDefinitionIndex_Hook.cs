@@ -2,8 +2,10 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Startup;
 using Il2CppInterop.Runtime.Structs;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks;
@@ -19,7 +21,7 @@ internal unsafe class MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook :
 
     private Il2CppClass* Hook(int index)
     {
-        if (InjectorHelpers.s_InjectedClasses.TryGetValue(index, out IntPtr classPtr))
+        if (TokenAllocator.TryGetClassPointer(index, out var classPtr))
             return (Il2CppClass*)classPtr;
 
         return Original(index);
@@ -34,10 +36,10 @@ internal unsafe class MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook :
         {
             // (Kasuromi): RuntimeHelpers.InitializeArray calls an il2cpp icall, proxy function does some magic before it invokes it
             // https://github.com/Unity-Technologies/mono/blob/unity-2018.2/mcs/class/corlib/System.Runtime.CompilerServices/RuntimeHelpers.cs#L53-L54
-            IntPtr runtimeHelpersInitializeArray = InjectorHelpers.GetIl2CppMethodPointer(
+            IntPtr runtimeHelpersInitializeArray = INativeMethodInfoStruct.FromGeneratedMethod(
                 typeof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers)
                     .GetMethod(nameof(Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers.InitializeArray), new Type[] { typeof(Il2CppSystem.Array), typeof(IntPtr) })
-            );
+            )!.MethodPointer;
             Logger.Instance.LogTrace("Il2CppSystem.Runtime.CompilerServices.RuntimeHelpers::InitializeArray: 0x{RuntimeHelpersInitializeArrayAddress}", runtimeHelpersInitializeArray.ToInt64().ToString("X2"));
 
             var runtimeHelpersInitializeArrayICall = XrefScanner.JumpTargets(runtimeHelpersInitializeArray).Last();
@@ -57,7 +59,7 @@ internal unsafe class MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook :
         }
         else
         {
-            var imageGetClassAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_image_get_class));
+            var imageGetClassAPI = Il2CppModule.GetExport(nameof(IL2CPP.il2cpp_image_get_class));
             Logger.Instance.LogTrace("il2cpp_image_get_class: 0x{ImageGetClassApiAddress}", imageGetClassAPI.ToInt64().ToString("X2"));
 
             var imageGetType = XrefScanner.JumpTargets(imageGetClassAPI).First();

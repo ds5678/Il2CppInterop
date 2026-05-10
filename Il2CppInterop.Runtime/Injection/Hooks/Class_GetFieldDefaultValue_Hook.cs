@@ -7,6 +7,7 @@ using Il2CppInterop.Runtime.Startup;
 using Il2CppInterop.Runtime.Structs;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.FieldInfo;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection.Hooks;
@@ -90,7 +91,7 @@ internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefau
             if (monoFieldType == null)
                 throw new Exception($"Unity {Il2CppInteropRuntime.Instance.UnityVersion} is not supported at the moment: MonoField isn't present in Il2Cppmscorlib.dll for unity version, unable to fetch icall");
 
-            var monoFieldGetValueInternalThunk = InjectorHelpers.GetIl2CppMethodPointer(monoFieldType.GetMethod(nameof(Il2CppSystem.Reflection.MonoField.GetValueInternal)));
+            var monoFieldGetValueInternalThunk = INativeMethodInfoStruct.FromGeneratedMethod(monoFieldType.GetMethod(nameof(Il2CppSystem.Reflection.MonoField.GetValueInternal)))!.MethodPointer;
             Logger.Instance.LogTrace("Il2CppSystem.Reflection.MonoField::thunk_GetValueInternal: 0x{MonoFieldGetValueInternalThunkAddress}", monoFieldGetValueInternalThunk.ToInt64().ToString("X2"));
 
             var monoFieldGetValueInternal = XrefScanner.JumpTargets(monoFieldGetValueInternalThunk).Single();
@@ -107,7 +108,7 @@ internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefau
         }
         else
         {
-            var getStaticFieldValueAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_field_static_get_value));
+            var getStaticFieldValueAPI = Il2CppModule.GetExport(nameof(IL2CPP.il2cpp_field_static_get_value));
             Logger.Instance.LogTrace("il2cpp_field_static_get_value: 0x{GetStaticFieldValueApiAddress}", getStaticFieldValueAPI.ToInt64().ToString("X2"));
 
             var getStaticFieldValue = XrefScanner.JumpTargets(getStaticFieldValueAPI).Single();
@@ -140,7 +141,7 @@ internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefau
         // inlined but we'll treat it the same even though it doesn't receive the type parameter the RDX register
         // doesn't get cleared so we still get the same parameters
         var classGetDefaultFieldValue = s_Signatures
-            .Select(s => SignatureDefinition.FindSignatureInModule(InjectorHelpers.Il2CppModule, s))
+            .Select(s => SignatureDefinition.FindSignatureInModule(Il2CppModule.Module, s))
             .FirstOrDefault(p => p != 0);
 
         if (classGetDefaultFieldValue == 0)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -9,6 +10,8 @@ namespace Il2CppInterop.Runtime.Injection.Hooks;
 
 internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDelegate>
 {
+    private static readonly Dictionary<(IntPtr ImagePointer, string Namespace, string Class), IntPtr> s_ClassNameLookup = new();
+
     public override string TargetMethodName => "Class::FromName";
     public override MethodDelegate GetDetour() => Hook;
 
@@ -23,7 +26,7 @@ internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDeleg
         {
             var namespaze = Marshal.PtrToStringUTF8(_namespace) ?? "";
             var className = Marshal.PtrToStringUTF8(name) ?? "";
-            InjectorHelpers.s_ClassNameLookup.TryGetValue((namespaze, className, (IntPtr)image), out IntPtr injectedClass);
+            s_ClassNameLookup.TryGetValue(((IntPtr)image, namespaze, className), out IntPtr injectedClass);
             classPtr = (Il2CppClass*)injectedClass;
         }
 
@@ -32,9 +35,15 @@ internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDeleg
 
     public override IntPtr FindTargetMethod()
     {
-        var classFromNameAPI = InjectorHelpers.GetIl2CppExport(nameof(IL2CPP.il2cpp_class_from_name));
+        var classFromNameAPI = Il2CppModule.GetExport(nameof(IL2CPP.il2cpp_class_from_name));
         Logger.Instance.LogTrace("il2cpp_class_from_name: 0x{ClassFromNameApiAddress}", classFromNameAPI.ToInt64().ToString("X2"));
 
         return XrefScanner.JumpTargets(classFromNameAPI).Single();
+    }
+
+    internal static void AddTypeToLookup(string assemblyName, string namespaze, string klass, IntPtr typePointer)
+    {
+        var image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
+        s_ClassNameLookup.Add(((IntPtr)image, namespaze, klass), typePointer);
     }
 }
