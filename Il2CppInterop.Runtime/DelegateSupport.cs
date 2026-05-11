@@ -57,15 +57,13 @@ public static class DelegateSupport
         for (var i = 0; i < nativeParameters.Count; i++)
         {
             var nativeType = nativeParameters[i].ParameterType;
-            var managedType = parameterInfos[i].ParameterType;
 
-            var classPointerFromManagedType = Il2CppType.GetClassPointer(managedType);
+            var typePointerForManagedType = Il2CppTypePointerStore.GetNativeTypePointer(parameterInfos[i].ParameterType);
+            var managedType = Il2CppSystem.Type.FromTypePointer(typePointerForManagedType);
 
-            var classPointerFromNativeType = IL2CPP.il2cpp_class_from_type(nativeType._impl.value);
-
-            if (classPointerFromManagedType != classPointerFromNativeType)
+            if (nativeType != managedType)
                 throw new ArgumentException(
-                    $"Parameter type at {i} has mismatched native type pointers; types: {nativeType.FullName} != {managedType.FullName}");
+                    $"Parameter type at {i} has mismatched native type pointers; types: {nativeType?.FullName} != {managedType?.FullName}");
         }
 
         var managedTrampoline = GetOrCreateNativeToManagedTrampoline(@delegate.GetType());
@@ -78,7 +76,7 @@ public static class DelegateSupport
 
         var delegateReference = new Il2CppToMonoDelegateReference(@delegate, methodInfo.Pointer);
 
-        TIl2Cpp converted = (TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference, methodInfo.Pointer)!;
+        TIl2Cpp converted = (TIl2Cpp)Activator.CreateInstance(typeof(TIl2Cpp), delegateReference, (Il2CppSystem.IntPtr)methodInfo.Pointer)!;
 
         converted.method_ptr = methodInfo.MethodPointer;
         converted.method_info = nativeDelegateInvokeMethod; // todo: is this truly a good hack?
