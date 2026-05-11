@@ -104,12 +104,12 @@ public static class Il2CppType
         return T.ReadFromSpan(new ReadOnlySpan<byte>(ptr, T.Size));
     }
 
-    public static T? ReadReference<T>(ReadOnlySpan<byte> span) where T : class, IIl2CppType<T>
+    public static T? ReadReference<T>(ReadOnlySpan<byte> span) where T : IIl2CppType<T>
     {
         return T.Unbox(Il2CppObjectPool.Get(ReadPointer(span)));
     }
 
-    public static void WriteReference<T>(T? value, Span<byte> span) where T : class, IIl2CppType<T>
+    public static void WriteReference<T>(T? value, Span<byte> span) where T : IIl2CppType<T>
     {
         var objectPointer = value?.BoxNative() ?? ObjectPointer.Null;
         WritePointer((nint)objectPointer, span);

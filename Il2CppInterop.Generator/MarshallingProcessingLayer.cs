@@ -25,8 +25,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var iil2CppTypeGeneric_WriteToSpan = iil2CppTypeGeneric.GetMethodByName(nameof(IIl2CppType<>.WriteToSpan));
 
         var il2CppTypeHelper = appContext.ResolveTypeOrThrow(typeof(Il2CppType));
-        var il2CppTypeHelper_ReadReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadReference));
-        var il2CppTypeHelper_WriteReference = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteReference));
         var il2CppTypeHelper_ReadFromSpanAtOffset = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadFromSpanAtOffset));
         var il2CppTypeHelper_WriteToSpanAtOffset = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpanAtOffset));
         var il2CppTypeHelper_ReadFromSpanBlittable = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.ReadFromSpanBlittable));
@@ -34,13 +32,9 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var il2CppTypeHelper_WriteToSpan = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpan));
         var il2CppTypeHelper_GetClassPointer = il2CppTypeHelper.Methods.Single(m => m.Name == nameof(Il2CppType.GetClassPointer) && m.GenericParameters.Count == 1);
 
-        var intPtr_get_Size = appContext.SystemTypes.SystemIntPtrType.GetMethodByName($"get_{nameof(IntPtr.Size)}");
-
         var il2CppSystemIObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
         var il2CppSystemIValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType");
         var il2CppSystemIEnum = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum");
-
-        var il2CppSystemValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
 
         foreach (var assembly in appContext.Assemblies)
         {
@@ -127,7 +121,14 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                             : type.SizeStorage;
 
                     // IIl2CppType<T>.Size
+                    if (instantiatedSizeStorage is null)
                     {
+                        // Reference types have a default implementation that returns IntPtr.Size, so we don't need to do anything.
+                        Debug.Assert(!type.IsValueType);
+                    }
+                    else
+                    {
+                        Debug.Assert(type.IsValueType);
                         var instantiated_iil2CppTypeGeneric_get_Size = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Size, [instantiatedType], []);
                         var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Size)}";
                         var method = new InjectedMethodAnalysisContext(
@@ -146,7 +147,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         {
                             Instructions =
                             [
-                                instantiatedSizeStorage is not null ? new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage) : new Instruction(CilOpCodes.Call, intPtr_get_Size),
+                                new Instruction(CilOpCodes.Ldsfld, instantiatedSizeStorage),
                                 new Instruction(CilOpCodes.Ret),
                             ],
                         });
@@ -289,6 +290,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 var instanceFieldCount = type.Fields.Count(f => !f.IsStatic);
 
                 // ReadFromSpan
+                if (type.IsValueType)
                 {
                     var instantiated_iil2CppTypeGeneric_ReadFromSpan = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_ReadFromSpan, [instantiatedType], []);
                     var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.ReadFromSpan)}";
@@ -304,19 +306,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     type.Methods.Add(method);
                     method.Overrides.Add(instantiated_iil2CppTypeGeneric_ReadFromSpan);
 
-                    if (!type.IsValueType)
-                    {
-                        method.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions =
-                            [
-                                new Instruction(CilOpCodes.Ldarg_0),
-                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_ReadReference.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(CilOpCodes.Ret),
-                            ],
-                        });
-                    }
-                    else if (instanceFieldCount == 0)
+                    if (instanceFieldCount == 0)
                     {
                         LocalVariable local = new(instantiatedType);
                         method.PutExtraData(new NativeMethodBody()
@@ -381,6 +371,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 }
 
                 // WriteToSpan
+                if (type.IsValueType)
                 {
                     var instantiated_iil2CppTypeGeneric_WriteToSpan = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_WriteToSpan, [instantiatedType], []);
                     var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.WriteToSpan)}";
@@ -396,20 +387,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     type.Methods.Add(method);
                     method.Overrides.Add(instantiated_iil2CppTypeGeneric_WriteToSpan);
 
-                    if (!type.IsValueType)
-                    {
-                        method.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions =
-                            [
-                                new Instruction(CilOpCodes.Ldarg_0),
-                                new Instruction(CilOpCodes.Ldarg_1),
-                                new Instruction(CilOpCodes.Call, il2CppTypeHelper_WriteReference.MakeGenericInstanceMethod(instantiatedType)),
-                                new Instruction(CilOpCodes.Ret),
-                            ],
-                        });
-                    }
-                    else if (instanceFieldCount == 0)
+                    if (instanceFieldCount == 0)
                     {
                         // Struct with no instance fields - nothing to do.
                         method.PutExtraData(new NativeMethodBody()

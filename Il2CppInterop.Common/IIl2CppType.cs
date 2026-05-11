@@ -27,7 +27,21 @@ public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2Cpp
     /// <summary>
     /// The native size of the type in bytes
     /// </summary>
-    static abstract int Size { get; }
+    static virtual int Size
+    {
+        get
+        {
+            if (typeof(TSelf).IsValueType)
+            {
+                throw new NotImplementedException($"{typeof(TSelf).FullName} did not implement this property.");
+            }
+            else
+            {
+                // All reference types are the size of a pointer in native code
+                return IntPtr.Size;
+            }
+        }
+    }
     /// <summary>
     /// The file name of the assembly that the type is defined in
     /// </summary>
@@ -60,13 +74,33 @@ public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2Cpp
     /// </summary>
     /// <param name="value">The value to write.</param>
     /// <param name="span">The span to write the value to.</param>
-    static abstract void WriteToSpan(TSelf? value, Span<byte> span);
+    static virtual void WriteToSpan(TSelf? value, Span<byte> span)
+    {
+        if (typeof(TSelf).IsValueType)
+        {
+            throw new NotImplementedException($"{typeof(TSelf).FullName} did not implement this method.");
+        }
+        else
+        {
+            Il2CppType.WriteReference(value, span);
+        }
+    }
     /// <summary>
     /// Reads the native representation of the value from the provided span. The span is required to be at least <see cref="Size"/> bytes long.
     /// </summary>
     /// <param name="span">The span to read the value from.</param>
     /// <returns>The value read from the span.</returns>
-    static abstract TSelf? ReadFromSpan(ReadOnlySpan<byte> span);
+    static virtual TSelf? ReadFromSpan(ReadOnlySpan<byte> span)
+    {
+        if (typeof(TSelf).IsValueType)
+        {
+            throw new NotImplementedException($"{typeof(TSelf).FullName} did not implement this method.");
+        }
+        else
+        {
+            return Il2CppType.ReadReference<TSelf>(span);
+        }
+    }
     /// <summary>
     /// Unboxes the provided native Il2Cpp object to the type
     /// </summary>
