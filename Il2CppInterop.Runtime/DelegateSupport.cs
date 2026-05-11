@@ -1,120 +1,30 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Structs;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime;
 
 public static class DelegateSupport
 {
-    private static readonly ConcurrentDictionary<MethodInfo, Delegate> NativeToManagedTrampolines = new();
+    private static readonly ConcurrentDictionary<Type, Delegate> NativeToManagedTrampolines = new();
 
-    private static string ExtractSignature(MethodInfo methodInfo)
+    private static Delegate GetOrCreateNativeToManagedTrampoline(Type delegateType)
     {
-        var builder = new StringBuilder();
-        builder.Append(methodInfo.ReturnType.FullName);
-        if (!methodInfo.IsStatic)
-        {
-            builder.Append('_');
-            builder.Append(methodInfo.DeclaringType!.FullName);
-        }
-        foreach (var parameterInfo in methodInfo.GetParameters())
-        {
-            builder.Append('_');
-            builder.Append(parameterInfo.ParameterType.FullName);
-        }
-
-        return builder.ToString();
+        return NativeToManagedTrampolines.GetOrAdd(delegateType, CreateNativeToManagedTrampoline);
     }
 
-    private static Delegate GetOrCreateNativeToManagedTrampoline(MethodInfo managedMethod)
+    private static Delegate CreateNativeToManagedTrampoline(Type delegateType)
     {
-        return NativeToManagedTrampolines.GetOrAdd(managedMethod, GenerateNativeToManagedTrampoline);
-    }
-
-    private static Delegate GenerateNativeToManagedTrampoline(MethodInfo managedMethod)
-    {
-        var returnType = TrampolineBuilder.GetNativeType(managedMethod.ReturnType);
-
-        var managedParameters = managedMethod.GetParameters();
-        var parameterTypes = new Type[managedParameters.Length + 1 + 1]; // thisptr for target, methodInfo last arg
-        parameterTypes[0] = typeof(IntPtr);
-        parameterTypes[managedParameters.Length + 1] = typeof(Il2CppMethodInfo*);
-        for (var i = 0; i < managedParameters.Length; i++)
-            parameterTypes[i + 1] = TrampolineBuilder.GetNativeType(managedParameters[i].ParameterType);
-
-        var trampoline = new DynamicMethod("(il2cpp delegate trampoline) " + ExtractSignature(managedMethod),
-            MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, returnType, parameterTypes,
-            typeof(DelegateSupport), true);
-        var bodyBuilder = trampoline.GetILGenerator();
-
-        var tryLabel = bodyBuilder.BeginExceptionBlock();
-
-        bodyBuilder.Emit(OpCodes.Ldarg_0);
-        bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
-        bodyBuilder.Emit(OpCodes.Castclass, typeof(Il2CppToMonoDelegateReference));
-        bodyBuilder.Emit(OpCodes.Callvirt, typeof(Il2CppToMonoDelegateReference).GetProperty(nameof(Il2CppToMonoDelegateReference.ReferencedDelegate))!.GetMethod!);
-
-        for (var i = 0; i < managedParameters.Length; i++)
-        {
-            bodyBuilder.Emit(OpCodes.Ldarg, i + 1);
-            bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(ConvertNativeArgument), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(parameterTypes[i + 1], managedParameters[i].ParameterType));
-        }
-
-        bodyBuilder.Emit(OpCodes.Call, managedMethod);
-
-        LocalBuilder? returnLocal = null;
-        if (returnType != typeof(void))
-        {
-            returnLocal = bodyBuilder.DeclareLocal(returnType);
-            bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(ConvertReturnValue), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(managedMethod.ReturnType, returnType));
-            bodyBuilder.Emit(OpCodes.Stloc, returnLocal);
-        }
-
-        bodyBuilder.BeginCatchBlock(typeof(Exception));
-        bodyBuilder.Emit(OpCodes.Call, typeof(DelegateSupport).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
-
-        bodyBuilder.EndExceptionBlock();
-
-        if (returnLocal != null)
-            bodyBuilder.Emit(OpCodes.Ldloc, returnLocal);
-        bodyBuilder.Emit(OpCodes.Ret);
-
-        return trampoline.CreateDelegate(TrampolineBuilder.GetOrCreateDelegateType(managedMethod));
-    }
-
-    private static void LogError(Exception exception)
-    {
-        Logger.Instance.LogError("Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: {Exception}", exception);
-    }
-
-    private static unsafe TManaged? ConvertNativeArgument<TNative, TManaged>(TNative value)
-        where TNative : unmanaged
-        where TManaged : IIl2CppType<TManaged>
-    {
-        var span = new ReadOnlySpan<byte>(&value, sizeof(TNative));
-        return TManaged.ReadFromSpan(span);
-    }
-
-    private static unsafe TNative ConvertReturnValue<TManaged, TNative>(TManaged? value)
-        where TNative : unmanaged
-        where TManaged : IIl2CppType<TManaged>
-    {
-        TNative result = default;
-        var span = new Span<byte>(&result, sizeof(TNative));
-        TManaged.WriteToSpan(value, span);
-        return result;
+        var invokeMethod = Il2CppToMonoDelegateReference.GetOrCreateInvokeMethod(delegateType);
+        return TrampolineBuilder.CreateTrampoline(invokeMethod, false);
     }
 
     public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate, IIl2CppType<TIl2Cpp>
@@ -158,7 +68,7 @@ public static class DelegateSupport
                     $"Parameter type at {i} has mismatched native type pointers; types: {nativeType.FullName} != {managedType.FullName}");
         }
 
-        var managedTrampoline = GetOrCreateNativeToManagedTrampoline(managedInvokeMethod);
+        var managedTrampoline = GetOrCreateNativeToManagedTrampoline(@delegate.GetType());
 
         var methodInfo = UnityVersionHandler.NewMethod();
         methodInfo.MethodPointer = Marshal.GetFunctionPointerForDelegate(managedTrampoline);

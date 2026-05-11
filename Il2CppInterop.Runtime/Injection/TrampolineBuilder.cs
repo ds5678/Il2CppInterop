@@ -2,6 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -9,6 +10,7 @@ using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Structs;
+using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;
 
@@ -140,4 +142,154 @@ public static class TrampolineBuilder
         ..monoMethod.GetParameters().Select(it => GetNativeType(it.ParameterType)),
         typeof(Il2CppMethodInfo*),
     ];
+
+    internal static Delegate CreateTrampoline(MethodInfo monoMethod, bool callVirt)
+    {
+        Debug.Assert(monoMethod.DeclaringType is not null);
+
+        var nativeReturnType = GetNativeType(monoMethod.ReturnType);
+        var nativeParameterTypes = GetNativeParameters(monoMethod);
+
+        Type[] managedParameters =
+        [
+            ..(ReadOnlySpan<Type>)(monoMethod.IsStatic ? [] : [monoMethod.DeclaringType!]),
+            ..monoMethod.GetParameters().Select(it => it.ParameterType),
+        ];
+
+        var trampoline = new DynamicMethod(
+            $"Trampoline_{monoMethod.DeclaringType}_{monoMethod.Name}_{new NamedSignatureHash(monoMethod)}{(callVirt ? "_Virtual" : "")}",
+            MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard,
+            nativeReturnType, nativeParameterTypes,
+            typeof(TypeInjector), true);
+
+        var delegateType = GetOrCreateDelegateType(monoMethod);
+
+        var body = trampoline.GetILGenerator();
+
+        body.BeginExceptionBlock();
+
+        // Value types boxed as interfaces can be modified during the execution of the method.
+        List<(LocalBuilder Local, int ArgumentIndex)> interfaceArguments = [];
+
+        LocalBuilder? thisVariable = null;
+        if (!monoMethod.IsStatic)
+        {
+            body.Emit(OpCodes.Ldarg_0);
+            if (monoMethod.DeclaringType.IsValueType)
+            {
+                // Need to store the value in a local variable so that we can pass a reference to the managed method
+                thisVariable = body.DeclareLocal(monoMethod.DeclaringType);
+                body.Emit(OpCodes.Conv_U);
+                body.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.ReadFromPointer), BindingFlags.Public | BindingFlags.Static)!.MakeGenericMethod(monoMethod.DeclaringType));
+                body.Emit(OpCodes.Stloc, thisVariable);
+                body.Emit(OpCodes.Ldloca, thisVariable);
+            }
+            else
+            {
+                body.Emit(OpCodes.Call, typeof(Il2CppObjectPool).GetMethod(nameof(Il2CppObjectPool.Get))!);
+                body.Emit(OpCodes.Castclass, monoMethod.DeclaringType);
+
+                if (monoMethod.DeclaringType.IsInterface)
+                {
+                    var local = body.DeclareLocal(monoMethod.DeclaringType);
+                    body.Emit(OpCodes.Stloc, local);
+                    body.Emit(OpCodes.Ldloc, local);
+                    interfaceArguments.Add((local, 0));
+                }
+            }
+        }
+
+        var argOffset = monoMethod.IsStatic ? 0 : 1;
+
+        for (var i = argOffset; i < managedParameters.Length; i++)
+        {
+            body.Emit(OpCodes.Ldarg, i);
+            body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(ConvertNativeToManaged), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(nativeParameterTypes[i], managedParameters[i]));
+            if (managedParameters[i].IsInterface)
+            {
+                var local = body.DeclareLocal(managedParameters[i]);
+                body.Emit(OpCodes.Stloc, local);
+                body.Emit(OpCodes.Ldloc, local);
+                interfaceArguments.Add((local, i));
+            }
+        }
+
+        body.Emit(callVirt ? OpCodes.Callvirt : OpCodes.Call, monoMethod);
+        LocalBuilder? nativeReturnVariable = null;
+        if (monoMethod.ReturnType != typeof(void))
+        {
+            nativeReturnVariable = body.DeclareLocal(nativeReturnType);
+            body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(ConvertManagedToNative), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(monoMethod.ReturnType, nativeReturnType));
+            body.Emit(OpCodes.Stloc, nativeReturnVariable);
+        }
+
+        if (thisVariable != null)
+        {
+            // Copy any changes to the value type back to the pointer passed by il2cpp
+            Debug.Assert(monoMethod.DeclaringType.IsValueType);
+            body.Emit(OpCodes.Ldloc, thisVariable);
+            body.Emit(OpCodes.Ldarg_0);
+            body.Emit(OpCodes.Conv_U);
+            body.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.WriteToPointer), BindingFlags.Public | BindingFlags.Static)!.MakeGenericMethod(monoMethod.DeclaringType));
+        }
+
+        // Update boxed value types passed as interfaces
+        foreach ((var local, var argumentIndex) in interfaceArguments)
+        {
+            body.Emit(OpCodes.Ldarg, argumentIndex);
+            body.Emit(OpCodes.Ldloc, local);
+            body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(UpdateBoxedValue), BindingFlags.Static | BindingFlags.NonPublic)!);
+        }
+
+        body.BeginCatchBlock(typeof(Exception));
+        body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
+
+        body.EndExceptionBlock();
+
+        if (nativeReturnVariable != null)
+        {
+            body.Emit(OpCodes.Ldloc, nativeReturnVariable);
+        }
+
+        body.Emit(OpCodes.Ret);
+
+        return trampoline.CreateDelegate(delegateType);
+    }
+
+    private static void LogError(Exception exception)
+    {
+        Logger.Instance.LogError("Exception in IL2CPP-to-Managed trampoline, not passing it to il2cpp: {Exception}", exception);
+    }
+
+    private static unsafe void UpdateBoxedValue(IntPtr objectPointer, IIl2CppType? @object)
+    {
+        if (objectPointer == IntPtr.Zero || @object == null)
+            return;
+
+        if (!@object.GetType().IsValueType)
+            return;
+
+        var size = IL2CPP.il2cpp_class_value_size(@object.ObjectClass, out _);
+        var sourceSpan = new ReadOnlySpan<byte>((void*)IL2CPP.il2cpp_object_unbox((nint)@object.BoxNative()), size);
+        var destinationSpan = new Span<byte>((void*)IL2CPP.il2cpp_object_unbox(objectPointer), size);
+        sourceSpan.CopyTo(destinationSpan);
+    }
+
+    private static unsafe TManaged? ConvertNativeToManaged<TNative, TManaged>(TNative value)
+        where TNative : unmanaged
+        where TManaged : IIl2CppType<TManaged>
+    {
+        var span = new ReadOnlySpan<byte>(&value, sizeof(TNative));
+        return TManaged.ReadFromSpan(span);
+    }
+
+    private static unsafe TNative ConvertManagedToNative<TManaged, TNative>(TManaged? value)
+        where TNative : unmanaged
+        where TManaged : IIl2CppType<TManaged>
+    {
+        TNative result = default;
+        var span = new Span<byte>(&result, sizeof(TNative));
+        TManaged.WriteToSpan(value, span);
+        return result;
+    }
 }
