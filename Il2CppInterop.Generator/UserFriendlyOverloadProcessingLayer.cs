@@ -1,4 +1,5 @@
-﻿using Cpp2IL.Core.Api;
+﻿using System.Runtime.CompilerServices;
+using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.Visitors;
@@ -19,6 +20,12 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
         var il2CppArrayBase = appContext.ResolveTypeOrThrow(typeof(Il2CppArrayRank1<>));
         var il2CppArrayBase_ToManagedArray = il2CppArrayBase.Methods.Single(m => m.Name == "op_Explicit" && m.ReturnType is SzArrayTypeAnalysisContext);
         var il2CppArrayBase_FromManagedArray = il2CppArrayBase.Methods.Single(m => m.Name == "op_Explicit" && m.Parameters.Count == 1 && m.Parameters[0].ParameterType is SzArrayTypeAnalysisContext);
+
+        var unsafeClass = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.Runtime.CompilerServices.Unsafe");
+        var unsafeAsMethod = unsafeClass.Methods.Single(m => m.Name == nameof(Unsafe.As) && m.GenericParameters.Count == 2);
+
+        var systemObject = appContext.SystemTypes.SystemObjectType;
+        var il2CppSystemIObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
 
         foreach (var assembly in appContext.Assemblies)
         {
@@ -53,10 +60,11 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                         // Not implemented yet
 
                         // Convert ref Il2CppSystem.Int32 to ref int
-                        // Not implemented yet
+                        if (p.ParameterType is ByRefTypeAnalysisContext { ElementType.KnownType.IsIl2CppPrimitiveType: true })
+                            return true;
 
                         // Convert Il2Cpp primitive to System primitive
-                        // Not implemented yet
+                        // Although we include these conversions in the generated overload, they don't justify an overload on their own since implicit conversions exist.
 
                         return false;
                     });
@@ -78,6 +86,7 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                     TypeAnalysisContext[] parameterTypes = new TypeAnalysisContext[method.Parameters.Count];
                     MethodAnalysisContext?[] conversionMethods = new MethodAnalysisContext?[method.Parameters.Count];
 
+                    var conversionCount = 0;
                     for (var i = 0; i < method.Parameters.Count; i++)
                     {
                         var parameter = method.Parameters[i];
@@ -87,7 +96,38 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                         {
                             parameterTypes[i] = visitor.Replace(elementType).MakeSzArrayType();
                             conversionMethods[i] = il2CppArrayBase_FromManagedArray.MakeConcreteGeneric([elementType], []);
+                            conversionCount++;
                             continue;
+                        }
+
+                        // Convert ref Il2CppSystem.Int32 to ref int
+                        if (parameter.ParameterType is ByRefTypeAnalysisContext { ElementType: { KnownType.IsIl2CppPrimitiveType: true } byRefElementType })
+                        {
+                            var systemPrimitive = byRefElementType.KnownType.ToSystemType().ToContext(appContext);
+                            parameterTypes[i] = systemPrimitive.MakeByReferenceType();
+                            conversionMethods[i] = unsafeAsMethod.MakeGenericInstanceMethod(byRefElementType, systemPrimitive);
+                            conversionCount++;
+                            continue;
+                        }
+
+                        // Convert Il2Cpp primitive to System primitive
+                        {
+                            var knownType = parameter.ParameterType.KnownType;
+                            if (knownType.IsIl2CppPrimitiveType || knownType is KnownTypeCode.Il2CppSystem_String)
+                            {
+                                var systemType = knownType.ToSystemType().ToContext(appContext);
+                                parameterTypes[i] = systemType;
+                                conversionMethods[i] = parameter.ParameterType.GetImplicitConversionFrom(systemType);
+                                conversionCount++;
+                                continue;
+                            }
+                            else if (knownType == KnownTypeCode.Il2CppSystem_IObject)
+                            {
+                                parameterTypes[i] = systemObject;
+                                conversionCount++;
+                                continue;
+                                // No conversion method. We special case this in the loop below.
+                            }
                         }
 
                         // No conversion
@@ -106,26 +146,36 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                         newMethod.Parameters.Add(newParameter);
                     }
 
-                    List<Instruction> instructions = new();
+                    var instructionCount = (newMethod.IsStatic ? 0 : 1)
+                        + newMethod.Parameters.Count
+                        + conversionCount
+                        + 2;
+
+                    List<Instruction> instructions = new(instructionCount);
 
                     if (!newMethod.IsStatic)
                     {
-                        instructions.Add(new Instruction(CilOpCodes.Ldarg, This.Instance));
+                        instructions.Add(CilOpCodes.Ldarg_0); // Load "this"
                     }
 
                     for (var i = 0; i < newMethod.Parameters.Count; i++)
                     {
-                        instructions.Add(new Instruction(CilOpCodes.Ldarg, newMethod.Parameters[i]));
+                        instructions.Add(CilOpCodes.Ldarg, newMethod.Parameters[i]);
                         var conversionMethod = conversionMethods[i];
                         if (conversionMethod is not null)
                         {
-                            instructions.Add(new Instruction(CilOpCodes.Call, conversionMethod));
+                            instructions.Add(CilOpCodes.Call, conversionMethod);
+                        }
+                        else if (newMethod.Parameters[i].ParameterType == systemObject && method.Parameters[i].ParameterType == il2CppSystemIObject)
+                        {
+                            // Special case for Il2CppSystem.IObject to System.Object conversion, since there's no conversion method for this
+                            instructions.Add(CilOpCodes.Isinst, il2CppSystemIObject);
                         }
                     }
 
-                    instructions.Add(new Instruction(newMethod.IsStatic || type.IsValueType ? CilOpCodes.Call : CilOpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters)));
+                    instructions.Add(newMethod.IsStatic || type.IsValueType ? CilOpCodes.Call : CilOpCodes.Callvirt, method.MaybeMakeConcreteGeneric(type.GenericParameters, newMethod.GenericParameters));
 
-                    instructions.Add(new Instruction(CilOpCodes.Ret));
+                    instructions.Add(CilOpCodes.Ret);
 
                     newMethod.PutExtraData(new NativeMethodBody()
                     {
