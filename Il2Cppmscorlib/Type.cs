@@ -58,4 +58,7 @@ public abstract class Type : Object, IIl2CppType<Type>
 
     public static Boolean operator ==(Type left, Type right) => throw null;
     public static Boolean operator !=(Type left, Type right) => throw null;
+
+    public override bool Equals(object obj) => throw new System.NotImplementedException();
+    public override int GetHashCode() => throw new System.NotImplementedException();
 }
