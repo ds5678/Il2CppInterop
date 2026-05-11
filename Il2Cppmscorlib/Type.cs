@@ -55,4 +55,7 @@ public abstract class Type : Object, IIl2CppType<Type>
     public Type MakeGenericType(Type[] typeArguments) => throw null;
 
     public Type MakePointerType() => throw null;
+
+    public static Boolean operator ==(Type left, Type right) => throw null;
+    public static Boolean operator !=(Type left, Type right) => throw null;
 }
