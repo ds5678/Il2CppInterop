@@ -103,10 +103,10 @@ public static class TrampolineBuilder
         var newType = _delegateModule.DefineType(typeName, TypeAttributes.Sealed | TypeAttributes.Public,
             typeof(MulticastDelegate));
 
-        var ctor = newType.DefineConstructor(
+        newType.DefineConstructor(
             MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName |
-            MethodAttributes.Public, CallingConventions.HasThis, new[] { typeof(object), typeof(IntPtr) });
-        ctor.SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
+            MethodAttributes.Public, CallingConventions.HasThis, [typeof(object), typeof(IntPtr)])
+            .SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         var parameterTypes = GetNativeParameters(monoMethod);
 
@@ -118,10 +118,10 @@ public static class TrampolineBuilder
             .SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         newType.DefineMethod("BeginInvoke",
-                MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot |
-                MethodAttributes.Public,
-                CallingConventions.HasThis, typeof(IAsyncResult),
-                parameterTypes.Concat([typeof(AsyncCallback), typeof(object)]).ToArray())
+            MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot |
+            MethodAttributes.Public,
+            CallingConventions.HasThis, typeof(IAsyncResult),
+            parameterTypes.Concat([typeof(AsyncCallback), typeof(object)]).ToArray())
             .SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
 
         newType.DefineMethod("EndInvoke",
