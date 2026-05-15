@@ -37,7 +37,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
             for (var typeIndex = 0; typeIndex < assembly.Types.Count; typeIndex++)
             {
                 var type = assembly.Types[typeIndex];
-                if (type.BaseType is not { Namespace: "Il2CppSystem", Name: "MulticastDelegate" })
+                if (!type.IsIl2CppDelegate)
                     continue;
 
                 // Remove variance on generic parameters because only interfaces and (real) delegates can have variance.
@@ -137,17 +137,17 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     // We need to create a new delegate type
 
                     var name = type.Name is "Delegate" ? "Converted" : "Delegate"; // Name can't be the same as the declaring type
-                    managedDelegateType = type.InjectNestedType(
+                    var injectedType = type.InjectNestedType(
                         name,
                         multicastDelegateType);
 
-                    managedDelegateType.CopyGenericParameters(type, true);
+                    injectedType.CopyGenericParameters(type, true);
 
                     TypeAnalysisContext returnType;
                     List<TypeAnalysisContext> parameterTypes = invokeMethod.Parameters.Select(p => p.ParameterType).ToList();
                     {
                         var genericParameterDictionary = Enumerable.Range(0, type.GenericParameters.Count)
-                            .ToDictionary<int, TypeAnalysisContext, TypeAnalysisContext>(i => type.GenericParameters[i], i => managedDelegateType.GenericParameters[i]);
+                            .ToDictionary<int, TypeAnalysisContext, TypeAnalysisContext>(i => type.GenericParameters[i], i => injectedType.GenericParameters[i]);
                         var replacementVisitor = new TypeReplacementVisitor(genericParameterDictionary);
                         replacementVisitor.Modify(parameterTypes);
                         returnType = replacementVisitor.Replace(invokeMethod.ReturnType);
@@ -155,8 +155,8 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                     // Constructor
                     {
-                        managedDelegateType.Methods.Add(new InjectedMethodAnalysisContext(
-                            managedDelegateType,
+                        injectedType.Methods.Add(new InjectedMethodAnalysisContext(
+                            injectedType,
                             ".ctor",
                             appContext.SystemTypes.SystemVoidType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
@@ -166,8 +166,8 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                     // Invoke
                     {
-                        managedDelegateType.Methods.Add(new InjectedMethodAnalysisContext(
-                            managedDelegateType,
+                        injectedType.Methods.Add(new InjectedMethodAnalysisContext(
+                            injectedType,
                             "Invoke",
                             returnType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
@@ -177,8 +177,8 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                     // BeginInvoke
                     {
-                        managedDelegateType.Methods.Add(new InjectedMethodAnalysisContext(
-                            managedDelegateType,
+                        injectedType.Methods.Add(new InjectedMethodAnalysisContext(
+                            injectedType,
                             "BeginInvoke",
                             iasyncResultType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
@@ -188,13 +188,22 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                     // EndInvoke
                     {
-                        managedDelegateType.Methods.Add(new InjectedMethodAnalysisContext(
-                            managedDelegateType,
+                        injectedType.Methods.Add(new InjectedMethodAnalysisContext(
+                            injectedType,
                             "EndInvoke",
                             returnType,
                             MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
                             [iasyncResultType],
                             defaultImplAttributes: MethodImplAttributes.Runtime));
+                    }
+
+                    if (injectedType.GenericParameters.Count > 0)
+                    {
+                        managedDelegateType = injectedType.MakeGenericInstanceType(type.GenericParameters);
+                    }
+                    else
+                    {
+                        managedDelegateType = injectedType;
                     }
                 }
 
