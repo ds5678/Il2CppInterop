@@ -43,6 +43,8 @@ internal static class TypeAnalysisContextExtensions
             }
         }
 
+        public bool IsIl2CppDelegate => type.BaseType is { Namespace: "Il2CppSystem", Name: "MulticastDelegate" };
+
         /// <summary>
         /// The fields, methods, properties, and events of this type.
         /// </summary>
