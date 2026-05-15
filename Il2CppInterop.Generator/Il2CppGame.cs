@@ -2,7 +2,6 @@
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.InstructionSets;
 using Cpp2IL.Core.Logging;
-using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Plugin.StrippedCodeRegSupport;
 using LibCpp2IL;
 
@@ -32,7 +31,7 @@ public static class Il2CppGame
     {
         Process(gameExePath, processingLayers, extraData);
 
-        outputFormat.DoOutput(GetCurrentAppContext(), outputFolder);
+        outputFormat.DoOutput(Cpp2IlApi.CurrentAppContext!, outputFolder);
     }
 
     public static void Process(string gameExePath, List<Cpp2IlProcessingLayer> processingLayers, KeyValuePair<string, string>[] extraData)
@@ -58,12 +57,12 @@ public static class Il2CppGame
 
         foreach (var cpp2IlProcessingLayer in processingLayers)
         {
-            cpp2IlProcessingLayer.PreProcess(GetCurrentAppContext(), processingLayers);
+            cpp2IlProcessingLayer.PreProcess(Cpp2IlApi.CurrentAppContext, processingLayers);
         }
 
         foreach (var cpp2IlProcessingLayer in processingLayers)
         {
-            cpp2IlProcessingLayer.Process(GetCurrentAppContext());
+            cpp2IlProcessingLayer.Process(Cpp2IlApi.CurrentAppContext);
         }
     }
 
@@ -76,10 +75,5 @@ public static class Il2CppGame
                 return path;
         }
         throw new FileNotFoundException("Could not find GameAssembly binary in game directory.");
-    }
-
-    private static ApplicationAnalysisContext GetCurrentAppContext()
-    {
-        return Cpp2IlApi.CurrentAppContext ?? throw new NullReferenceException();
     }
 }
