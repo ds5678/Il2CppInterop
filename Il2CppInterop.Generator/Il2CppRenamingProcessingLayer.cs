@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using Cpp2IL.Core.Api;
-using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
 
 namespace Il2CppInterop.Generator;

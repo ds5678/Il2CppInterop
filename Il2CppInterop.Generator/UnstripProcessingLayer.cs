@@ -1,5 +1,4 @@
 ﻿using AsmResolver.DotNet;
-using Cpp2IL.Core.Logging;
 using Cpp2IL.Core.Model.Contexts;
 
 namespace Il2CppInterop.Generator;

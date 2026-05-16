@@ -15,7 +15,6 @@ using Il2CppInterop.Generator.Visitors;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Generator;
 
@@ -451,7 +450,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
             }
         }
 
-        Logger.Instance.LogTrace($"Tokenless method count: {tokenLessMethodCount}", nameof(InitializationClassProcessingLayer));
+        Logger.Info($"Tokenless method count: {tokenLessMethodCount}", nameof(InitializationClassProcessingLayer));
 
         // Il2CppInterop.Initialization.dll
         {
