@@ -1,7 +1,6 @@
 ﻿using Cpp2IL.Core;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.InstructionSets;
-using Cpp2IL.Core.Logging;
 using Cpp2IL.Plugin.StrippedCodeRegSupport;
 using LibCpp2IL;
 
