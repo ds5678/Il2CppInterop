@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
@@ -61,6 +62,46 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     }
                 }
 
+                var concreteType = type.SelfInstantiateIfGeneric();
+
+                var addition = new InjectedMethodAnalysisContext(
+                    type,
+                    "op_Addition",
+                    concreteType,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
+                    [concreteType, concreteType]);
+                type.Methods.Add(addition);
+                addition.PutExtraData<TranslatedMethodBody>(new()
+                {
+                    Instructions =
+                    [
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Ldarg_1),
+                        new Instruction(CilOpCodes.Call, il2CppSystemDelegateCombine),
+                        new Instruction(CilOpCodes.Castclass, concreteType),
+                        new Instruction(CilOpCodes.Ret),
+                    ]
+                });
+
+                var subtraction = new InjectedMethodAnalysisContext(
+                    type,
+                    "op_Subtraction",
+                    concreteType,
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
+                    [concreteType, concreteType]);
+                type.Methods.Add(subtraction);
+                subtraction.PutExtraData<TranslatedMethodBody>(new()
+                {
+                    Instructions =
+                    [
+                        new Instruction(CilOpCodes.Ldarg_0),
+                        new Instruction(CilOpCodes.Ldarg_1),
+                        new Instruction(CilOpCodes.Call, il2CppSystemDelegateRemove),
+                        new Instruction(CilOpCodes.Castclass, concreteType),
+                        new Instruction(CilOpCodes.Ret),
+                    ]
+                });
+
                 var invokeMethod = type.TryGetMethodByName("Invoke");
                 if (invokeMethod is null)
                 {
@@ -69,11 +110,12 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     continue;
                 }
 
+                Debug.Assert(invokeMethod.ReturnType is not PointerTypeAnalysisContext and not ByRefTypeAnalysisContext, "All pointers and by reference types should be converted to generics");
+                Debug.Assert(invokeMethod.Parameters.All(p => p.ParameterType is not PointerTypeAnalysisContext and not ByRefTypeAnalysisContext), "All pointers and by reference types should be converted to generics");
+
                 TypeAnalysisContext managedDelegateType;
 
-                if (invokeMethod.Parameters.Count <= 16
-                    && invokeMethod.ReturnType is not PointerTypeAnalysisContext and not ByRefTypeAnalysisContext
-                    && invokeMethod.Parameters.All(p => p.ParameterType is not PointerTypeAnalysisContext and not ByRefTypeAnalysisContext))
+                if (invokeMethod.Parameters.Count <= 16)
                 {
                     // We can use a System delegate
 
@@ -207,7 +249,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     }
                 }
 
-                var concreteType = type.HasGenericParameters ? type.MakeGenericInstanceType(type.GenericParameters) : type;
+                // Explicit conversion operator from the managed delegate type to the Il2Cpp delegate type.
                 var explicitConversion = new InjectedMethodAnalysisContext(
                     type,
                     "op_Explicit",
@@ -221,44 +263,6 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     [
                         new Instruction(CilOpCodes.Ldarg_0),
                         new Instruction(CilOpCodes.Call, delegateSupportMethod.MakeGenericInstanceMethod(concreteType)),
-                        new Instruction(CilOpCodes.Ret),
-                    ]
-                });
-
-                var addition = new InjectedMethodAnalysisContext(
-                    type,
-                    "op_Addition",
-                    concreteType,
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                    [concreteType, concreteType]);
-                type.Methods.Add(addition);
-                addition.PutExtraData<TranslatedMethodBody>(new()
-                {
-                    Instructions =
-                    [
-                        new Instruction(CilOpCodes.Ldarg_0),
-                        new Instruction(CilOpCodes.Ldarg_1),
-                        new Instruction(CilOpCodes.Call, il2CppSystemDelegateCombine),
-                        new Instruction(CilOpCodes.Castclass, concreteType),
-                        new Instruction(CilOpCodes.Ret),
-                    ]
-                });
-
-                var subtraction = new InjectedMethodAnalysisContext(
-                    type,
-                    "op_Subtraction",
-                    concreteType,
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                    [concreteType, concreteType]);
-                type.Methods.Add(subtraction);
-                subtraction.PutExtraData<TranslatedMethodBody>(new()
-                {
-                    Instructions =
-                    [
-                        new Instruction(CilOpCodes.Ldarg_0),
-                        new Instruction(CilOpCodes.Ldarg_1),
-                        new Instruction(CilOpCodes.Call, il2CppSystemDelegateRemove),
-                        new Instruction(CilOpCodes.Castclass, concreteType),
                         new Instruction(CilOpCodes.Ret),
                     ]
                 });
