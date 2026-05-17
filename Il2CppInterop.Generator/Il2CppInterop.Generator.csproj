@@ -24,5 +24,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
     <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
+    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" PrivateAssets="All" />
   </ItemGroup>
 </Project>

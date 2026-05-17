@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
     <ProjectReference Include="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj" />
+    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" />
   </ItemGroup>
 
   <ItemGroup>
