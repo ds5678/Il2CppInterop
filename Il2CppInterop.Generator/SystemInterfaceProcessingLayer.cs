@@ -1,30 +1,24 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
+using Il2CppInterop.Generator.Conversions;
 using Il2CppInterop.Generator.Operands;
 using Il2CppInterop.Generator.Visitors;
 
 namespace Il2CppInterop.Generator;
 
+/// <summary>
+/// This processing layer finds matching interfaces in mscorlib and Il2Cppmscorlib and implements
+/// the mscorlib interfaces on the Il2Cppmscorlib interfaces, forwarding calls to the existing Il2Cppmscorlib methods.
+/// This allows user code to use the normal .NET interfaces and have them work with the Il2Cpp types.
+/// </summary>
 public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
 {
     public override string Name => "System Interface Implementations";
     public override string Id => "system_interface_implementations";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        // Needs to handle:
-        // IDisposable
-        // IEnumerator and IEnumerator<T>
-        // IEnumerable and IEnumerable<T>
-        // INotifyCompletion and ICriticalNotifyCompletion
-        // IEquatable<T>
-        // IComparable and IComparable<T>
-        // IReadOnlyCollection<T> and IReadOnlyList<T>
-        // IReadOnlySet<T>
-        // IReadOnlyDictionary<TKey, TValue>
-        // IEqualityComparer<T>
-        // IComparer and IComparer<T>
-
         var pairs = FindPairs(appContext);
 
         foreach (var (il2CppInterface, systemInterface) in pairs)
@@ -67,7 +61,7 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
 
     private static void ImplementInterface(TypeAnalysisContext il2CppInterface, TypeAnalysisContext systemInterface)
     {
-        il2CppInterface.InterfaceContexts.Add(systemInterface);
+        il2CppInterface.InterfaceContexts.Add(systemInterface.MaybeMakeGenericInstanceType(il2CppInterface.GenericParameters));
 
         foreach (var systemMethod in systemInterface.Methods)
         {
@@ -81,7 +75,6 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
             {
                 IsInjected = true,
             };
-            injectedMethod.Overrides.Add(systemMethod);
             il2CppInterface.Methods.Add(injectedMethod);
 
             injectedMethod.CopyGenericParameters(systemMethod, true);
@@ -95,7 +88,9 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
                 injectedMethod.Parameters.Add(new InjectedParameterAnalysisContext(parameter.Name, visitor.Replace(parameter.ParameterType), parameter.Attributes, parameter.ParameterIndex, injectedMethod));
             }
 
-            var il2CppMethod = FindIl2CppMethod(il2CppInterface, systemMethod);
+            injectedMethod.Overrides.Add(systemMethod.MaybeMakeConcreteGeneric(il2CppInterface.GenericParameters, injectedMethod.GenericParameters));
+
+            var il2CppMethod = FindIl2CppMethod(il2CppInterface, systemMethod.Name, injectedMethod, out var returnConversion, out var parameterConversions);
 
             if (il2CppMethod is null)
             {
@@ -112,13 +107,14 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
 
             List<Instruction> instructions = [];
             instructions.Add(CilOpCodes.Ldarg_0);
-            foreach (var parameter in injectedMethod.Parameters)
+            for (var i = 0; i < injectedMethod.Parameters.Count; i++)
             {
+                var parameter = injectedMethod.Parameters[i];
                 instructions.Add(CilOpCodes.Ldarg, parameter);
-                // Todo: parameter value conversion
+                parameterConversions[i].Add(instructions);
             }
-            instructions.Add(CilOpCodes.Call, il2CppMethod);
-            // Todo: return value conversion
+            instructions.Add(CilOpCodes.Callvirt, il2CppMethod.MaybeMakeConcreteGeneric(il2CppInterface.GenericParameters, injectedMethod.GenericParameters));
+            returnConversion.Add(instructions);
             instructions.Add(CilOpCodes.Ret);
 
             injectedMethod.PutExtraData(new NativeMethodBody()
@@ -128,13 +124,24 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static MethodAnalysisContext? FindIl2CppMethod(TypeAnalysisContext il2CppInterface, MethodAnalysisContext systemMethod)
+    private static MethodAnalysisContext? FindIl2CppMethod(TypeAnalysisContext il2CppInterface, string methodName, MethodAnalysisContext injectedMethod, out Conversion returnConversion, out Conversion[] parameterConversions)
     {
-        foreach (var il2CppMethod in il2CppInterface.Methods)
+        returnConversion = NullConversion.Instance;
+        parameterConversions = new Conversion[injectedMethod.Parameters.Count];
+
+        // Search in reverse order because the most user-friendly overloads will be last (they always get added to the end of the list).
+        // This ensures correct behavior for array parameters, which have special handling in the user-friendly overload processing layer.
+        for (var il2CppMethodIndex = il2CppInterface.Methods.Count - 1; il2CppMethodIndex >= 0; il2CppMethodIndex--)
         {
-            if (il2CppMethod.Name == systemMethod.Name && !il2CppMethod.IsStatic && il2CppMethod.Parameters.Count == systemMethod.Parameters.Count && il2CppMethod.GenericParameters.Count == systemMethod.GenericParameters.Count)
+            var il2CppMethod = il2CppInterface.Methods[il2CppMethodIndex];
+            if (il2CppMethod.Name == methodName &&
+                !il2CppMethod.IsStatic &&
+                il2CppMethod.Parameters.Count == injectedMethod.Parameters.Count &&
+                il2CppMethod.GenericParameters.Count == injectedMethod.GenericParameters.Count &&
+                il2CppMethod.IsVoid == injectedMethod.IsVoid)
             {
-                if (!AreTypesEqual(il2CppMethod.ReturnType, systemMethod.ReturnType))
+                var visitor = TypeReplacementVisitor.CreateForMethodCopying(il2CppMethod, injectedMethod);
+                if (!AreTypesEqual(visitor.Replace(il2CppMethod.ReturnType), injectedMethod.ReturnType, out returnConversion))
                 {
                     continue;
                 }
@@ -142,9 +149,9 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
                 var parametersMatch = true;
                 for (var i = 0; i < il2CppMethod.Parameters.Count; i++)
                 {
-                    var il2CppParameterType = il2CppMethod.Parameters[i].ParameterType;
-                    var systemParameterType = systemMethod.Parameters[i].ParameterType;
-                    if (!AreTypesEqual(il2CppParameterType, systemParameterType))
+                    var injectedParameterType = injectedMethod.Parameters[i].ParameterType;
+                    var il2CppParameterType = visitor.Replace(il2CppMethod.Parameters[i].ParameterType);
+                    if (!AreTypesEqual(injectedParameterType, il2CppParameterType, out parameterConversions[i]))
                     {
                         parametersMatch = false;
                         break;
@@ -158,14 +165,59 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         }
         return null;
 
-        static bool AreTypesEqual(TypeAnalysisContext a, TypeAnalysisContext b)
+        static bool AreTypesEqual(TypeAnalysisContext from, TypeAnalysisContext to, out Conversion conversion)
         {
-            if (a is GenericParameterTypeAnalysisContext aGeneric && b is GenericParameterTypeAnalysisContext bGeneric)
+            if (TypeAnalysisContextEqualityComparer.Instance.Equals(from, to))
             {
-                // For generic parameters, we consider them equal if they are in the same position
-                return aGeneric.Type == bGeneric.Type && aGeneric.Index == bGeneric.Index;
+                conversion = NullConversion.Instance;
+                return true;
             }
-            return TypeAnalysisContextEqualityComparer.Instance.Equals(a, b);
+            else if (from.TryGetConversionTo(to, out var conversionMethod) || to.TryGetConversionFrom(from, out conversionMethod))
+            {
+                // An implicit or explicit conversion exists
+                conversion = new MethodCallConversion(conversionMethod);
+                return true;
+            }
+            else if (to.KnownType is KnownTypeCode.System_Object && !from.IsValueType)
+            {
+                // Any reference type can be converted to System.Object
+                conversion = NullConversion.Instance;
+                return true;
+            }
+            else if (to.KnownType is KnownTypeCode.Il2CppSystem_IObject && from.KnownType is KnownTypeCode.System_Object)
+            {
+                // obj as IObject
+                conversion = new IsInstanceConversion(to);
+                return true;
+            }
+            else if (to.IsInterface && from.IsInterface && to.DefaultFullName == from.DefaultFullName)
+            {
+                if (to.Namespace.StartsWith("Il2Cpp", StringComparison.Ordinal))
+                {
+                    // System.IX to Il2CppSystem.IX
+                    // Need to cast
+                    conversion = new CastClassConversion(to);
+                    return true;
+                }
+                else if (from.Namespace.StartsWith("Il2Cpp", StringComparison.Ordinal))
+                {
+                    // Il2CppSystem.IX to System.IX
+                    // Since the Il2Cpp interface implements the System interface, no conversion is needed.
+                    conversion = NullConversion.Instance;
+                    return true;
+                }
+                else
+                {
+                    Debug.Fail($"Unexpected case where two reference types have the same full name but are not considered equal: {from.FullName} and {to.FullName}");
+                    conversion = NullConversion.Instance;
+                    return false;
+                }
+            }
+            else
+            {
+                conversion = NullConversion.Instance;
+                return false;
+            }
         }
     }
 }

@@ -25,7 +25,6 @@ Console.WriteLine("Done!");
 
 /*
 Todo
-- System interfaces
 - Add attributes to "Unsafe" methods so that users cannot see them
 - Lazily create field offset accessors
 - Reduce number of implementation methods
