@@ -57,7 +57,12 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                             return true;
 
                         // Convert Il2Cpp delegate type to System delegate type
-                        // Not implemented yet
+                        if (p.ParameterType.IsIl2CppDelegate)
+                        {
+                            // If GenericInstanceTypeAnalysisContext held an instantiated list of methods, this would be easier.
+                            var nonGenericType = (p.ParameterType as GenericInstanceTypeAnalysisContext)?.GenericType ?? p.ParameterType;
+                            return nonGenericType.Methods.Any(m => m.Name == "op_Explicit");
+                        }
 
                         // Convert ref Il2CppSystem.Int32 to ref int
                         if (p.ParameterType is ByRefTypeAnalysisContext { ElementType.KnownType.IsIl2CppPrimitiveType: true })
@@ -110,6 +115,28 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                             conversionMethods[i] = unsafeAsMethod.MakeGenericInstanceMethod(byRefElementType, systemPrimitive);
                             conversionCount++;
                             continue;
+                        }
+
+                        // Convert Il2Cpp delegate type to System delegate type
+                        if (parameter.ParameterType.IsIl2CppDelegate)
+                        {
+                            MethodAnalysisContext? explicitConversionMethod;
+                            if (parameter.ParameterType is GenericInstanceTypeAnalysisContext genericInstance)
+                            {
+                                explicitConversionMethod = genericInstance.GenericType.Methods.SingleOrDefault(m => m.Name == "op_Explicit")
+                                    ?.MakeConcreteGeneric(genericInstance.GenericArguments, []);
+                            }
+                            else
+                            {
+                                explicitConversionMethod = parameter.ParameterType.Methods.SingleOrDefault(m => m.Name == "op_Explicit");
+                            }
+                            if (explicitConversionMethod is not null)
+                            {
+                                parameterTypes[i] = explicitConversionMethod.Parameters[0].ParameterType;
+                                conversionMethods[i] = explicitConversionMethod;
+                                conversionCount++;
+                                continue;
+                            }
                         }
 
                         // Convert Il2Cpp primitive to System primitive
