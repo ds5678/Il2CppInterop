@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Generator.Operands;
@@ -36,17 +37,16 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                 if (type.IsInjected)
                     continue;
 
-                if (type.IsInterface)
-                {
-                    continue; // We don't add method overloads to interfaces
-                }
-
                 // for instead of foreach because we might be modifying the collection
                 for (var methodIndex = 0; methodIndex < type.Methods.Count; methodIndex++)
                 {
                     var method = type.Methods[methodIndex];
-                    if (method.IsInjected || !method.IsPublic || method.IsSpecialName)
+                    if (method.IsInjected)
                         continue;
+                    if (!method.IsPublic || method.IsSpecialName)
+                        continue; // Don't generate overloads for non-public or special name methods
+                    if (method.IsVirtual && !method.IsNewSlot)
+                        continue; // Don't generate overloads for overrides/implementations
 
                     method = method.MostUserFriendlyOverload;
 
@@ -71,12 +71,14 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                     if (!anyPossibleConversions)
                         continue;
 
-                    var newMethod = new InjectedMethodAnalysisContext(type, method.Name, appContext.SystemTypes.SystemVoidType, method.Attributes, [])
+                    const MethodAttributes AttributesToRemove = MethodAttributes.Virtual | MethodAttributes.Abstract | MethodAttributes.Final | MethodAttributes.NewSlot;
+                    var newMethod = new InjectedMethodAnalysisContext(type, method.Name, appContext.SystemTypes.SystemVoidType, method.Attributes & ~AttributesToRemove, [])
                     {
                         IsInjected = true,
                     };
                     type.Methods.Add(newMethod);
 
+                    // Have to use the index here because we overwrite the "method" local variable above
                     type.Methods[methodIndex].MostUserFriendlyOverload = newMethod;
 
                     newMethod.CopyGenericParameters(method, true);
