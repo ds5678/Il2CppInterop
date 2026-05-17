@@ -22,8 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Il2CppInterop.Common\Il2CppInterop.Common.csproj" />
-    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" />
     <ProjectReference Include="..\Il2CppInterop.SourceGenerator\Il2CppInterop.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" PrivateAssets="All" />
   </ItemGroup>
 
   <!-- Include the source generator in the NuGet package for consumers -->
