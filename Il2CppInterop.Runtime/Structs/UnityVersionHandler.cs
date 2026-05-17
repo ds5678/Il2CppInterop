@@ -28,6 +28,7 @@ public static class UnityVersionHandler
     private static readonly Dictionary<Type, List<(UnityVersion Version, object Handler)>> VersionedHandlers = new();
     private static readonly Dictionary<Type, object> Handlers = new();
 
+#nullable disable
     internal static INativeAssemblyStructHandler assemblyStructHandler;
     internal static INativeAssemblyNameStructHandler assemblyNameStructHandler;
     internal static INativeClassStructHandler classStructHandler;
@@ -39,6 +40,7 @@ public static class UnityVersionHandler
     internal static INativeParameterInfoStructHandler parameterInfoStructHandler;
     internal static INativePropertyInfoStructHandler propertyInfoStructHandler;
     internal static INativeTypeStructHandler typeStructHandler;
+#nullable restore
 
     static UnityVersionHandler()
     {
