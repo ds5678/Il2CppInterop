@@ -234,22 +234,64 @@ internal static class TypeAnalysisContextExtensions
 
         public MethodAnalysisContext GetImplicitConversionFrom(TypeAnalysisContext sourceType)
         {
-            return GetConversion("op_Implicit", type, sourceType, type.SelfInstantiateIfGeneric());
+            return type.TryGetImplicitConversionFrom(sourceType, out var method)
+                ? method
+                : throw new Exception($"No implicit conversion from {sourceType.Name} to {type.Name} found.");
         }
 
         public MethodAnalysisContext GetImplicitConversionTo(TypeAnalysisContext targetType)
         {
-            return GetConversion("op_Implicit", type, type.SelfInstantiateIfGeneric(), targetType);
+            return type.TryGetImplicitConversionTo(targetType, out var method)
+                ? method
+                : throw new Exception($"No implicit conversion from {type.Name} to {targetType.Name} found.");
         }
 
         public MethodAnalysisContext GetExplicitConversionFrom(TypeAnalysisContext sourceType)
         {
-            return GetConversion("op_Explicit", type, sourceType, type.SelfInstantiateIfGeneric());
+            return type.TryGetExplicitConversionFrom(sourceType, out var method)
+                ? method
+                : throw new Exception($"No explicit conversion from {sourceType.Name} to {type.Name} found.");
         }
 
         public MethodAnalysisContext GetExplicitConversionTo(TypeAnalysisContext targetType)
         {
-            return GetConversion("op_Explicit", type, type.SelfInstantiateIfGeneric(), targetType);
+            return type.TryGetExplicitConversionTo(targetType, out var method)
+                ? method
+                : throw new Exception($"No explicit conversion from {type.Name} to {targetType.Name} found.");
+        }
+
+        public bool TryGetImplicitConversionFrom(TypeAnalysisContext sourceType, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            method = GetConversion("op_Implicit", type, sourceType, type.SelfInstantiateIfGeneric());
+            return method is not null;
+        }
+
+        public bool TryGetImplicitConversionTo(TypeAnalysisContext targetType, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            method = GetConversion("op_Implicit", type, type.SelfInstantiateIfGeneric(), targetType);
+            return method is not null;
+        }
+
+        public bool TryGetExplicitConversionFrom(TypeAnalysisContext sourceType, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            method = GetConversion("op_Explicit", type, sourceType, type.SelfInstantiateIfGeneric());
+            return method is not null;
+        }
+
+        public bool TryGetExplicitConversionTo(TypeAnalysisContext targetType, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            method = GetConversion("op_Explicit", type, type.SelfInstantiateIfGeneric(), targetType);
+            return method is not null;
+        }
+
+        public bool TryGetConversionFrom(TypeAnalysisContext sourceType, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            return type.TryGetImplicitConversionFrom(sourceType, out method) || type.TryGetExplicitConversionFrom(sourceType, out method);
+        }
+
+        public bool TryGetConversionTo(TypeAnalysisContext targetType, [NotNullWhen(true)] out MethodAnalysisContext? method)
+        {
+            return type.TryGetImplicitConversionTo(targetType, out method) || type.TryGetExplicitConversionTo(targetType, out method);
         }
 
         public TypeAnalysisContext MaybeMakeGenericInstanceType(IReadOnlyCollection<TypeAnalysisContext> genericArguments)
@@ -279,9 +321,9 @@ internal static class TypeAnalysisContextExtensions
         }
     }
 
-    private static MethodAnalysisContext GetConversion([ConstantExpected] string name, TypeAnalysisContext declaringType, TypeAnalysisContext sourceType, TypeAnalysisContext targetType)
+    private static MethodAnalysisContext? GetConversion([ConstantExpected] string name, TypeAnalysisContext declaringType, TypeAnalysisContext sourceType, TypeAnalysisContext targetType)
     {
-        return declaringType.Methods.First(m =>
+        return declaringType.Methods.FirstOrDefault(m =>
         {
             return m.Name == name
                 && m.IsStatic
