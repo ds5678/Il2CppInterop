@@ -13,14 +13,22 @@ internal class TypeReplacementVisitor(Dictionary<TypeAnalysisContext, TypeAnalys
     public static TypeReplacementVisitor CreateForMethodCopying(MethodAnalysisContext source, MethodAnalysisContext destination)
     {
         Debug.Assert(source.GenericParameters.Count == destination.GenericParameters.Count);
-        Debug.Assert(source.DeclaringType == destination.DeclaringType);
-        if (source.GenericParameters.Count == 0)
+        Debug.Assert(source.DeclaringType is not null && destination.DeclaringType is not null);
+        Debug.Assert(source.DeclaringType.GenericParameters.Count == destination.DeclaringType.GenericParameters.Count);
+        if (source.GenericParameters.Count == 0 && (source.DeclaringType == destination.DeclaringType || source.DeclaringType.GenericParameters.Count == 0))
             return new([]);
 
         var replacements = new Dictionary<TypeAnalysisContext, TypeAnalysisContext>(source.GenericParameters.Count);
         for (var i = source.GenericParameters.Count - 1; i >= 0; i--)
         {
             replacements.Add(source.GenericParameters[i], destination.GenericParameters[i]);
+        }
+        if (source.DeclaringType != destination.DeclaringType)
+        {
+            for (var i = source.DeclaringType.GenericParameters.Count - 1; i >= 0; i--)
+            {
+                replacements.Add(source.DeclaringType.GenericParameters[i], destination.DeclaringType.GenericParameters[i]);
+            }
         }
 
         return new TypeReplacementVisitor(replacements);
