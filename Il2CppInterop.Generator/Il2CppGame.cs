@@ -1,6 +1,7 @@
 ﻿using Cpp2IL.Core;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.InstructionSets;
+using Cpp2IL.Core.ProcessingLayers;
 using Cpp2IL.Plugin.StrippedCodeRegSupport;
 using LibCpp2IL;
 
@@ -10,11 +11,6 @@ public static class Il2CppGame
 {
     static Il2CppGame()
     {
-        Logger.InfoLog += Console.WriteLine;
-        Logger.WarningLog += Console.WriteLine;
-        Logger.ErrorLog += Console.WriteLine;
-        Logger.VerboseLog += Console.WriteLine;
-
         InstructionSetRegistry.RegisterInstructionSet<X86InstructionSet>(DefaultInstructionSets.X86_32);
         InstructionSetRegistry.RegisterInstructionSet<X86InstructionSet>(DefaultInstructionSets.X86_64);
         InstructionSetRegistry.RegisterInstructionSet<WasmInstructionSet>(DefaultInstructionSets.WASM);
@@ -75,4 +71,48 @@ public static class Il2CppGame
         }
         throw new FileNotFoundException("Could not find GameAssembly binary in game directory.");
     }
+
+    public static List<Cpp2IlProcessingLayer> GetDefaultProcessingLayers() =>
+    [
+        new AttributeAnalysisProcessingLayer(), // Needed for recovery of unmanaged constraints
+        //new StableRenamingProcessingLayer(),
+        new UnstripProcessingLayer(), // Can be disabled for performance during development
+        new InterfaceOverrideProcessingLayer(),
+        new InvalidFieldRemovalProcessingLayer(),
+        new Il2CppRenamingProcessingLayer(),
+        new CleanRenamingProcessingLayer(),
+        new ConflictRenamingProcessingLayer(),
+        new AttributesOverrideProcessingLayer(),
+        new PublicizerProcessingLayer(),
+        new MscorlibAssemblyInjectionProcessingLayer(),
+        new KnownTypeAssignmentProcessingLayer(),
+        new ReferenceAssemblyInjectionProcessingLayer(),
+        new InvisibleInterfaceProcessingLayer(),
+        new ObjectInterfaceProcessingLayer(),
+        new ReferenceReplacementProcessingLayer(),
+        new AttributeRemovalProcessingLayer(),
+        new IndexerAttributeInjectionProcessingLayer(),
+        new PointerConstructorProcessingLayer(),
+        new Il2CppTypeConstraintProcessingLayer(),
+        new InitializationClassProcessingLayer(),
+        new MarshallingProcessingLayer(),
+        new BoxingProcessingLayer(),
+        new PrimitiveImplicitConversionProcessingLayer(),
+        new EnumProcessingLayer(),
+        new ObjectOverridesProcessingLayer(),
+        new ObjectInternalsProcessingLayer(),
+        new MemberAttributeProcessingLayer(),
+        new FieldAccessorProcessingLayer(),
+        new EventProcessingLayer(),
+        new ExceptionHierarchyProcessingLayer(),
+        new MethodInvokerProcessingLayer(),
+        new MethodBodyTranslationProcessingLayer(),
+        new NativeMethodBodyProcessingLayer(),
+        new DelegateConversionProcessingLayer(),
+        new ByRefParameterOverloadProcessingLayer(),
+        new UserFriendlyOverloadProcessingLayer(),
+        new SystemInterfaceProcessingLayer(),
+        new ConstantInitializationProcessingLayer(),
+        new StaticConstructorProcessingLayer(),
+    ];
 }

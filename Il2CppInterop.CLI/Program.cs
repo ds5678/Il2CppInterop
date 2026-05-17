@@ -1,4 +1,4 @@
-﻿using Cpp2IL.Core.ProcessingLayers;
+﻿using Cpp2IL.Core.Logging;
 using Il2CppInterop.Generator;
 
 string gameExePath = args[0];
@@ -8,53 +8,18 @@ string unstripDirectory = args[2];
 // Unstrip directory needs to contain all files recursively contained in these directories:
 // \Editor\Data\MonoBleedingEdge\lib\mono\unityaot-win32
 // \Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\win64_player_nondevelopment_il2cpp\Data\Managed
+// For other platforms, the paths will be slightly different.
+
+Logger.InfoLog += Console.WriteLine;
+Logger.WarningLog += Console.WriteLine;
+Logger.ErrorLog += Console.WriteLine;
+Logger.VerboseLog += Console.WriteLine;
 
 Il2CppGame.Process(
     gameExePath,
     outputFolder,
     new AsmResolverDllOutputFormatBinding(),
-    [
-        new AttributeAnalysisProcessingLayer(), // Needed for recovery of unmanaged constraints
-        //new StableRenamingProcessingLayer(),
-        new UnstripProcessingLayer(), // Can be disabled for performance during development
-        new InterfaceOverrideProcessingLayer(),
-        new InvalidFieldRemovalProcessingLayer(),
-        new Il2CppRenamingProcessingLayer(),
-        new CleanRenamingProcessingLayer(),
-        new ConflictRenamingProcessingLayer(),
-        new AttributesOverrideProcessingLayer(),
-        new PublicizerProcessingLayer(),
-        new MscorlibAssemblyInjectionProcessingLayer(),
-        new KnownTypeAssignmentProcessingLayer(),
-        new ReferenceAssemblyInjectionProcessingLayer(),
-        new InvisibleInterfaceProcessingLayer(),
-        new ObjectInterfaceProcessingLayer(),
-        new ReferenceReplacementProcessingLayer(),
-        new AttributeRemovalProcessingLayer(),
-        new IndexerAttributeInjectionProcessingLayer(),
-        new PointerConstructorProcessingLayer(),
-        new Il2CppTypeConstraintProcessingLayer(),
-        new InitializationClassProcessingLayer(),
-        new MarshallingProcessingLayer(),
-        new BoxingProcessingLayer(),
-        new PrimitiveImplicitConversionProcessingLayer(),
-        new EnumProcessingLayer(),
-        new ObjectOverridesProcessingLayer(),
-        new ObjectInternalsProcessingLayer(),
-        new MemberAttributeProcessingLayer(),
-        new FieldAccessorProcessingLayer(),
-        new EventProcessingLayer(),
-        new ExceptionHierarchyProcessingLayer(),
-        new MethodInvokerProcessingLayer(),
-        new MethodBodyTranslationProcessingLayer(),
-        new NativeMethodBodyProcessingLayer(),
-        new DelegateConversionProcessingLayer(),
-        new ByRefParameterOverloadProcessingLayer(),
-        new UserFriendlyOverloadProcessingLayer(),
-        new SystemInterfaceProcessingLayer(),
-        new ConstantInitializationProcessingLayer(),
-        new StaticConstructorProcessingLayer(),
-    ],
+    Il2CppGame.GetDefaultProcessingLayers(),
     [new(UnstripBaseProcessingLayer.DirectoryKey, unstripDirectory)]);
 Console.WriteLine("Done!");
 
