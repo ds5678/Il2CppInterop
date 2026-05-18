@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <PackageId>Il2CppInterop.Runtime</PackageId>
-    <Authors>knah, BepInEx et al.</Authors>
     <Description>Runtime tools for bridging .NET and Il2Cpp together</Description>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
