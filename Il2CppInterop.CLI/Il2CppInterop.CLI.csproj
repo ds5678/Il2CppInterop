@@ -11,7 +11,6 @@
     <Description>CLI tool for generating managed proxy assemblies for Il2Cpp</Description>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>
-    <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
