@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Il2CppInterop.Common;
@@ -17,7 +18,9 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
     public override string Name => "Inject required references into the Cpp2IL context system";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        Type[] il2CppInteropCommonTypes =
+        // Types need to be provided twice, so that the linker can find them
+
+        ReadOnlySpan<Type> il2CppInteropCommonTypes =
         [
             typeof(IL2CPP),
             typeof(ObjectPointer),
@@ -34,9 +37,26 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(IIl2CppType),
             typeof(IIl2CppType<>),
         ];
-        InjectTypes(appContext, typeof(ObjectPointer).Assembly, il2CppInteropCommonTypes);
+        {
+            var injectedAssembly = CreateTypes(appContext, typeof(IL2CPP).Assembly, il2CppInteropCommonTypes);
 
-        Type[] il2CppInteropRuntimeTypes =
+            InjectContentFromSourceType(injectedAssembly, typeof(IL2CPP));
+            InjectContentFromSourceType(injectedAssembly, typeof(ObjectPointer));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppType));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppObjectPool));
+
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppMemberAttribute));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppMethodAttribute));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppFieldAttribute));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppPropertyAttribute));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppEventAttribute));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppTypeAttribute));
+
+            InjectContentFromSourceType(injectedAssembly, typeof(IIl2CppType));
+            InjectContentFromSourceType(injectedAssembly, typeof(IIl2CppType<>));
+        }
+
+        ReadOnlySpan<Type> il2CppInteropRuntimeTypes =
         [
             typeof(Il2CppArrayBase),
             typeof(Il2CppArrayBase<>),
@@ -49,16 +69,42 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppException),
             typeof(TypeInjector),
             typeof(DelegateSupport),
+            typeof(RuntimeInvoke),
+            typeof(FieldAccess),
             typeof(Pointer<>),
             typeof(ByReference<>),
             typeof(ByReference),
-            typeof(FieldAccess),
             typeof(IIl2CppException),
-            typeof(RuntimeInvoke),
             typeof(NativeBoxing),
             typeof(GenerationInternals),
         ];
-        InjectTypes(appContext, typeof(Il2CppArrayBase).Assembly, il2CppInteropRuntimeTypes);
+        {
+            var injectedAssembly = CreateTypes(appContext, typeof(Il2CppArrayBase).Assembly, il2CppInteropRuntimeTypes);
+
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayBase));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayBase<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank1<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank2<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank3<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank4<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank5<>));
+
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppException));
+#pragma warning disable IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
+            InjectContentFromSourceType(injectedAssembly, typeof(TypeInjector));
+#pragma warning restore IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
+            InjectContentFromSourceType(injectedAssembly, typeof(DelegateSupport));
+            InjectContentFromSourceType(injectedAssembly, typeof(RuntimeInvoke));
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+            InjectContentFromSourceType(injectedAssembly, typeof(FieldAccess));
+            InjectContentFromSourceType(injectedAssembly, typeof(Pointer<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(ByReference<>));
+            InjectContentFromSourceType(injectedAssembly, typeof(ByReference));
+            InjectContentFromSourceType(injectedAssembly, typeof(IIl2CppException));
+            InjectContentFromSourceType(injectedAssembly, typeof(NativeBoxing));
+            InjectContentFromSourceType(injectedAssembly, typeof(GenerationInternals));
+        }
     }
 
     /// <summary>
@@ -67,22 +113,25 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
     /// <param name="appContext">The <see cref="ApplicationAnalysisContext"/></param>
     /// <param name="assembly">The assembly</param>
     /// <param name="types">The types to be injected from <paramref name="assembly"/>. Must be in order of inheritance</param>
-    private static void InjectTypes(ApplicationAnalysisContext appContext, Assembly assembly, Type[] types)
+    private static InjectedAssemblyAnalysisContext CreateTypes(ApplicationAnalysisContext appContext, Assembly assembly, ReadOnlySpan<Type> types)
     {
-        var il2CppInteropRuntime = appContext.InjectAssembly(assembly);
+        var injectedAssembly = appContext.InjectAssembly(assembly);
 
-        il2CppInteropRuntime.IsReferenceAssembly = true;
+        injectedAssembly.IsReferenceAssembly = true;
 
         var typeContextArray = new InjectedTypeAnalysisContext[types.Length];
 
         for (var i = 0; i < types.Length; i++)
         {
-            typeContextArray[i] = il2CppInteropRuntime.InjectType(types[i]);
+            typeContextArray[i] = injectedAssembly.InjectType(types[i]);
         }
 
-        for (var index = 0; index < types.Length; index++)
-        {
-            typeContextArray[index].InjectContentFromSourceType();
-        }
+        return injectedAssembly;
+    }
+
+    private static void InjectContentFromSourceType(AssemblyAnalysisContext assembly, [DynamicallyAccessedMembers(InjectedTypeAnalysisContextExtensions.AccessedMemberTypes)] Type sourceType)
+    {
+        var type = (InjectedTypeAnalysisContext)assembly.GetTypeByFullNameOrThrow(sourceType);
+        type.InjectContentFromSourceType(sourceType);
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Cpp2IL.Core.Model.Contexts;
 using LibCpp2IL.BinaryStructures;
@@ -7,13 +8,21 @@ namespace Il2CppInterop.Generator.Extensions;
 
 internal static class InjectedTypeAnalysisContextExtensions
 {
+    public const DynamicallyAccessedMemberTypes AccessedMemberTypes = DynamicallyAccessedMemberTypes.PublicFields
+        | DynamicallyAccessedMemberTypes.PublicProperties
+        | DynamicallyAccessedMemberTypes.PublicEvents
+        | DynamicallyAccessedMemberTypes.PublicMethods
+        | DynamicallyAccessedMemberTypes.PublicConstructors
+        | DynamicallyAccessedMemberTypes.NonPublicFields
+        | DynamicallyAccessedMemberTypes.NonPublicProperties
+        | DynamicallyAccessedMemberTypes.NonPublicEvents
+        | DynamicallyAccessedMemberTypes.NonPublicMethods
+        | DynamicallyAccessedMemberTypes.NonPublicConstructors;
+
     extension(InjectedTypeAnalysisContext type)
     {
-        public void InjectContentFromSourceType()
+        public void InjectContentFromSourceType([DynamicallyAccessedMembers(AccessedMemberTypes)] Type sourceType)
         {
-            var sourceType = type.SourceType;
-            ArgumentNullException.ThrowIfNull(sourceType);
-
             var appContext = type.AppContext;
 
             type.SetDefaultBaseType(sourceType.BaseType != null
@@ -133,7 +142,7 @@ internal static class InjectedTypeAnalysisContextExtensions
         }
     }
 
-    static IEnumerable<MethodBase> GetPublicAndProtectedMethods(Type type)
+    static IEnumerable<MethodBase> GetPublicAndProtectedMethods([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
     {
         var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
         foreach (var constructor in constructors)

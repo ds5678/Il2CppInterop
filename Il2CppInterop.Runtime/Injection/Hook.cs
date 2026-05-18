@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection.Hooks;
@@ -14,6 +15,8 @@ internal static class Hook
     private static readonly Class_FromIl2CppType_Hook FromIl2CppTypeHook = new();
     private static readonly Class_FromName_Hook FromNameHook = new();
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     internal static void ApplyInjectionHooks()
     {
         GetTypeInfoFromTypeDefinitionIndexHook.ApplyHook();
@@ -39,7 +42,11 @@ internal abstract class Hook<T> where T : Delegate
     public T Original => _original;
 
     public abstract string TargetMethodName { get; }
+
     public abstract T GetDetour();
+
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public abstract IntPtr FindTargetMethod();
 
     public virtual void TargetMethodNotFound()
@@ -47,6 +54,8 @@ internal abstract class Hook<T> where T : Delegate
         throw new Exception($"Required target method {TargetMethodName} not found");
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public void ApplyHook()
     {
         if (_isApplied) return;

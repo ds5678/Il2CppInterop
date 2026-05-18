@@ -24,7 +24,6 @@ internal static class AssemblyAnalysisContextExtensions
                     result.GenericParameters.Add(genericParameterContext);
                 }
             }
-            result.SourceType = type;
             return result;
         }
 

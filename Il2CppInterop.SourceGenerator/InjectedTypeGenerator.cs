@@ -407,7 +407,11 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         writer.WriteLine("{");
         writer.Indent++;
 
+        writer.WriteLineNoTabs("#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code");
+        writer.WriteLineNoTabs("#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.");
         writer.WriteLine($"global::Il2CppInterop.Runtime.Injection.TypeInjector.RegisterTypeInIl2Cpp<{model.TypeName}>();");
+        writer.WriteLineNoTabs("#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.");
+        writer.WriteLineNoTabs("#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code");
 
         if (isValueType)
         {

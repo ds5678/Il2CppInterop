@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -49,12 +50,16 @@ internal sealed partial class Il2CppToMonoDelegateReference : Object
     /// </remarks>
     /// <param name="delegateType">The type of the delegate to cast and invoke.</param>
     /// <returns>The dynamic method.</returns>
-    internal static MethodInfo GetOrCreateInvokeMethod(Type delegateType)
+    [RequiresDynamicCode("")]
+    internal static MethodInfo GetOrCreateInvokeMethod([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type delegateType)
     {
+#pragma warning disable IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
         return _methodInfoCache.GetOrAdd(delegateType, CreateInvokeMethod);
+#pragma warning restore IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
     }
 
-    private static MethodInfo CreateInvokeMethod(Type delegateType)
+    [RequiresDynamicCode("")]
+    private static MethodInfo CreateInvokeMethod([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type delegateType)
     {
         var delegateInvokeMethod = delegateType.GetMethod("Invoke")
             ?? throw new InvalidOperationException($"Delegate type {delegateType.FullName} does not have an Invoke method.");

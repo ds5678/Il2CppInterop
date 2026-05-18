@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Il2CppInterop.Common.Attributes;
 
 namespace Il2CppInterop.Common;
 
+[RequiresUnreferencedCode("This API uses reflection to access fields in the corresponding Il2CppInternals type.")]
+[RequiresDynamicCode("This API generically instantiates the corresponding Il2CppInternals type if necessary.")]
 public static class Il2CppInternalsAccess
 {
     private static FieldInfo? GetFieldInfo(Type declaringType, string prefix, int index)
@@ -44,6 +47,7 @@ public static class Il2CppInternalsAccess
         return GetFieldInfo(declaringType, "MethodInfoPtr_", index);
     }
 
+    [RequiresUnreferencedCode("This API uses reflection to access fields in the corresponding Il2CppInternals type and to access property metadata for the method's declaring type.")]
     public static FieldInfo? GetIl2CppFieldInfoPointerFieldForGeneratedFieldAccessor(MethodBase method)
     {
         var declaringType = method.DeclaringType;

@@ -56,10 +56,17 @@ public static class UnityVersionHandler
                      !t.IsAbstract && interfacesOfInterest.Any(i => i.IsAssignableFrom(t))))
             foreach (var startVersion in handlerImpl.GetCustomAttributes<ApplicableToUnityVersionsSinceAttribute>())
             {
+#pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
                 var instance = Activator.CreateInstance(handlerImpl)!;
+#pragma warning restore IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
+
+#pragma warning disable IL2075 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
                 foreach (var i in handlerImpl.GetInterfaces())
+                {
                     if (interfacesOfInterest.Contains(i))
                         VersionedHandlers[i].Add((UnityVersion.Parse(startVersion.StartVersion), instance));
+                }
+#pragma warning restore IL2075 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
             }
 
         foreach (var handlerList in VersionedHandlers.Values)

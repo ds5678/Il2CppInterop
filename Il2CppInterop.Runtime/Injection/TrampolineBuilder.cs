@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;
 
+[RequiresDynamicCode("")]
 public static class TrampolineBuilder
 {
     private static readonly AssemblyBuilder _fixedStructAssembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("FixedSizeStructAssembly"), AssemblyBuilderAccess.Run);
@@ -93,11 +95,13 @@ public static class TrampolineBuilder
         }
     }
 
+    [RequiresUnreferencedCode("")]
     public static Type GetOrCreateDelegateType(MethodInfo monoMethod)
     {
         return ourDelegateTypes.GetOrAdd(new TrampolineSignatureHash(monoMethod), CreateDelegateType, monoMethod);
     }
 
+    [RequiresUnreferencedCode("")]
     private static Type CreateDelegateType(TrampolineSignatureHash signatureHash, MethodInfo monoMethod)
     {
         var typeName = $"Il2CppToManagedDelegate_{signatureHash}";
@@ -143,6 +147,7 @@ public static class TrampolineBuilder
         typeof(Il2CppMethodInfo*),
     ];
 
+    [RequiresUnreferencedCode("")]
     internal static Delegate CreateTrampoline(MethodInfo monoMethod, bool callVirt)
     {
         Debug.Assert(monoMethod.DeclaringType is not null);

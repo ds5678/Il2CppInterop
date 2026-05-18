@@ -69,13 +69,6 @@ internal static class TypeAnalysisContextExtensions
         }
 
         [MaybeNull]
-        public Type SourceType
-        {
-            get => type.GetExtraData<Type>("SourceType");
-            set => type.PutExtraData("SourceType", value);
-        }
-
-        [MaybeNull]
         public MethodAnalysisContext PointerConstructor
         {
             get => type.GetExtraData<MethodAnalysisContext>("PointerConstructor");
