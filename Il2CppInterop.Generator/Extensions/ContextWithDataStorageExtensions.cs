@@ -57,7 +57,7 @@ internal static class ContextWithDataStorageExtensions
         /// </summary>
         /// <remarks>
         /// For memory efficiency, this is only set at the top-level. If a type is injected, its members are not marked as injected, even though they obviously are.
-        /// For the purpose of this property, nested types are not considered "members" and must be marked as injected separately.
+        /// For the purpose of this property, nested types are considered "members".
         /// </remarks>
         public bool IsInjected
         {
