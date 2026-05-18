@@ -117,6 +117,13 @@ internal static class TypeAnalysisContextExtensions
             set => type.PutExtraData("StaticConstructorInstructions", value);
         }
 
+        [MaybeNull]
+        public TypeAnalysisContext ManagedDelegateType
+        {
+            get => type.GetExtraData<TypeAnalysisContext>("ManagedDelegateType");
+            set => type.PutExtraData("ManagedDelegateType", value);
+        }
+
         public KnownTypeCode KnownType
         {
             get => type.GetExtraStruct("KnownType", KnownTypeCode.None);
