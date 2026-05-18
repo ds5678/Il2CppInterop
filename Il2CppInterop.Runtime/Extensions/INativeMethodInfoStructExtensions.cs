@@ -27,6 +27,8 @@ internal static class INativeMethodInfoStructExtensions
             return new ReadOnlySpan<byte>((void*)namePtr, length);
         }
 
+        [RequiresUnreferencedCode("")]
+        [RequiresDynamicCode("")]
         [return: NotNullIfNotNull(nameof(generatedMethod))]
         public static unsafe INativeMethodInfoStruct? FromGeneratedMethod(MethodBase? generatedMethod)
         {

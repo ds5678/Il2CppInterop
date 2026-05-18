@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -36,16 +37,21 @@ public static unsafe class TypeInjector
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns>True if the type is preexisting, false otherwise.</returns>
+    [RequiresDynamicCode("")]
     public static bool IsPreexistingType(Type type)
     {
         return Il2CppType.GetClassPointer(type) is not 0 && !RegisteredTypes.Contains(type);
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public static void RegisterTypeInIl2Cpp<T>() where T : IIl2CppType<T>
     {
         RegisterTypeInIl2Cpp(typeof(T));
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static void RegisterTypeInIl2Cpp(Type type)
     {
         if (Il2CppType.GetClassPointer(type) is not 0)
@@ -538,12 +544,14 @@ public static unsafe class TypeInjector
         return result;
     }
 
-    private static Dictionary<NamedSignatureHash, MethodInfo> CreateHashToMethodInfoDictionary(Type type)
+    [RequiresDynamicCode("")]
+    private static Dictionary<NamedSignatureHash, MethodInfo> CreateHashToMethodInfoDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
     {
         return GetAllIl2CppMethods(type).ToDictionary(m => new NamedSignatureHash(m));
     }
 
-    private static Dictionary<MethodInfo, NamedSignatureHash> CreateMethodInfoToHashDictionary(Type type)
+    [RequiresDynamicCode("")]
+    private static Dictionary<MethodInfo, NamedSignatureHash> CreateMethodInfoToHashDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
     {
         return GetAllIl2CppMethods(type).ToDictionary(m => m, m => new NamedSignatureHash(m));
     }
@@ -584,10 +592,22 @@ public static unsafe class TypeInjector
         return dict;
     }
 
-    private static IEnumerable<MethodInfo> GetAllIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).Where(IsIl2CppMethod);
-    private static IEnumerable<MethodInfo> GetIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppMethod);
-    private static IEnumerable<PropertyInfo> GetIl2CppProperties(Type type) => type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppProperty);
-    private static IEnumerable<(Type FieldType, FieldAttributes Attributes, string Name)> GetIl2CppFields(Type type)
+    private static IEnumerable<MethodInfo> GetAllIl2CppMethods([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
+    {
+        return type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).Where(IsIl2CppMethod);
+    }
+
+    private static IEnumerable<MethodInfo> GetIl2CppMethods([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
+    {
+        return type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppMethod);
+    }
+
+    private static IEnumerable<PropertyInfo> GetIl2CppProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
+    {
+        return type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(IsIl2CppProperty);
+    }
+
+    private static IEnumerable<(Type FieldType, FieldAttributes Attributes, string Name)> GetIl2CppFields([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] Type type)
     {
         List<(Type, FieldAttributes, string)> fields = new();
         foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
@@ -628,12 +648,12 @@ public static unsafe class TypeInjector
         return fields;
     }
 
-    private static IEnumerable<Type> GetIl2CppInstanceFieldTypes(Type type)
+    private static IEnumerable<Type> GetIl2CppInstanceFieldTypes([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] Type type)
     {
         return GetIl2CppFields(type).Where(f => !f.Attributes.HasFlag(FieldAttributes.Static)).Select(f => f.FieldType);
     }
 
-    private static void ValidateTypeUsingReflection(Type type)
+    private static void ValidateTypeUsingReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] Type type)
     {
         // Enums are transformed into structs during generation
         if (type.IsEnum)
@@ -694,7 +714,9 @@ public static unsafe class TypeInjector
             // This will throw if the type does not implement IIl2CppType<T> where T is the type itself
             // because T has a self-referential constraint that cannot be satisfied if the type does not implement the interface correctly.
             // If https://github.com/dotnet/runtime/issues/28033 is implemented, we can replace this with a more direct check.
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             typeof(IIl2CppType<>).MakeGenericType(type);
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
         }
         catch
         {
@@ -702,7 +724,8 @@ public static unsafe class TypeInjector
         }
     }
 
-    private static int CalculateVTableUpperBoundUsingReflection(Type type)
+    [RequiresUnreferencedCode("")]
+    private static int CalculateVTableUpperBoundUsingReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
     {
         var count = 0;
         foreach (var interfaceType in type.GetInterfaces().Where(IsIl2CppInterface))
@@ -721,14 +744,21 @@ public static unsafe class TypeInjector
         }
         return int.Min(count, ushort.MaxValue);
 
-        static int CountIl2CppMethods(Type type) => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Count(IsIl2CppMethod);
+        static int CountIl2CppMethods([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
+        {
+            return type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Count(IsIl2CppMethod);
+        }
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public static void InjectEnumValues<TEnum>(Dictionary<string, object> valuesToAdd) where TEnum : Il2CppSystem.IEnum
     {
         InjectEnumValues(typeof(TEnum), valuesToAdd);
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public static void InjectEnumValues(Type type, Dictionary<string, object> valuesToAdd)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -805,6 +835,8 @@ public static unsafe class TypeInjector
         }
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static void RegisterEnumInIl2Cpp(Type type)
     {
         var baseEnum = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer<Il2CppSystem.Enum>());
@@ -992,6 +1024,8 @@ public static unsafe class TypeInjector
         }
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static Il2CppMethodInfo* ConvertMethodInfo(MethodInfo monoMethod, INativeClassStruct declaringClass)
     {
         if (monoMethod.ContainsGenericParameters)
@@ -1045,12 +1079,14 @@ public static unsafe class TypeInjector
         return converted.MethodInfoPointer;
     }
 
+    [RequiresDynamicCode("")]
     private static Delegate GetOrCreateInvoker(MethodInfo monoMethod)
     {
         return InvokerCache.GetOrAdd(new InvokerSignatureHash(monoMethod),
             static (signatureHash, monoMethodInner) => CreateInvoker(signatureHash, monoMethodInner), monoMethod);
     }
 
+    [RequiresDynamicCode("")]
     private static Delegate CreateInvoker(InvokerSignatureHash signatureHash, MethodInfo monoMethod)
     {
         Debug.Assert(monoMethod.DeclaringType is not null);
@@ -1155,6 +1191,8 @@ public static unsafe class TypeInjector
         return @delegate;
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static Delegate CreateTrampoline(MethodInfo monoMethod, bool callVirt)
     {
         var @delegate = TrampolineBuilder.CreateTrampoline(monoMethod, callVirt);
@@ -1162,6 +1200,7 @@ public static unsafe class TypeInjector
         return @delegate;
     }
 
+    [RequiresDynamicCode("")]
     private static (string AssemblyName, string Namespace, string Name) GetFullyQualifiedName(Type type)
     {
         var methodInfo = typeof(TypeInjector).GetMethod(nameof(GetFullyQualifiedNameGeneric), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type);
@@ -1211,14 +1250,15 @@ public static unsafe class TypeInjector
         return result;
     }
 
-    private static Type GetEnumUnderlyingType(Type enumType)
+    private static Type GetEnumUnderlyingType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] Type enumType)
     {
         // Single instance field
         var instanceField = enumType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Single();
         return instanceField.FieldType;
     }
 
-    private static (string Name, object Value)[] GetEnumNamesAndValues(Type enumType)
+    [RequiresUnreferencedCode("")]
+    private static (string Name, object Value)[] GetEnumNamesAndValues([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] Type enumType)
     {
         var fields = enumType.GetFields(BindingFlags.Public | BindingFlags.Static);
         if (AnyFieldWrongType(enumType, fields))

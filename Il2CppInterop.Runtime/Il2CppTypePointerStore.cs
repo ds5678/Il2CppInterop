@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Structs;
@@ -6,6 +7,7 @@ namespace Il2CppInterop.Runtime;
 
 internal static class Il2CppTypePointerStore
 {
+    [RequiresDynamicCode("")]
     public static nint GetNativeTypePointer(System.Type type)
     {
         if (type == typeof(void))
@@ -22,6 +24,7 @@ internal static unsafe class Il2CppTypePointerStore<T> where T : IIl2CppType<T>
 {
     public static nint NativeTypePointer
     {
+        [RequiresDynamicCode("")]
         get
         {
             if (field == default)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -38,6 +39,8 @@ internal unsafe class Class_FromIl2CppType_Hook : Hook<Class_FromIl2CppType_Hook
         return Original(type, throwOnError);
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public override IntPtr FindTargetMethod()
     {
         var classFromTypeAPI = Il2CppModule.GetExport(nameof(IL2CPP.il2cpp_class_from_il2cpp_type));

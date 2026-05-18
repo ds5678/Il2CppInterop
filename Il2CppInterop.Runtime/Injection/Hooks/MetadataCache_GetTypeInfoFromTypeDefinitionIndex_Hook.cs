@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -27,6 +28,8 @@ internal unsafe class MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook :
         return Original(index);
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private IntPtr FindGetTypeInfoFromTypeDefinitionIndex(bool forceICallMethod = false)
     {
         IntPtr getTypeInfoFromTypeDefinitionIndex = IntPtr.Zero;
@@ -115,6 +118,8 @@ internal unsafe class MetadataCache_GetTypeInfoFromTypeDefinitionIndex_Hook :
         return getTypeInfoFromTypeDefinitionIndex;
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public override IntPtr FindTargetMethod()
     {
         return FindGetTypeInfoFromTypeDefinitionIndex();

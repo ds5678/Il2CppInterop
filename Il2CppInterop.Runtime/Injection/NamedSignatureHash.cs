@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Hashing;
 using System.Reflection;
 using Il2CppInterop.Common.Attributes;
@@ -26,6 +27,7 @@ internal readonly record struct NamedSignatureHash
         _hash = hash.GetCurrentHashAsUInt128();
     }
 
+    [RequiresDynamicCode("")]
     public NamedSignatureHash(MethodInfo methodInfo)
     {
         XxHash128 hash = new();
@@ -40,6 +42,7 @@ internal readonly record struct NamedSignatureHash
         _hash = hash.GetCurrentHashAsUInt128();
     }
 
+    [RequiresDynamicCode("")]
     private static unsafe Il2CppSystem.String GetFullName(Type type)
     {
         return GetFullName((Il2CppTypeStruct*)Il2CppTypePointerStore.GetNativeTypePointer(type));

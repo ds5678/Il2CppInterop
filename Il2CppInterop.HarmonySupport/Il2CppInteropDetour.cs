@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -33,6 +34,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
     public DynamicMethodDefinition SourceMethodCloneIL { get; private set; }
     public MethodInfo SourceMethodClone { get; private set; }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public Il2CppInteropDetour(MethodBase source, INativeMethodInfoStruct nativeSource, MethodBase target)
     {
         Source = source;
@@ -61,6 +64,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         }
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private DynamicMethodDefinition CopyOriginal()
     {
         try
@@ -101,6 +106,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         }
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private MethodInfo ProcessWrapper(MethodReference outerRef, string innerPrefix)
     {
         var dmd = CreateWrappedDMD(outerRef);
@@ -118,6 +125,9 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
 
         return dmd.Generate();
     }
+
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private MethodInfo ProcessPointerPatchedLeaf(MethodReference leafRef)
     {
         var dmd = CreateWrappedDMD(leafRef);
@@ -144,7 +154,10 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         return dmd;
     }
 
+    [RequiresDynamicCode("")]
+#pragma warning disable IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
     public void Apply()
+#pragma warning restore IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
     {
         if (NativeSource.MethodPointer == default)
         {
@@ -208,6 +221,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
         return methodOrConstructor is ConstructorInfo ? typeof(void) : ((MethodInfo)methodOrConstructor).ReturnType;
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private DynamicMethodDefinition GenerateNativeToManagedThunk()
     {
         // managedParams are the interop types used on the managed side
@@ -323,6 +338,7 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
     private static void ReportException(Exception ex) =>
         Logger.Instance.LogError(ex, "During invoking native->managed trampoline");
 
+    [RequiresDynamicCode("")]
     private static void EmitConvertArgumentToManaged(ILGenerator il,
         int argIndex,
         Type managedParamType)

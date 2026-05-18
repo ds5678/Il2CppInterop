@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Hashing;
 using System.Reflection;
 using Il2CppInterop.Runtime.Extensions;
@@ -9,6 +10,7 @@ internal readonly record struct TrampolineSignatureHash
 {
     private readonly UInt128 _hash;
 
+    [RequiresDynamicCode("")]
     public TrampolineSignatureHash(MethodInfo methodInfo)
     {
         XxHash128 hash = new();

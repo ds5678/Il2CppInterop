@@ -11,7 +11,13 @@ public sealed class Il2CppInteropDetourFactory(IDetourFactory? fallback = null) 
 {
     private readonly IDetourFactory _fallback = fallback ?? DetourFactory.Current;
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
+#pragma warning disable IL2046 // 'RequiresUnreferencedCodeAttribute' annotations must match across all interface implementations or overrides.
+#pragma warning disable IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
     public ICoreDetour CreateDetour(CreateDetourRequest request)
+#pragma warning restore IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
+#pragma warning restore IL2046 // 'RequiresUnreferencedCodeAttribute' annotations must match across all interface implementations or overrides.
     {
         ArgumentNullException.ThrowIfNull(request.Source);
         ArgumentNullException.ThrowIfNull(request.Target);
@@ -24,6 +30,8 @@ public sealed class Il2CppInteropDetourFactory(IDetourFactory? fallback = null) 
         return _fallback.CreateDetour(request);
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static bool TryCreateDetour(CreateDetourRequest request, [NotNullWhen(true)] out Il2CppInteropDetour? detour)
     {
         var declaringType = request.Source.DeclaringType;

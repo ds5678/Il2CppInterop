@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -139,6 +140,7 @@ public static class Il2CppType
         }
     }
 
+    [RequiresDynamicCode("")]
     public static nint GetClassPointer(Type type)
     {
         if (type == typeof(void))
@@ -152,10 +154,13 @@ public static class Il2CppType
 
     public static nint GetClassPointer<T>() where T : IIl2CppType<T>
     {
+#pragma warning disable IL2059 // The type passed to the RunClassConstructor is not statically known, Trimmer can't make sure that its static constructor is available.
         RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+#pragma warning restore IL2059 // The type passed to the RunClassConstructor is not statically known, Trimmer can't make sure that its static constructor is available.
         return Il2CppClassPointerStore<T>.NativeClassPointer;
     }
 
+    [RequiresDynamicCode("")]
     public static void SetClassPointer(Type type, nint classPointer)
     {
         typeof(Il2CppType)
@@ -166,7 +171,9 @@ public static class Il2CppType
 
     public static void SetClassPointer<T>(nint classPointer) where T : IIl2CppType<T>
     {
+#pragma warning disable IL2059 // The type passed to the RunClassConstructor is not statically known, Trimmer can't make sure that its static constructor is available.
         RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
+#pragma warning restore IL2059 // The type passed to the RunClassConstructor is not statically known, Trimmer can't make sure that its static constructor is available.
         if (Il2CppClassPointerStore<T>.NativeClassPointer != classPointer)
         {
             if (Il2CppClassPointerStore<T>.NativeClassPointer == nint.Zero)

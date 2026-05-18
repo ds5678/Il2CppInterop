@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -82,6 +83,8 @@ internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefau
         }
     ];
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static nint FindClassGetFieldDefaultValueXref(bool forceICallMethod = false)
     {
         nint classGetDefaultFieldValue = 0;
@@ -137,6 +140,8 @@ internal unsafe class Class_GetFieldDefaultValue_Hook : Hook<Class_GetFieldDefau
         return classGetDefaultFieldValue;
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public override IntPtr FindTargetMethod()
     {
         // NOTE: In some cases this pointer will be MetadataCache::GetFieldDefaultValueForField due to Field::GetDefaultFieldValue being

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -16,18 +17,24 @@ public static class DelegateSupport
 {
     private static readonly ConcurrentDictionary<Type, Delegate> NativeToManagedTrampolines = new();
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static Delegate GetOrCreateNativeToManagedTrampoline(Type delegateType)
     {
         return NativeToManagedTrampolines.GetOrAdd(delegateType, CreateNativeToManagedTrampoline);
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     private static Delegate CreateNativeToManagedTrampoline(Type delegateType)
     {
         var invokeMethod = Il2CppToMonoDelegateReference.GetOrCreateInvokeMethod(delegateType);
         return TrampolineBuilder.CreateTrampoline(invokeMethod, false);
     }
 
-    public static TIl2Cpp? ConvertDelegate<TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate, IIl2CppType<TIl2Cpp>
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
+    public static TIl2Cpp? ConvertDelegate<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TIl2Cpp>(Delegate @delegate) where TIl2Cpp : Il2CppSystem.Delegate, IIl2CppType<TIl2Cpp>
     {
         if (@delegate == null)
             return null;

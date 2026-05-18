@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Il2CppInterop.Common;
@@ -41,6 +42,7 @@ public static partial class GenerationInternals
         }
     }
 
+    [RequiresDynamicCode("")]
     public static Il2CppSystem.Type ManagedTypeToIl2CppType(Type type)
     {
         var classPointer = Il2CppType.GetClassPointer(type);
@@ -52,6 +54,7 @@ public static partial class GenerationInternals
         return Il2CppSystem.Type.FromClassPointer(classPointer);
     }
 
+    [RequiresDynamicCode("")]
     public static unsafe Il2CppSystem.TypedReference MakeRefAny<T>(void* value) where T : IIl2CppType<T>
     {
         Il2CppSystem.TypedReference result = default;

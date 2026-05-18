@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
@@ -16,7 +17,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        PolyfillActionFuncDelegates(appContext);
+        PolyfillActionFuncDelegates(appContext, out var actionTypes, out var funcTypes);
 
         var multicastDelegateType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.MulticastDelegate");
         var asyncCallbackType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.AsyncCallback");
@@ -121,57 +122,17 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                     if (!invokeMethod.IsVoid)
                     {
-                        var systemType = invokeMethod.Parameters.Count switch
-                        {
-                            0 => typeof(Func<>),
-                            1 => typeof(Func<,>),
-                            2 => typeof(Func<,,>),
-                            3 => typeof(Func<,,,>),
-                            4 => typeof(Func<,,,,>),
-                            5 => typeof(Func<,,,,,>),
-                            6 => typeof(Func<,,,,,,>),
-                            7 => typeof(Func<,,,,,,,>),
-                            8 => typeof(Func<,,,,,,,,>),
-                            9 => typeof(Func<,,,,,,,,,>),
-                            10 => typeof(Func<,,,,,,,,,,>),
-                            11 => typeof(Func<,,,,,,,,,,,>),
-                            12 => typeof(Func<,,,,,,,,,,,,>),
-                            13 => typeof(Func<,,,,,,,,,,,,,>),
-                            14 => typeof(Func<,,,,,,,,,,,,,,>),
-                            15 => typeof(Func<,,,,,,,,,,,,,,,>),
-                            16 => typeof(Func<,,,,,,,,,,,,,,,,>),
-                            _ => default!, // unreachable
-                        };
-                        managedDelegateType = appContext.ResolveTypeOrThrow(systemType)
+                        managedDelegateType = funcTypes[invokeMethod.Parameters.Count]
                             .MakeGenericInstanceType(invokeMethod.Parameters.Select(p => p.ParameterType).Append(invokeMethod.ReturnType));
                     }
                     else if (invokeMethod.Parameters.Count > 0)
                     {
-                        var systemType = invokeMethod.Parameters.Count switch
-                        {
-                            1 => typeof(Action<>),
-                            2 => typeof(Action<,>),
-                            3 => typeof(Action<,,>),
-                            4 => typeof(Action<,,,>),
-                            5 => typeof(Action<,,,,>),
-                            6 => typeof(Action<,,,,,>),
-                            7 => typeof(Action<,,,,,,>),
-                            8 => typeof(Action<,,,,,,,>),
-                            9 => typeof(Action<,,,,,,,,>),
-                            10 => typeof(Action<,,,,,,,,,>),
-                            11 => typeof(Action<,,,,,,,,,,>),
-                            12 => typeof(Action<,,,,,,,,,,,>),
-                            13 => typeof(Action<,,,,,,,,,,,,>),
-                            14 => typeof(Action<,,,,,,,,,,,,,>),
-                            15 => typeof(Action<,,,,,,,,,,,,,,>),
-                            16 => typeof(Action<,,,,,,,,,,,,,,,>),
-                            _ => default!, // unreachable
-                        };
-                        managedDelegateType = appContext.ResolveTypeOrThrow(systemType).MakeGenericInstanceType(invokeMethod.Parameters.Select(p => p.ParameterType));
+                        managedDelegateType = actionTypes[invokeMethod.Parameters.Count]
+                            .MakeGenericInstanceType(invokeMethod.Parameters.Select(p => p.ParameterType));
                     }
                     else
                     {
-                        managedDelegateType = appContext.ResolveTypeOrThrow(typeof(Action));
+                        managedDelegateType = actionTypes[0];
                     }
                 }
                 else
@@ -277,54 +238,68 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
     /// so that they can be used when the mscorlib assembly references are replaced with System.Private.CoreLib references.
     /// </summary>
     /// <param name="appContext"></param>
-    private static void PolyfillActionFuncDelegates(ApplicationAnalysisContext appContext)
+    /// <param name="actionTypes"></param>
+    /// <param name="funcTypes"></param>
+    private static void PolyfillActionFuncDelegates(ApplicationAnalysisContext appContext, out TypeAnalysisContext[] actionTypes, out TypeAnalysisContext[] funcTypes)
     {
-        var mscorlib = appContext.AssembliesByName["mscorlib"];
+        var mscorlib = appContext.Mscorlib;
 
-        ReadOnlySpan<Type> types =
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+#pragma warning disable IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
+        actionTypes =
         [
-            typeof(Action),
-            typeof(Action<>),
-            typeof(Action<,>),
-            typeof(Action<,,>),
-            typeof(Action<,,,>),
-            typeof(Action<,,,,>),
-            typeof(Action<,,,,,>),
-            typeof(Action<,,,,,,>),
-            typeof(Action<,,,,,,,>),
-            typeof(Action<,,,,,,,,>),
-            typeof(Action<,,,,,,,,,>),
-            typeof(Action<,,,,,,,,,,>),
-            typeof(Action<,,,,,,,,,,,>),
-            typeof(Action<,,,,,,,,,,,,>),
-            typeof(Action<,,,,,,,,,,,,,>),
-            typeof(Action<,,,,,,,,,,,,,,>),
-            typeof(Action<,,,,,,,,,,,,,,,>),
-            typeof(Func<>),
-            typeof(Func<,>),
-            typeof(Func<,,>),
-            typeof(Func<,,,>),
-            typeof(Func<,,,,>),
-            typeof(Func<,,,,,>),
-            typeof(Func<,,,,,,>),
-            typeof(Func<,,,,,,,>),
-            typeof(Func<,,,,,,,,>),
-            typeof(Func<,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,,,,,,>),
-            typeof(Func<,,,,,,,,,,,,,,,,>),
+            GetOrInjectType(mscorlib, typeof(Action)),
+            GetOrInjectType(mscorlib, typeof(Action<>)),
+            GetOrInjectType(mscorlib, typeof(Action<,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,,,,>)),
         ];
 
-        foreach (var type in types)
-        {
-            if (mscorlib.GetTypeByFullName(type.FullName!) is not null)
-                continue;
+        funcTypes =
+        [
+            GetOrInjectType(mscorlib, typeof(Func<>)),
+            GetOrInjectType(mscorlib, typeof(Func<,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,,,>)),
+            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,,,,>)),
+        ];
+#pragma warning restore IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
-            mscorlib.InjectType(type).InjectContentFromSourceType();
+        static TypeAnalysisContext GetOrInjectType(AssemblyAnalysisContext mscorlib, [DynamicallyAccessedMembers(InjectedTypeAnalysisContextExtensions.AccessedMemberTypes)] Type type)
+        {
+            var result = mscorlib.GetTypeByFullName(type.FullName!);
+            if (result is null)
+            {
+                var injectedType = mscorlib.InjectType(type);
+                injectedType.InjectContentFromSourceType(type);
+                result = injectedType;
+            }
+            return result;
         }
     }
 }

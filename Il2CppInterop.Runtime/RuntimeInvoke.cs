@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -100,6 +101,8 @@ public static unsafe class RuntimeInvoke
         return typeof(T).IsValueType;
     }
 
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
     public static T ResolveICall<T>(string signature) where T : Delegate
     {
         var icallPtr = IL2CPP.il2cpp_resolve_icall(signature);
@@ -112,7 +115,8 @@ public static unsafe class RuntimeInvoke
         return GenerateDelegateForICall<T>(icallPtr);
     }
 
-    private static T GenerateDelegateForMissingICall<T>(string signature) where T : Delegate
+    [RequiresDynamicCode("")]
+    private static T GenerateDelegateForMissingICall<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>(string signature) where T : Delegate
     {
         var invoke = typeof(T).GetMethod("Invoke")!;
 
@@ -127,7 +131,9 @@ public static unsafe class RuntimeInvoke
         return (T)trampoline.CreateDelegate(typeof(T));
     }
 
-    private static T GenerateDelegateForICall<T>(nint icallPtr) where T : Delegate
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
+    private static T GenerateDelegateForICall<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>(nint icallPtr) where T : Delegate
     {
         var invoke = typeof(T).GetMethod("Invoke")!;
 
