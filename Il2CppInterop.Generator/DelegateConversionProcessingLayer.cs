@@ -70,9 +70,12 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     "op_Addition",
                     concreteType,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                    [concreteType, concreteType]);
+                    [concreteType, concreteType])
+                {
+                    IsInjected = true,
+                };
                 type.Methods.Add(addition);
-                addition.PutExtraData<TranslatedMethodBody>(new()
+                addition.PutExtraData<NativeMethodBody>(new()
                 {
                     Instructions =
                     [
@@ -89,9 +92,12 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     "op_Subtraction",
                     concreteType,
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                    [concreteType, concreteType]);
+                    [concreteType, concreteType])
+                {
+                    IsInjected = true,
+                };
                 type.Methods.Add(subtraction);
-                subtraction.PutExtraData<TranslatedMethodBody>(new()
+                subtraction.PutExtraData<NativeMethodBody>(new()
                 {
                     Instructions =
                     [
@@ -144,6 +150,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                         name,
                         multicastDelegateType);
 
+                    injectedType.IsInjected = true;
                     injectedType.CopyGenericParameters(type, true);
 
                     TypeAnalysisContext returnType;
@@ -210,23 +217,65 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
                     }
                 }
 
+                type.ManagedDelegateType = managedDelegateType;
+
                 // Explicit conversion operator from the managed delegate type to the Il2Cpp delegate type.
-                var explicitConversion = new InjectedMethodAnalysisContext(
-                    type,
-                    "op_Explicit",
-                    concreteType,
-                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                    [managedDelegateType]);
-                type.Methods.Add(explicitConversion);
-                explicitConversion.PutExtraData<TranslatedMethodBody>(new()
                 {
-                    Instructions =
-                    [
-                        new Instruction(CilOpCodes.Ldarg_0),
-                        new Instruction(CilOpCodes.Call, delegateSupportMethod.MakeGenericInstanceMethod(concreteType)),
-                        new Instruction(CilOpCodes.Ret),
-                    ]
-                });
+                    var explicitConversion = new InjectedMethodAnalysisContext(
+                        type,
+                        "op_Explicit",
+                        concreteType,
+                        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
+                        [managedDelegateType])
+                    {
+                        IsInjected = true,
+                    };
+                    type.Methods.Add(explicitConversion);
+                    explicitConversion.PutExtraData<NativeMethodBody>(new()
+                    {
+                        Instructions =
+                        [
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Call, delegateSupportMethod.MakeGenericInstanceMethod(concreteType)),
+                            new Instruction(CilOpCodes.Ret),
+                        ]
+                    });
+                }
+
+                // Explicit conversion operator from the Il2Cpp delegate type to the managed delegate type.
+                {
+                    var explicitConversion = new InjectedMethodAnalysisContext(
+                        type,
+                        "op_Explicit",
+                        managedDelegateType,
+                        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
+                        [concreteType])
+                    {
+                        IsInjected = true,
+                    };
+                    type.Methods.Add(explicitConversion);
+
+                    MethodAnalysisContext managedDelegateConstructor;
+                    if (managedDelegateType is GenericInstanceTypeAnalysisContext genericInstance)
+                    {
+                        managedDelegateConstructor = genericInstance.GenericType.Methods.Single(m => m.IsInstanceConstructor).MakeConcreteGenericMethod(genericInstance.GenericArguments, []);
+                    }
+                    else
+                    {
+                        managedDelegateConstructor = managedDelegateType.Methods.Single(m => m.IsInstanceConstructor);
+                    }
+
+                    explicitConversion.PutExtraData<NativeMethodBody>(new()
+                    {
+                        Instructions =
+                        [
+                            new Instruction(CilOpCodes.Ldarg_0),
+                            new Instruction(CilOpCodes.Ldftn, invokeMethod.MaybeMakeConcreteGeneric(type.GenericParameters, [])),
+                            new Instruction(CilOpCodes.Newobj, managedDelegateConstructor),
+                            new Instruction(CilOpCodes.Ret),
+                        ]
+                    });
+                }
             }
         }
     }

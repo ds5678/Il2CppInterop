@@ -98,7 +98,7 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                     {
                         var parameter = method.Parameters[i];
 
-                        // Convert Il2CppArrayBase<T> to T[]
+                        // Change Il2CppArrayBase<T> to T[]
                         if (parameter.ParameterType is GenericInstanceTypeAnalysisContext { GenericType: { Namespace: ArrayNamespace, Name: ArrayClassName }, GenericArguments: [var elementType] })
                         {
                             parameterTypes[i] = visitor.Replace(elementType).MakeSzArrayType();
@@ -107,7 +107,7 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                             continue;
                         }
 
-                        // Convert ref Il2CppSystem.Int32 to ref int
+                        // Change ref Il2CppSystem.Int32 to ref int
                         if (parameter.ParameterType is ByRefTypeAnalysisContext { ElementType: { KnownType.IsIl2CppPrimitiveType: true } byRefElementType })
                         {
                             var systemPrimitive = byRefElementType.KnownType.ToSystemType().ToContext(appContext);
@@ -117,18 +117,20 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                             continue;
                         }
 
-                        // Convert Il2Cpp delegate type to System delegate type
+                        // Change Il2Cpp delegate type to System delegate type
                         if (parameter.ParameterType.IsIl2CppDelegate)
                         {
                             MethodAnalysisContext? explicitConversionMethod;
                             if (parameter.ParameterType is GenericInstanceTypeAnalysisContext genericInstance)
                             {
-                                explicitConversionMethod = genericInstance.GenericType.Methods.SingleOrDefault(m => m.Name == "op_Explicit")
+                                var managedDelegateType = genericInstance.GenericType.ManagedDelegateType;
+                                explicitConversionMethod = genericInstance.GenericType.Methods.SingleOrDefault(m => m.Name == "op_Explicit" && m.Parameters[0].ParameterType == managedDelegateType)
                                     ?.MakeConcreteGeneric(genericInstance.GenericArguments, []);
                             }
                             else
                             {
-                                explicitConversionMethod = parameter.ParameterType.Methods.SingleOrDefault(m => m.Name == "op_Explicit");
+                                var managedDelegateType = parameter.ParameterType.ManagedDelegateType;
+                                explicitConversionMethod = parameter.ParameterType.Methods.SingleOrDefault(m => m.Name == "op_Explicit" && m.Parameters[0].ParameterType == managedDelegateType);
                             }
                             if (explicitConversionMethod is not null)
                             {
@@ -139,7 +141,7 @@ public sealed class UserFriendlyOverloadProcessingLayer : Cpp2IlProcessingLayer
                             }
                         }
 
-                        // Convert Il2Cpp primitive to System primitive
+                        // Change Il2Cpp primitive to System primitive
                         {
                             var knownType = parameter.ParameterType.KnownType;
                             if (knownType.IsIl2CppPrimitiveType || knownType is KnownTypeCode.Il2CppSystem_String)
