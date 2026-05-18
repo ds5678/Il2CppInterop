@@ -13,6 +13,11 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- Suppress "Field is never assigned to, and will always have its default value" warning -->
+    <NoWarn>$(NoWarn);0649</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.7" />
