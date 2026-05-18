@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.7" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22621.2" />
   </ItemGroup>
 
