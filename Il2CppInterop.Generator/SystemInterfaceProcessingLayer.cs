@@ -19,11 +19,58 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
     public override string Id => "system_interface_implementations";
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
+        // The reason we inject some new interfaces instead of just adding methods to the existing Il2Cpp interfaces is partially because
+        // `Il2CppSystem.Runtime.CompilerServices.ICriticalNotifyCompletion` does not always inherit from
+        // `Il2CppSystem.Runtime.CompilerServices.INotifyCompletion`, even though `System.Runtime.CompilerServices.ICriticalNotifyCompletion`
+        // always inherits from `System.Runtime.CompilerServices.INotifyCompletion`.
+        // Without these injected interfaces, types that implement `Il2CppSystem.Runtime.CompilerServices.ICriticalNotifyCompletion`
+        // cause a TypeLoadException if they do not also implement `Il2CppSystem.Runtime.CompilerServices.INotifyCompletion`.
+        // The TypeLoadException would come from `System.Runtime.CompilerServices.INotifyCompletion::OnCompleted` not being implemented.
+
+        // Injected interfaces circumvent this issue by:
+        // * Recreating the entire interface hierarchy of the system interfaces in a new namespace (`Il2CppInterop.SystemInterfaces`)
+        // * Implementing the system interfaces on the injected interfaces
+        // * Making the Il2Cpp interfaces inherit from the injected interfaces instead of the system interfaces
+
         var pairs = FindPairs(appContext);
+
+        // Create interfaces in Il2CppInterop.SystemInterfaces
+        var systemToInjectedMap = new Dictionary<TypeAnalysisContext, TypeAnalysisContext>();
+        foreach ((_, var systemInterface) in pairs)
+        {
+            var injectedInterface = appContext.Il2CppMscorlib.InjectType(
+                "Il2CppInterop.SystemInterfaces",
+                systemInterface.Name,
+                null,
+                TypeAttributes.NotPublic | TypeAttributes.Interface | TypeAttributes.Abstract);
+            injectedInterface.CopyGenericParameters(systemInterface, true);
+            injectedInterface.InterfaceContexts.Add(systemInterface.MaybeMakeGenericInstanceType(injectedInterface.GenericParameters));
+
+            systemToInjectedMap[systemInterface] = injectedInterface;
+
+            // Add generic parameters to the dictionary too
+            for (var i = 0; i < systemInterface.GenericParameters.Count; i++)
+            {
+                systemToInjectedMap[systemInterface.GenericParameters[i]] = injectedInterface.GenericParameters[i];
+            }
+        }
+
+        // Assign inheritance to the injected interfaces
+        {
+            var visitor = new TypeReplacementVisitor(systemToInjectedMap);
+            foreach ((_, var systemInterface) in pairs)
+            {
+                var injectedInterface = systemToInjectedMap[systemInterface];
+                foreach (var systemBaseInterface in systemInterface.InterfaceContexts)
+                {
+                    injectedInterface.InterfaceContexts.Add(visitor.Replace(systemBaseInterface));
+                }
+            }
+        }
 
         foreach (var (il2CppInterface, systemInterface) in pairs)
         {
-            ImplementInterface(il2CppInterface, systemInterface);
+            ImplementInterface(il2CppInterface, systemToInjectedMap[systemInterface], systemInterface);
         }
     }
 
@@ -59,10 +106,8 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static void ImplementInterface(TypeAnalysisContext il2CppInterface, TypeAnalysisContext systemInterface)
+    private static void ImplementInterface(TypeAnalysisContext il2CppInterface, TypeAnalysisContext injectedInterface, TypeAnalysisContext systemInterface)
     {
-        il2CppInterface.InterfaceContexts.Add(systemInterface.MaybeMakeGenericInstanceType(il2CppInterface.GenericParameters));
-
         foreach (var systemMethod in systemInterface.Methods)
         {
             if (systemMethod.IsStatic)
@@ -71,11 +116,11 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
             }
 
             var attributes = (systemMethod.Attributes & ~(MethodAttributes.Abstract | MethodAttributes.MemberAccessMask)) | MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.NewSlot;
-            var injectedMethod = new InjectedMethodAnalysisContext(il2CppInterface, $"{systemInterface.FullName}.{systemMethod.Name}", systemMethod.ReturnType, attributes, [])
+            var injectedMethod = new InjectedMethodAnalysisContext(injectedInterface, $"{systemInterface.FullName}.{systemMethod.Name}", systemMethod.ReturnType, attributes, [])
             {
                 IsInjected = true,
             };
-            il2CppInterface.Methods.Add(injectedMethod);
+            injectedInterface.Methods.Add(injectedMethod);
 
             injectedMethod.CopyGenericParameters(systemMethod, true);
 
@@ -88,7 +133,7 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
                 injectedMethod.Parameters.Add(new InjectedParameterAnalysisContext(parameter.Name, visitor.Replace(parameter.ParameterType), parameter.Attributes, parameter.ParameterIndex, injectedMethod));
             }
 
-            injectedMethod.Overrides.Add(systemMethod.MaybeMakeConcreteGeneric(il2CppInterface.GenericParameters, injectedMethod.GenericParameters));
+            injectedMethod.Overrides.Add(systemMethod.MaybeMakeConcreteGeneric(injectedInterface.GenericParameters, injectedMethod.GenericParameters));
 
             var il2CppMethod = FindIl2CppMethod(il2CppInterface, systemMethod.Name, injectedMethod, out var returnConversion, out var parameterConversions);
 
@@ -107,13 +152,14 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
 
             List<Instruction> instructions = [];
             instructions.Add(CilOpCodes.Ldarg_0);
+            instructions.Add(CilOpCodes.Castclass, il2CppInterface.MaybeMakeGenericInstanceType(injectedInterface.GenericParameters));
             for (var i = 0; i < injectedMethod.Parameters.Count; i++)
             {
                 var parameter = injectedMethod.Parameters[i];
                 instructions.Add(CilOpCodes.Ldarg, parameter);
                 parameterConversions[i].Add(instructions);
             }
-            instructions.Add(CilOpCodes.Callvirt, il2CppMethod.MaybeMakeConcreteGeneric(il2CppInterface.GenericParameters, injectedMethod.GenericParameters));
+            instructions.Add(CilOpCodes.Callvirt, il2CppMethod.MaybeMakeConcreteGeneric(injectedInterface.GenericParameters, injectedMethod.GenericParameters));
             returnConversion.Add(instructions);
             instructions.Add(CilOpCodes.Ret);
 
@@ -122,6 +168,10 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
                 Instructions = instructions
             });
         }
+
+        // Make the Il2Cpp interface inherit from the injected interface
+        Debug.Assert(il2CppInterface.GenericParameters.Count == injectedInterface.GenericParameters.Count);
+        il2CppInterface.InterfaceContexts.Add(injectedInterface.MaybeMakeGenericInstanceType(il2CppInterface.GenericParameters));
     }
 
     private static MethodAnalysisContext? FindIl2CppMethod(TypeAnalysisContext il2CppInterface, string methodName, MethodAnalysisContext injectedMethod, out Conversion returnConversion, out Conversion[] parameterConversions)
