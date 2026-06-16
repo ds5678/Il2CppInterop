@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>Il2CppInterop.Generator</PackageId>
     <Description>Library for generating assemblies and metadata for calling Il2Cpp functions from .NET</Description>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
@@ -21,4 +21,17 @@
     <ProjectReference Include="..\Il2CppInterop.Runtime\Il2CppInterop.Runtime.csproj" />
     <ProjectReference Include="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" PrivateAssets="All" />
   </ItemGroup>
+
+  <!-- Include the stub Il2Cppmscorlib in the NuGet package for consumers -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Include="$(OutputPath)\..\..\Il2Cppmscorlib\$(TargetFramework)\Il2Cppmscorlib.dll" Pack="true" PackagePath="lib\$(TargetFramework)\" Visible="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <None Include="..\Il2Cppmscorlib\bin\$(Configuration)\$(TargetFramework)\Il2Cppmscorlib.dll" Pack="true" PackagePath="lib\$(TargetFramework)\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Ensure the stub Il2Cppmscorlib is built before packing -->
+  <Target Name="EnsureIl2CppmscorlibBuilt" BeforeTargets="GenerateNuspec">
+    <MSBuild Projects="..\Il2Cppmscorlib\Il2Cppmscorlib.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+  </Target>
 </Project>
