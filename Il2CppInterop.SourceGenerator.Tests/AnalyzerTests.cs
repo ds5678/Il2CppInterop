@@ -34,4 +34,10 @@ public abstract class AnalyzerTests
         Context.ExpectedDiagnostics.AddRange(expectedDiagnostics);
         await Context.RunAsync(TestContext.CurrentContext.CancellationToken);
     }
+
+    protected async Task TestNoDiagnostics(string testCode)
+    {
+        Context.TestCode = testCode;
+        await Context.RunAsync(TestContext.CurrentContext.CancellationToken);
+    }
 }
