@@ -394,16 +394,22 @@ public sealed class InjectedTypeAnalyzer : DiagnosticAnalyzer
     private static void CheckNoUninjectedInstanceMembers(
         SyntaxNodeAnalysisContext context, TypeDeclarationSyntax tds, INamedTypeSymbol symbol)
     {
-        foreach (var field in tds.Members.OfType<FieldDeclarationSyntax>()
-                     .Where(f => !f.Modifiers.Any(SyntaxKind.StaticKeyword)))
+        // Instance fields in structs are automatically injected, so we don't need to check for them.
+        if (tds is not StructDeclarationSyntax)
         {
-            foreach (var variable in field.Declaration.Variables)
+            foreach (var field in tds.Members.OfType<FieldDeclarationSyntax>())
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    ShouldNotHaveUninjectedInstanceFields,
-                    variable.Identifier.GetLocation(),
-                    symbol.Name,
-                    variable.Identifier.Text));
+                if (field.Modifiers.Any(SyntaxKind.StaticKeyword))
+                    continue;
+
+                foreach (var variable in field.Declaration.Variables)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        ShouldNotHaveUninjectedInstanceFields,
+                        variable.Identifier.GetLocation(),
+                        symbol.Name,
+                        variable.Identifier.Text));
+                }
             }
         }
     }
