@@ -109,11 +109,22 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         foreach (var member in model.Members)
         {
             if (member.IsStatic)
+            {
                 EmitStaticIl2CppProperty(writer, member);
+            }
+            else if (model.TypeKind == TypeKind.Struct)
+            {
+                // It is an error to use [Il2CppField] on an instance property of a value type.
+                continue;
+            }
             else if (member.Kind == MemberKind.Il2Cpp)
+            {
                 EmitIl2CppProperty(writer, member);
+            }
             else
+            {
                 EmitManagedProperty(writer, member);
+            }
 
             writer.WriteLineNoTabs();
         }
@@ -304,10 +315,8 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         if (model.TypeKind == TypeKind.Struct)
         {
             // BoxNative
-            writer.WriteLine("readonly global::Il2CppInterop.Common.ObjectPointer global::Il2CppInterop.Common.IIl2CppType.BoxNative() =>");
-            writer.Indent++;
-            writer.WriteLine($"global::Il2CppInterop.Runtime.NativeBoxing.BoxValueType<{typeName}>(in this);");
-            writer.Indent--;
+            writer.WriteLine($"readonly global::Il2CppInterop.Common.ObjectPointer global::Il2CppInterop.Common.IIl2CppType.BoxNative() => global::Il2CppInterop.Runtime.NativeBoxing.BoxValueType<{typeName}>(in this);");
+            writer.WriteLineNoTabs();
 
             // Size
             writer.WriteLine($"static int global::Il2CppInterop.Common.IIl2CppType<{typeName}>.Size => Il2CppInternals.Size;");

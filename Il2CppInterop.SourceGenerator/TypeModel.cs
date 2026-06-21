@@ -40,8 +40,11 @@ internal sealed record TypeModel(
                 ct.ThrowIfCancellationRequested();
 
                 var attrs = field.GetAttributes();
-                if (!attrs.Any(a => a.AttributeClass.IsType("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"])))
+                if (field.IsStatic && !attrs.Any(a => a.AttributeClass.IsType("Il2CppFieldAttribute", ["Il2CppInterop", "Common", "Attributes"])))
+                {
+                    // Il2CppFieldAttribute is required for static fields, but not for instance fields.
                     continue;
+                }
 
                 members.Add(new MemberModel(
                     Name: field.Name,
