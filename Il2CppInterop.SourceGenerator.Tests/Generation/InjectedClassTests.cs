@@ -1,4 +1,4 @@
-﻿namespace Il2CppInterop.SourceGenerator.Tests;
+﻿namespace Il2CppInterop.SourceGenerator.Tests.Generation;
 
 public class InjectedClassTests : SourceGenerationTests
 {
