@@ -44,6 +44,13 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
                         continue;
                     }
 
+                    if (method.IsUnstripped && method.ICallDelegateField is not null)
+                    {
+                        // Unstripped methods with an ICall delegate field are handled in the method invoker processing layer, so skip them here.
+                        Debug.Assert(method.UnsafeImplementationMethod is null);
+                        continue;
+                    }
+
                     var implementation = method.UnsafeImplementationMethod;
                     Debug.Assert(implementation is not null);
                     Debug.Assert(implementation.IsStatic);
@@ -59,24 +66,7 @@ public class NativeMethodBodyProcessingLayer : Cpp2IlProcessingLayer
 
                     if (method.IsUnstripped)
                     {
-                        var icallDelegateField = method.ICallDelegateField;
-                        if (icallDelegateField != null)
-                        {
-                            Debug.Assert(method.DeclaringType?.GenericParameters.Count == 0 && method.GenericParameters.Count == 0);
-                            List<Instruction> instructions2 = new(1 + implementation.Parameters.Count + 2);
-                            instructions2.Add(CilOpCodes.Ldsfld, icallDelegateField);
-                            foreach (var parameter in implementation.Parameters)
-                            {
-                                instructions2.Add(CilOpCodes.Ldarg, parameter);
-                            }
-                            instructions2.Add(CilOpCodes.Callvirt, icallDelegateField.FieldType.GetMethodByName("Invoke"));
-                            instructions2.Add(CilOpCodes.Ret);
-                            implementation.PutExtraData(new NativeMethodBody()
-                            {
-                                Instructions = instructions2,
-                                LocalVariables = [],
-                            });
-                        }
+                        // Unstripped methods have no native code, so we skip them here.
                         continue;
                     }
 

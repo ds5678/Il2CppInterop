@@ -67,54 +67,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         _ => instantiatedType,
                     };
 
-                    InjectedMethodAnalysisContext implementationMethod;
-                    {
-                        var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name.Replace('.', '_')}", existingNames);
-
-                        implementationMethod = new InjectedMethodAnalysisContext(
-                            type,
-                            name,
-                            type, // Placeholder return type
-                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
-                            [])
-                        {
-                            IsInjected = true,
-                        };
-                        type.Methods.Add(implementationMethod);
-
-                        method.UnsafeImplementationMethod = implementationMethod;
-
-                        implementationMethod.CopyGenericParameters(method, true, true);
-
-                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, implementationMethod);
-
-                        implementationMethod.SetDefaultReturnType(visitor.Replace(method.ReturnType));
-
-                        if (!method.IsStatic)
-                        {
-                            var newParameter = new InjectedParameterAnalysisContext(
-                                null,
-                                byReference.MakeGenericInstanceType([redirectedType]),
-                                ParameterAttributes.None,
-                                0,
-                                implementationMethod);
-                            implementationMethod.Parameters.Add(newParameter);
-                        }
-
-                        foreach (var originalParameter in method.Parameters)
-                        {
-                            var newParameterType = byReference.MakeGenericInstanceType([visitor.Replace(originalParameter.ParameterType)]);
-
-                            var newParameter = new InjectedParameterAnalysisContext(
-                                originalParameter.Name,
-                                newParameterType,
-                                originalParameter.Attributes,
-                                implementationMethod.Parameters.Count,
-                                implementationMethod);
-                            implementationMethod.Parameters.Add(newParameter);
-                        }
-                    }
-
+                    InjectedMethodAnalysisContext? helper = null;
                     InjectedMethodAnalysisContext? valueTypeHelper = null;
                     InjectedMethodAnalysisContext? referenceTypeHelper = null;
                     if (method.IsStatic)
@@ -127,7 +80,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             ? GetNonConflictingName("UnsafeConstruct", existingNames)
                             : GetNonConflictingName($"UnsafeInvoke_{method.Name.MakeValidCSharpName()}", existingNames);
 
-                        var helper = new InjectedMethodAnalysisContext(
+                        helper = new InjectedMethodAnalysisContext(
                             type,
                             name,
                             type, // Placeholder return type
@@ -181,50 +134,6 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             helper.Parameters.Add(newParameter);
                         }
 
-                        List<Instruction> instructions = new();
-
-                        var thisIsLocal = !type.IsValueType;
-                        var localVariablesOffset = thisIsLocal ? 0 : 1;
-                        var localVariablesCount = thisIsLocal ? method.Parameters.Count + 1 : method.Parameters.Count;
-                        LocalVariable[] localVariables = new LocalVariable[localVariablesCount];
-
-                        for (var i = localVariablesOffset; i < helper.Parameters.Count; i++)
-                        {
-                            var parameter = helper.Parameters[i];
-                            var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
-                            localVariables[i - localVariablesOffset] = parameterLocal;
-
-                            instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
-                            instructions.Add(CilOpCodes.Conv_U);
-                            instructions.Add(CilOpCodes.Localloc);
-                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
-                            instructions.Add(CilOpCodes.Stloc, parameterLocal);
-
-                            instructions.Add(CilOpCodes.Ldloca, parameterLocal);
-                            instructions.Add(CilOpCodes.Ldarg, parameter);
-                            instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
-                        }
-
-                        if (!thisIsLocal)
-                        {
-                            instructions.Add(CilOpCodes.Ldarg, helper.Parameters[0]);
-                        }
-
-                        foreach (var parameterLocal in localVariables)
-                        {
-                            instructions.Add(CilOpCodes.Ldloc, parameterLocal);
-                        }
-
-                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, helper.GenericParameters));
-
-                        instructions.Add(CilOpCodes.Ret);
-
-                        helper.PutExtraData(new NativeMethodBody()
-                        {
-                            Instructions = instructions,
-                            LocalVariables = localVariables,
-                        });
-
                         if (type.IsValueType)
                         {
                             valueTypeHelper = helper;
@@ -232,6 +141,131 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                         else
                         {
                             referenceTypeHelper = helper;
+                        }
+                    }
+
+                    var isUnstrippedICall = method.IsUnstripped && method.ICallDelegateField is not null;
+
+                    InjectedMethodAnalysisContext? implementationMethod;
+                    if (isUnstrippedICall)
+                    {
+                        // The ICall delegate is the implementation, so we don't need to generate a separate method for it.
+                        implementationMethod = null;
+                    }
+                    else
+                    {
+                        var name = GetNonConflictingName(method.IsInstanceConstructor ? "UnsafeConstructor" : $"UnsafeImplementation_{method.Name.Replace('.', '_')}", existingNames);
+
+                        implementationMethod = new InjectedMethodAnalysisContext(
+                            type,
+                            name,
+                            type, // Placeholder return type
+                            MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            [])
+                        {
+                            IsInjected = true,
+                        };
+                        type.Methods.Add(implementationMethod);
+
+                        method.UnsafeImplementationMethod = implementationMethod;
+
+                        implementationMethod.CopyGenericParameters(method, true, true);
+
+                        var visitor = TypeReplacementVisitor.CreateForMethodCopying(method, implementationMethod);
+
+                        implementationMethod.SetDefaultReturnType(visitor.Replace(method.ReturnType));
+
+                        if (!method.IsStatic)
+                        {
+                            var newParameter = new InjectedParameterAnalysisContext(
+                                null,
+                                byReference.MakeGenericInstanceType([redirectedType]),
+                                ParameterAttributes.None,
+                                0,
+                                implementationMethod);
+                            implementationMethod.Parameters.Add(newParameter);
+                        }
+
+                        foreach (var originalParameter in method.Parameters)
+                        {
+                            var newParameterType = byReference.MakeGenericInstanceType([visitor.Replace(originalParameter.ParameterType)]);
+
+                            var newParameter = new InjectedParameterAnalysisContext(
+                                originalParameter.Name,
+                                newParameterType,
+                                originalParameter.Attributes,
+                                implementationMethod.Parameters.Count,
+                                implementationMethod);
+                            implementationMethod.Parameters.Add(newParameter);
+                        }
+                    }
+
+                    if (helper is not null)
+                    {
+                        if (isUnstrippedICall)
+                        {
+                            Debug.Assert(method.DeclaringType?.GenericParameters.Count == 0 && method.GenericParameters.Count == 0);
+
+                            List<Instruction> instructions = new(1 + helper.Parameters.Count + 2);
+                            instructions.Add(CilOpCodes.Ldsfld, method.ICallDelegateField);
+                            foreach (var parameter in helper.Parameters)
+                            {
+                                instructions.Add(CilOpCodes.Ldarg, parameter);
+                            }
+                            instructions.Add(CilOpCodes.Callvirt, method.ICallDelegateField!.FieldType.GetMethodByName("Invoke"));
+                            instructions.Add(CilOpCodes.Ret);
+
+                            helper.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions = instructions,
+                                LocalVariables = [],
+                            });
+                        }
+                        else
+                        {
+                            List<Instruction> instructions = new();
+
+                            var thisIsLocal = !type.IsValueType;
+                            var localVariablesOffset = thisIsLocal ? 0 : 1;
+                            var localVariablesCount = thisIsLocal ? method.Parameters.Count + 1 : method.Parameters.Count;
+                            LocalVariable[] localVariables = new LocalVariable[localVariablesCount];
+
+                            for (var i = localVariablesOffset; i < helper.Parameters.Count; i++)
+                            {
+                                var parameter = helper.Parameters[i];
+                                var parameterLocal = new LocalVariable(byReference.MakeGenericInstanceType([parameter.ParameterType]));
+                                localVariables[i - localVariablesOffset] = parameterLocal;
+
+                                instructions.Add(CilOpCodes.Call, il2CppTypeHelper_SizeOf.MakeGenericInstanceMethod(parameter.ParameterType));
+                                instructions.Add(CilOpCodes.Conv_U);
+                                instructions.Add(CilOpCodes.Localloc);
+                                instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([parameter.ParameterType], []));
+                                instructions.Add(CilOpCodes.Stloc, parameterLocal);
+
+                                instructions.Add(CilOpCodes.Ldloca, parameterLocal);
+                                instructions.Add(CilOpCodes.Ldarg, parameter);
+                                instructions.Add(CilOpCodes.Call, byReference_SetValue.MakeConcreteGeneric([parameter.ParameterType], []));
+                            }
+
+                            if (!thisIsLocal)
+                            {
+                                instructions.Add(CilOpCodes.Ldarg, helper.Parameters[0]);
+                            }
+
+                            foreach (var parameterLocal in localVariables)
+                            {
+                                instructions.Add(CilOpCodes.Ldloc, parameterLocal);
+                            }
+
+                            instructions.Add(CilOpCodes.Call, implementationMethod!.MaybeMakeConcreteGeneric(type.GenericParameters, helper.GenericParameters));
+
+                            instructions.Add(CilOpCodes.Ret);
+
+                            helper.PutExtraData(new NativeMethodBody()
+                            {
+                                Instructions = instructions,
+                                LocalVariables = localVariables,
+                            });
                         }
                     }
 
@@ -306,6 +340,26 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             LocalVariables = [],
                         });
                     }
+                    else if (isUnstrippedICall)
+                    {
+                        Debug.Assert(method.IsStatic);
+                        Debug.Assert(method.DeclaringType?.GenericParameters.Count == 0 && method.GenericParameters.Count == 0);
+
+                        List<Instruction> instructions = new(1 + method.Parameters.Count + 2);
+                        instructions.Add(CilOpCodes.Ldsfld, method.ICallDelegateField);
+                        foreach (var parameter in method.Parameters)
+                        {
+                            instructions.Add(CilOpCodes.Ldarg, parameter);
+                        }
+                        instructions.Add(CilOpCodes.Callvirt, method.ICallDelegateField!.FieldType.GetMethodByName("Invoke"));
+                        instructions.Add(CilOpCodes.Ret);
+
+                        method.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = instructions,
+                            LocalVariables = [],
+                        });
+                    }
                     else
                     {
                         Debug.Assert(method.IsStatic);
@@ -336,7 +390,7 @@ public class MethodInvokerProcessingLayer : Cpp2IlProcessingLayer
                             instructions.Add(CilOpCodes.Ldloc, parameterLocal);
                         }
 
-                        instructions.Add(CilOpCodes.Call, implementationMethod.MaybeMakeConcreteGeneric(type.GenericParameters, method.GenericParameters));
+                        instructions.Add(CilOpCodes.Call, implementationMethod!.MaybeMakeConcreteGeneric(type.GenericParameters, method.GenericParameters));
 
                         instructions.Add(CilOpCodes.Ret);
 

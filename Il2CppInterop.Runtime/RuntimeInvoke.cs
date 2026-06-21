@@ -141,7 +141,6 @@ public static unsafe class RuntimeInvoke
             invoke.ReturnType, invoke.GetParameters().Select(it => it.ParameterType).ToArray(), typeof(RuntimeInvoke), true);
         var bodyBuilder = trampoline.GetILGenerator();
 
-        var sizeOfMethod = typeof(Il2CppType).GetMethod(nameof(Il2CppType.SizeOf))!;
         var parameters = invoke.GetParameters();
         var parameterTypes = new Type[parameters.Length];
         var locals = new LocalBuilder[parameters.Length];
@@ -150,18 +149,15 @@ public static unsafe class RuntimeInvoke
             var parameter = parameters[i];
             var parameterType = parameter.ParameterType;
 
-            // Parameter is a ByReference<T>, and we need to get the underlying type T
-            var elementType = parameterType.GenericTypeArguments[0];
-
-            var nativeStruct = TrampolineBuilder.GetNativeType(elementType);
+            var nativeStruct = TrampolineBuilder.GetNativeType(parameterType);
             parameterTypes[i] = nativeStruct;
 
             var nativeLocal = bodyBuilder.DeclareLocal(nativeStruct);
             locals[i] = nativeLocal;
 
-            bodyBuilder.Emit(OpCodes.Ldarga, i);
+            bodyBuilder.Emit(OpCodes.Ldarg, i);
             bodyBuilder.Emit(OpCodes.Ldloca, nativeLocal);
-            bodyBuilder.Emit(OpCodes.Call, parameterType.GetMethod(nameof(ByReference<>.CopyToUnmanaged))!.MakeGenericMethod(nativeStruct));
+            bodyBuilder.Emit(OpCodes.Call, typeof(Il2CppType).GetMethod(nameof(Il2CppType.WriteToPointer))!.MakeGenericMethod(parameterType));
         }
 
         foreach (var local in locals)

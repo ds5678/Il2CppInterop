@@ -359,16 +359,15 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             var returnType = method.ReturnType;
                             IEnumerable<TypeAnalysisContext> parameterTypes;
                             IEnumerable<string> parameterNames;
-                            // Wrap parameters in ByReference<> to align with NativeMethodBodyProcessingLayer
                             if (method.IsStatic)
                             {
-                                parameterTypes = method.Parameters.Select(p => byReference.MakeGenericInstanceType([p.ParameterType]));
+                                parameterTypes = method.Parameters.Select(p => p.ParameterType);
                                 parameterNames = Enumerable.Range(0, method.Parameters.Count).Select(i => $"param_{i}");
                             }
                             else
                             {
                                 var thisParameterType = type.IsValueType ? byReference.MakeGenericInstanceType([type]) : type;
-                                parameterTypes = method.Parameters.Select(p => byReference.MakeGenericInstanceType([p.ParameterType])).Prepend(thisParameterType);
+                                parameterTypes = method.Parameters.Select(p => p.ParameterType).Prepend(thisParameterType);
                                 parameterNames = Enumerable.Range(0, method.Parameters.Count).Select(i => $"param_{i}").Prepend("this");
                             }
 
