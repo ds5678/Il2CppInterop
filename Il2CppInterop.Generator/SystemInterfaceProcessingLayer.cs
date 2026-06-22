@@ -35,23 +35,27 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         var pairs = FindPairs(appContext);
 
         // Create interfaces in Il2CppInterop.SystemInterfaces
-        var systemToInjectedMap = new Dictionary<TypeAnalysisContext, TypeAnalysisContext>();
+        var systemToInjectedMap = new Dictionary<TypeAnalysisContext, TypeAnalysisContext>(TypeAnalysisContextEqualityComparer.Instance);
         foreach ((_, var systemInterface) in pairs)
         {
-            var injectedInterface = appContext.Il2CppMscorlib.InjectType(
-                "Il2CppInterop.SystemInterfaces",
-                systemInterface.Name,
-                null,
-                TypeAttributes.NotPublic | TypeAttributes.Interface | TypeAttributes.Abstract);
-            injectedInterface.CopyGenericParameters(systemInterface, true);
-            injectedInterface.InterfaceContexts.Add(systemInterface.MaybeMakeGenericInstanceType(injectedInterface.GenericParameters));
+            var injectedInterface = CreateInjectedInterface(systemInterface);
+            AddPairToMap(systemToInjectedMap, systemInterface, injectedInterface);
+        }
 
-            systemToInjectedMap[systemInterface] = injectedInterface;
-
-            // Add generic parameters to the dictionary too
-            for (var i = 0; i < systemInterface.GenericParameters.Count; i++)
+        // Find any missing base interfaces
+        {
+            for (var i = 0; i < pairs.Count; i++)
             {
-                systemToInjectedMap[systemInterface.GenericParameters[i]] = injectedInterface.GenericParameters[i];
+                (_, var systemInterface) = pairs[i];
+                foreach (var systemBaseInterface in systemInterface.InterfaceContexts.Select(RemoveTypeArgumentsIfPresent))
+                {
+                    if (!systemToInjectedMap.ContainsKey(systemBaseInterface))
+                    {
+                        var injectedBaseInterface = CreateInjectedInterface(systemBaseInterface);
+                        AddPairToMap(systemToInjectedMap, systemBaseInterface, injectedBaseInterface);
+                        pairs.Add((null, systemBaseInterface));
+                    }
+                }
             }
         }
 
@@ -74,9 +78,36 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static List<(TypeAnalysisContext, TypeAnalysisContext)> FindPairs(ApplicationAnalysisContext appContext)
+    private static TypeAnalysisContext RemoveTypeArgumentsIfPresent(TypeAnalysisContext type) => type is GenericInstanceTypeAnalysisContext genericInstance
+        ? genericInstance.GenericType
+        : type;
+
+    private static InjectedTypeAnalysisContext CreateInjectedInterface(TypeAnalysisContext systemInterface)
     {
-        List<(TypeAnalysisContext, TypeAnalysisContext)> pairs = [];
+        var injectedInterface = systemInterface.AppContext.Il2CppMscorlib.InjectType(
+            "Il2CppInterop.SystemInterfaces",
+            systemInterface.Name,
+            null,
+            TypeAttributes.NotPublic | TypeAttributes.Interface | TypeAttributes.Abstract);
+        injectedInterface.CopyGenericParameters(systemInterface, true);
+        injectedInterface.InterfaceContexts.Add(systemInterface.MaybeMakeGenericInstanceType(injectedInterface.GenericParameters));
+        return injectedInterface;
+    }
+
+    private static void AddPairToMap(Dictionary<TypeAnalysisContext, TypeAnalysisContext> systemToInjectedMap, TypeAnalysisContext systemInterface, InjectedTypeAnalysisContext injectedInterface)
+    {
+        systemToInjectedMap[systemInterface] = injectedInterface;
+
+        // Add generic parameters to the dictionary too
+        for (var i = 0; i < systemInterface.GenericParameters.Count; i++)
+        {
+            systemToInjectedMap[systemInterface.GenericParameters[i]] = injectedInterface.GenericParameters[i];
+        }
+    }
+
+    private static List<(TypeAnalysisContext?, TypeAnalysisContext)> FindPairs(ApplicationAnalysisContext appContext)
+    {
+        List<(TypeAnalysisContext?, TypeAnalysisContext)> pairs = [];
         foreach (var type in appContext.Il2CppMscorlib.Types)
         {
             if (type.IsInterface)
@@ -106,7 +137,7 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    private static void ImplementInterface(TypeAnalysisContext il2CppInterface, TypeAnalysisContext injectedInterface, TypeAnalysisContext systemInterface)
+    private static void ImplementInterface(TypeAnalysisContext? il2CppInterface, TypeAnalysisContext injectedInterface, TypeAnalysisContext systemInterface)
     {
         foreach (var systemMethod in systemInterface.Methods)
         {
@@ -150,6 +181,8 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
                 continue;
             }
 
+            Debug.Assert(il2CppInterface is not null);
+
             List<Instruction> instructions = [];
             instructions.Add(CilOpCodes.Ldarg_0);
             instructions.Add(CilOpCodes.Castclass, il2CppInterface.MaybeMakeGenericInstanceType(injectedInterface.GenericParameters));
@@ -170,14 +203,22 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
         }
 
         // Make the Il2Cpp interface inherit from the injected interface
-        Debug.Assert(il2CppInterface.GenericParameters.Count == injectedInterface.GenericParameters.Count);
-        il2CppInterface.InterfaceContexts.Add(injectedInterface.MaybeMakeGenericInstanceType(il2CppInterface.GenericParameters));
+        if (il2CppInterface is not null)
+        {
+            Debug.Assert(il2CppInterface.GenericParameters.Count == injectedInterface.GenericParameters.Count);
+            il2CppInterface.InterfaceContexts.Add(injectedInterface.MaybeMakeGenericInstanceType(il2CppInterface.GenericParameters));
+        }
     }
 
-    private static MethodAnalysisContext? FindIl2CppMethod(TypeAnalysisContext il2CppInterface, string methodName, MethodAnalysisContext injectedMethod, out Conversion returnConversion, out Conversion[] parameterConversions)
+    private static MethodAnalysisContext? FindIl2CppMethod(TypeAnalysisContext? il2CppInterface, string methodName, MethodAnalysisContext injectedMethod, out Conversion returnConversion, out Conversion[] parameterConversions)
     {
         returnConversion = NullConversion.Instance;
         parameterConversions = new Conversion[injectedMethod.Parameters.Count];
+
+        if (il2CppInterface is null)
+        {
+            return null;
+        }
 
         // Search in reverse order because the most user-friendly overloads will be last (they always get added to the end of the list).
         // This ensures correct behavior for array parameters, which have special handling in the user-friendly overload processing layer.
