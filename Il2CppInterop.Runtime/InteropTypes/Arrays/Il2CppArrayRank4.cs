@@ -7,10 +7,6 @@ namespace Il2CppInterop.Runtime.InteropTypes.Arrays;
 public sealed class Il2CppArrayRank4<T> : Il2CppArrayBase<T>, IIl2CppType<Il2CppArrayRank4<T>>
     where T : IIl2CppType<T>
 {
-    static int IIl2CppType<Il2CppArrayRank4<T>>.Size => IntPtr.Size;
-
-    nint IIl2CppType.ObjectClass => Il2CppType.GetClassPointer<Il2CppArrayRank4<T>>();
-
     static Il2CppArrayRank4()
     {
         SetClassPointer<Il2CppArrayRank4<T>, T>(4);
@@ -54,9 +50,6 @@ public sealed class Il2CppArrayRank4<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
 
     public ByReference<T> GetElementAddress(int index0, int index1, int index2, int index3) => GetElementAddress([index0, index1, index2, index3]);
 
-    static void IIl2CppType<Il2CppArrayRank4<T>>.WriteToSpan(Il2CppArrayRank4<T>? value, Span<byte> span) => Il2CppType.WriteReference(value, span);
-    static Il2CppArrayRank4<T>? IIl2CppType<Il2CppArrayRank4<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppType.ReadReference<Il2CppArrayRank4<T>>(span);
-
     [return: NotNullIfNotNull(nameof(array))]
     public static explicit operator Il2CppArrayRank4<T>?(T[,,,]? array) => array is null ? null : new(array);
 
@@ -86,4 +79,11 @@ public sealed class Il2CppArrayRank4<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
         }
         return result;
     }
+
+    #region IIl2CppType Implementation
+    nint IIl2CppType.ObjectClass => Il2CppType.GetClassPointer<Il2CppArrayRank4<T>>();
+    static void IIl2CppType<Il2CppArrayRank4<T>>.WriteToSpan(Il2CppArrayRank4<T>? value, Span<byte> span) => Il2CppType.WriteReference(value, span);
+    static Il2CppArrayRank4<T>? IIl2CppType<Il2CppArrayRank4<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppType.ReadReference<Il2CppArrayRank4<T>>(span);
+    static Il2CppArrayRank4<T> IIl2CppType<Il2CppArrayRank4<T>>.UnboxNative(ObjectPointer pointer) => new(pointer);
+    #endregion
 }
