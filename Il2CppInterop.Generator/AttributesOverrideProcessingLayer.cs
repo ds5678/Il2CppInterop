@@ -31,7 +31,7 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
 
                 if (type.IsStatic)
                 {
-                    type.OverrideAttributes = type.Attributes & ~TypeAttributes.Sealed;
+                    type.Attributes &= ~TypeAttributes.Sealed;
                 }
 
                 // Remove bad flags from type
@@ -47,12 +47,19 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                         TypeAttributes.WindowsRuntime;
 #pragma warning restore SYSLIB0050 // Type or member is obsolete
 
-                    type.OverrideAttributes = type.Attributes & ~TypeFlagsToRemove;
+                    type.Attributes &= ~TypeFlagsToRemove;
                 }
 
-                if (!type.IsValueType)
+                if (type.IsValueType)
                 {
-                    type.OverrideAttributes = type.Attributes & ~TypeAttributes.LayoutMask;
+                    const TypeAttributes TypeFlagsToRemove =
+                        TypeAttributes.Abstract |
+                        TypeAttributes.ClassSemanticsMask;
+                    type.Attributes &= ~TypeFlagsToRemove;
+                }
+                else
+                {
+                    type.Attributes &= ~TypeAttributes.LayoutMask;
                 }
 
                 foreach (var genericParameter in type.GenericParameters)
@@ -60,7 +67,7 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                     const GenericParameterAttributes GenericParamFlagsToRemove =
                         GenericParameterAttributes.Covariant |
                         GenericParameterAttributes.Contravariant;
-                    genericParameter.OverrideAttributes = genericParameter.Attributes & ~GenericParamFlagsToRemove;
+                    genericParameter.Attributes &= ~GenericParamFlagsToRemove;
                 }
 
                 foreach (var method in type.Methods)
@@ -76,9 +83,9 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                         MethodAttributes.UnmanagedExport |
                         MethodAttributes.PinvokeImpl;
 
-                    method.OverrideAttributes = method.Attributes & ~FlagsToRemove;
+                    method.Attributes &= ~FlagsToRemove;
 
-                    method.OverrideImplAttributes = MethodImplAttributes.Managed;
+                    method.ImplAttributes = MethodImplAttributes.Managed;
 
                     foreach (var parameter in method.Parameters)
                     {
@@ -86,7 +93,7 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                             ParameterAttributes.Optional |
                             ParameterAttributes.HasDefault |
                             ParameterAttributes.HasFieldMarshal;
-                        parameter.OverrideAttributes = parameter.Attributes & ~ParamFlagsToRemove;
+                        parameter.Attributes &= ~ParamFlagsToRemove;
                     }
                 }
 
@@ -100,12 +107,12 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                     if (field.Attributes.HasFlag(FieldAttributes.Literal))
                     {
                         // Change constant fields to static readonly
-                        field.OverrideAttributes = (field.Attributes & ~FieldAttributes.Literal) | FieldAttributes.InitOnly;
+                        field.Attributes = (field.Attributes & ~FieldAttributes.Literal) | FieldAttributes.InitOnly;
                     }
                     else
                     {
                         // Remove readonly from non-constant fields
-                        field.OverrideAttributes = field.Attributes & ~FieldAttributes.InitOnly;
+                        field.Attributes &= ~FieldAttributes.InitOnly;
                     }
 
                     const FieldAttributes FlagsToRemove =
@@ -113,7 +120,7 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                         FieldAttributes.HasDefault |
                         FieldAttributes.HasFieldMarshal;
 
-                    field.OverrideAttributes = field.Attributes & ~FlagsToRemove;
+                    field.Attributes &= ~FlagsToRemove;
                 }
 
                 foreach (var property in type.Properties)
@@ -126,7 +133,7 @@ public class AttributesOverrideProcessingLayer : Cpp2IlProcessingLayer
                     const PropertyAttributes FlagsToRemove =
                         PropertyAttributes.HasDefault;
 
-                    property.OverrideAttributes = property.Attributes & ~FlagsToRemove;
+                    property.Attributes &= ~FlagsToRemove;
                 }
 
                 // There are no event attributes that need to be modified.

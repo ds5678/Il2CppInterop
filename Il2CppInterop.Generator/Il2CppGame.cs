@@ -80,10 +80,10 @@ public static class Il2CppGame
         new UnstripProcessingLayer(), // Can be disabled for performance during development
         new InterfaceOverrideProcessingLayer(),
         new InvalidFieldRemovalProcessingLayer(),
+        new AttributesOverrideProcessingLayer(), // Must be before Il2CppRenamingProcessingLayer
         new Il2CppRenamingProcessingLayer(),
         new CleanRenamingProcessingLayer(),
         new ConflictRenamingProcessingLayer(),
-        new AttributesOverrideProcessingLayer(),
         new PublicizerProcessingLayer(),
         new MscorlibAssemblyInjectionProcessingLayer(),
         new KnownTypeAssignmentProcessingLayer(),
