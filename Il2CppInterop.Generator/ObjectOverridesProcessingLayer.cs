@@ -56,11 +56,11 @@ public class ObjectOverridesProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var type in assembly.Types)
             {
-                if (type.DefaultBaseType != il2CppSystemEnum && type.DefaultBaseType != il2CppSystemValueType)
+                if (!type.IsValueType)
                     continue;
 
-                if (type == il2CppSystemEnum)
-                    continue;
+                Debug.Assert(type.DefaultBaseType == il2CppSystemEnum || type.DefaultBaseType == il2CppSystemValueType);
+                Debug.Assert(type != il2CppSystemEnum);
 
                 if (type.IsInjected)
                     continue;

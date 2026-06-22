@@ -51,11 +51,17 @@ public class ReferenceReplacementProcessingLayer : Cpp2IlProcessingLayer
                 }
                 else if (type.BaseType == il2CppSystemValueType)
                 {
-                    type.OverrideBaseType = monoSystemValueType;
+                    if (type is not { Definition.IsValueType: false })
+                    {
+                        type.OverrideBaseType = monoSystemValueType;
+                    }
                 }
                 else if (type.BaseType == il2CppSystemEnum)
                 {
-                    type.OverrideBaseType = monoSystemValueType;
+                    if (type is not { Definition.IsEnumType: false })
+                    {
+                        type.OverrideBaseType = monoSystemValueType;
+                    }
                 }
                 else
                 {
