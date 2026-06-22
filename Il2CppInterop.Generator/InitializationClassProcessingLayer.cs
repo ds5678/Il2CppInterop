@@ -569,12 +569,28 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                 if (!IsObject(type.GenericArguments[i]))
                     continue;
 
+                // Check if any of the constraints on this generic parameter are not satisfied by object.
                 foreach (var constraint in type.GenericType.GenericParameters[i].ConstraintTypes)
                 {
                     if (IsObject(constraint))
                         continue;
                     if (!IsInjectedOrReference(constraint))
                         return true;
+                }
+
+                // Check if any of the constraints on any of the declaring types' generic parameters might not be satisfied by object.
+                // Specifically, we check if a constraint references the target generic parameter.
+                // Obviously, this could have false positives, but it shouldn't have any false negatives.
+                var visitor = new TargetTypeFinder(type.GenericType.GenericParameters[i]);
+                for (var j = 0; j < type.GenericType.GenericParameters.Count; j++)
+                {
+                    if (j == i)
+                        continue;
+                    foreach (var constraint in type.GenericType.GenericParameters[j].ConstraintTypes)
+                    {
+                        if (visitor.Visit(constraint))
+                            return true;
+                    }
                 }
             }
             return base.Visit(type);
@@ -590,6 +606,11 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         private static bool IsObject(TypeAnalysisContext type)
         {
             return type.KnownType is KnownTypeCode.Il2CppSystem_IObject;
+        }
+
+        private sealed class TargetTypeFinder(GenericParameterTypeAnalysisContext targetType) : BooleanOrTypeVisitor
+        {
+            public override bool Visit(GenericParameterTypeAnalysisContext type) => type == targetType;
         }
     }
 }
