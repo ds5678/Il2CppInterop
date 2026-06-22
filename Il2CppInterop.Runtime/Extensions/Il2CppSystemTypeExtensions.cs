@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
 using Il2CppSystem;
 
@@ -24,6 +25,18 @@ internal static class Il2CppSystemTypeExtensions
                 throw new System.ArgumentException($"Class pointer {classPointer} does not have a corresponding IL2CPP type pointer", nameof(classPointer));
             }
             return Type.FromTypePointer(il2CppType);
+        }
+
+        [RequiresDynamicCode("")]
+        public static Type FromSystemType(System.Type systemType)
+        {
+            var classPointer = Il2CppType.GetClassPointer(systemType);
+            if (classPointer == default)
+            {
+                throw new System.ArgumentException($"{systemType} does not have a corresponding IL2CPP class pointer", nameof(systemType));
+            }
+
+            return FromClassPointer(classPointer);
         }
 
         public nint ToTypePointer()
