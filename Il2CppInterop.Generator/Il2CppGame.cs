@@ -76,6 +76,7 @@ public static class Il2CppGame
     [
         new AttributeAnalysisProcessingLayer(), // Needed for recovery of unmanaged constraints
         //new StableRenamingProcessingLayer(),
+        new OverrideRenamingProcessingLayer(), // Must be before CleanRenamingProcessingLayer
         new UnstripProcessingLayer(), // Can be disabled for performance during development
         new InterfaceOverrideProcessingLayer(),
         new InvalidFieldRemovalProcessingLayer(),

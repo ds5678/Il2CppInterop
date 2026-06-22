@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Cpp2IL.Core.Model.Contexts;
+using Cpp2IL.Core.Utils;
+using LibCpp2IL;
 
 namespace Il2CppInterop.Generator.Extensions;
 
@@ -66,6 +68,66 @@ internal static class MethodAnalysisContextExtensions
             set => method.PutExtraStruct("InitializationClassIndex", value);
         }
 
+        public MethodAnalysisContext? UltimateBaseMethod
+        {
+            get
+            {
+                var currentBaseMethod = method.BaseMethodFixed;
+                if (currentBaseMethod is null)
+                    return null;
+                MethodAnalysisContext? nextBaseMethod;
+                while (true)
+                {
+                    nextBaseMethod = currentBaseMethod.BaseMethodFixed;
+                    if (nextBaseMethod is not null)
+                    {
+                        currentBaseMethod = nextBaseMethod;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return currentBaseMethod;
+            }
+        }
+
+        public MethodAnalysisContext? BaseMethodFixed
+        {
+            get
+            {
+                if (method.Definition == null)
+                    return null;
+
+                var vtable = method.DeclaringType?.Definition?.VTable;
+                if (vtable == null)
+                    return null;
+
+                for (var i = 0; i < vtable.Length; ++i)
+                {
+                    var vtableEntry = vtable[i];
+                    if (vtableEntry is null or { Type: not MetadataUsageType.MethodDef } || vtableEntry.AsMethod() != method.Definition)
+                        continue;
+
+                    if (IsInterfaceSlot(method, i))
+                    {
+                        continue;
+                    }
+
+                    var baseType = method.DeclaringType?.DefaultBaseType;
+                    while (baseType is not null)
+                    {
+                        if (TryGetMethodForSlot(baseType, i, out var method2))
+                        {
+                            return method2;
+                        }
+                        baseType = baseType.DefaultBaseType;
+                    }
+                }
+                return null;
+            }
+        }
+
         public bool IsInstanceConstructor => method.Name == ".ctor";
         public bool IsStaticConstructor => method.Name == ".cctor";
         public bool IsConstructor => method.IsInstanceConstructor || method.IsStaticConstructor;
@@ -105,5 +167,47 @@ internal static class MethodAnalysisContextExtensions
                 return method;
             return method.MakeConcreteGeneric(typeArguments, methodArguments);
         }
+    }
+
+    private static bool IsInterfaceSlot(MethodAnalysisContext method, int slot)
+    {
+        // Interface inheritance
+        foreach (var interfaceOffset in method.DeclaringType!.Definition!.InterfaceOffsets)
+        {
+            if (slot >= interfaceOffset.offset)
+            {
+                var interfaceTypeContext = interfaceOffset.Type.ToContext(method.CustomAttributeAssembly);
+                if (interfaceTypeContext != null && TryGetMethodForSlot(interfaceTypeContext, slot - interfaceOffset.offset, out _))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static bool TryGetMethodForSlot(TypeAnalysisContext declaringType, int slot, [NotNullWhen(true)] out MethodAnalysisContext? method)
+    {
+        if (declaringType is GenericInstanceTypeAnalysisContext genericInstanceType)
+        {
+            var genericMethod = genericInstanceType.GenericType.Methods.FirstOrDefault(m => m.Slot == slot);
+            if (genericMethod is not null)
+            {
+                method = new ConcreteGenericMethodAnalysisContext(genericMethod, genericInstanceType.GenericArguments, []);
+                return true;
+            }
+        }
+        else
+        {
+            var baseMethod = declaringType.Methods.FirstOrDefault(m => m.Slot == slot);
+            if (baseMethod is not null)
+            {
+                method = baseMethod;
+                return true;
+            }
+        }
+
+        method = null;
+        return false;
     }
 }
