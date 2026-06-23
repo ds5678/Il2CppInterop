@@ -288,8 +288,17 @@ public static partial class GenerationInternals
     }
     public static void Il2CppRuntimeClassInit(nint @class)
     {
-        if (@class != nint.Zero)
-            IL2CPP.il2cpp_runtime_class_init(@class);
+        try
+        {
+            if (@class != nint.Zero)
+            {
+                IL2CPP.il2cpp_runtime_class_init(@class);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Instance.LogError(ex, "Error initializing class {ClassName}", IL2CPP.il2cpp_class_get_name(@class));
+        }
     }
 
     public static nint GetIl2CppClass(string assemblyName, string namespaze, string className)
