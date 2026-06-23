@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
@@ -18,7 +19,7 @@ internal static unsafe class ClassInitializer
         ClassInit.Invoke(klass);
     }
 
-    private static readonly SignatureDefinition[] s_ClassInitSignatures =
+    private static IEnumerable<SignatureDefinition> s_ClassInitSignatures =>
     [
         new SignatureDefinition
         {
