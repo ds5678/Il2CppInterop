@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace Il2CppInterop.Common;
 
@@ -191,12 +192,12 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_class_get_name(nint klass);
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_class_get_namespace(nint klass);
 
     [LibraryImport("GameAssembly")]
@@ -348,7 +349,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_field_get_name(nint field);
 
     [LibraryImport("GameAssembly")]
@@ -467,7 +468,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_method_get_name(nint method);
 
     [LibraryImport("GameAssembly")]
@@ -520,7 +521,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_method_get_param_name(nint method, uint index);
 
     [LibraryImport("GameAssembly")]
@@ -565,7 +566,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_property_get_name(nint prop);
 
     [LibraryImport("GameAssembly")]
@@ -754,7 +755,7 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_type_get_name(nint type);
 
     [LibraryImport("GameAssembly")]
@@ -781,12 +782,12 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_image_get_name(nint image);
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+    [return: MarshalUsing(typeof(Il2CppStringMarshaller))]
     public static partial string il2cpp_image_get_filename(nint image);
 
     [LibraryImport("GameAssembly")]
@@ -854,4 +855,17 @@ public static unsafe partial class IL2CPP
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void il2cpp_custom_attrs_free(nint ainfo);
+
+    [CustomMarshaller(typeof(string), MarshalMode.ManagedToUnmanagedOut, typeof(Il2CppStringMarshaller))]
+    private static class Il2CppStringMarshaller
+    {
+        public static string? ConvertToManaged(byte* unmanaged)
+            => Marshal.PtrToStringUTF8((nint)unmanaged);
+
+        public static void Free(byte* unmanaged)
+        {
+            // Intentionally empty, il2cpp owns this pointer
+            _ = unmanaged;
+        }
+    }
 }
