@@ -3,7 +3,7 @@ using AssetRipper.Primitives;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.EventInfo;
 namespace Il2CppInterop.Runtime.Structs
 {
-    public partial class UnityVersionHandler
+    public static partial class UnityVersionHandler
     {
         private static void SetEventInfoStructHandler(UnityVersion version)
         {

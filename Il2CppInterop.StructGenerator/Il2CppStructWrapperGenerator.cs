@@ -160,6 +160,7 @@ public static partial class Il2CppStructWrapperGenerator
                 var unityVersionHandlerClass = new CodeGenClass(ElementProtection.Public, "UnityVersionHandler")
                 {
                     IsPartial = true,
+                    IsStatic = true,
                     Properties =
                     {
                         new CodeGenProperty(firstGenerator.HandlerInterface, ElementProtection.Private, $"{firstGenerator.GeneratorName}StructHandler")
