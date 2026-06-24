@@ -19,14 +19,14 @@ public static class DelegateSupport
 
     [RequiresUnreferencedCode("")]
     [RequiresDynamicCode("")]
-    private static Delegate GetOrCreateNativeToManagedTrampoline(Type delegateType)
+    private static Delegate GetOrCreateNativeToManagedTrampoline([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type delegateType)
     {
         return NativeToManagedTrampolines.GetOrAdd(delegateType, CreateNativeToManagedTrampoline);
     }
 
     [RequiresUnreferencedCode("")]
     [RequiresDynamicCode("")]
-    private static Delegate CreateNativeToManagedTrampoline(Type delegateType)
+    private static Delegate CreateNativeToManagedTrampoline([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type delegateType)
     {
         var invokeMethod = Il2CppToMonoDelegateReference.GetOrCreateInvokeMethod(delegateType);
         return TrampolineBuilder.CreateTrampoline(invokeMethod, false);

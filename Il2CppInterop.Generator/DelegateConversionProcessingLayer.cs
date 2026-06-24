@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
@@ -15,9 +14,14 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
     public override string Id => "delegate_conversion";
 
+    /// <summary>
+    /// The maximum number of parameters that a System.Action or System.Func delegate can have.
+    /// </summary>
+    private const int MaxSystemDelegateParameters = 16;
+
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
-        PolyfillActionFuncDelegates(appContext, out var actionTypes, out var funcTypes);
+        GetActionFuncDelegates(appContext, out var actionTypes, out var funcTypes);
 
         var multicastDelegateType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.MulticastDelegate");
         var asyncCallbackType = appContext.Mscorlib.GetTypeByFullNameOrThrow("System.AsyncCallback");
@@ -122,7 +126,7 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
 
                 TypeAnalysisContext managedDelegateType;
 
-                if (invokeMethod.Parameters.Count <= 16)
+                if (invokeMethod.Parameters.Count <= MaxSystemDelegateParameters)
                 {
                     // We can use a System delegate
 
@@ -280,75 +284,23 @@ public class DelegateConversionProcessingLayer : Cpp2IlProcessingLayer
         }
     }
 
-    /// <summary>
-    /// mscorlib only contains Action and Func delegates with up to 8 parameters.
-    /// However, System.Private.CoreLib contains Action and Func delegates with up to 16 parameters.
-    /// This method will create the Action and Func delegates with more than 8 parameters,
-    /// so that they can be used when the mscorlib assembly references are replaced with System.Private.CoreLib references.
-    /// </summary>
-    /// <param name="appContext"></param>
-    /// <param name="actionTypes"></param>
-    /// <param name="funcTypes"></param>
-    private static void PolyfillActionFuncDelegates(ApplicationAnalysisContext appContext, out TypeAnalysisContext[] actionTypes, out TypeAnalysisContext[] funcTypes)
+    private static void GetActionFuncDelegates(ApplicationAnalysisContext appContext, out TypeAnalysisContext[] actionTypes, out TypeAnalysisContext[] funcTypes)
     {
         var mscorlib = appContext.Mscorlib;
 
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-#pragma warning disable IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
-        actionTypes =
-        [
-            GetOrInjectType(mscorlib, typeof(Action)),
-            GetOrInjectType(mscorlib, typeof(Action<>)),
-            GetOrInjectType(mscorlib, typeof(Action<,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Action<,,,,,,,,,,,,,,,>)),
-        ];
+        actionTypes = Enumerable.Range(0, MaxSystemDelegateParameters + 1)
+            .Select(i => GetActionType(mscorlib, i))
+            .ToArray();
 
-        funcTypes =
-        [
-            GetOrInjectType(mscorlib, typeof(Func<>)),
-            GetOrInjectType(mscorlib, typeof(Func<,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,,,>)),
-            GetOrInjectType(mscorlib, typeof(Func<,,,,,,,,,,,,,,,,>)),
-        ];
-#pragma warning restore IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+        funcTypes = Enumerable.Range(0, MaxSystemDelegateParameters + 1)
+            .Select(i => GetFuncType(mscorlib, i))
+            .ToArray();
 
-        static TypeAnalysisContext GetOrInjectType(AssemblyAnalysisContext mscorlib, [DynamicallyAccessedMembers(InjectedTypeAnalysisContextExtensions.AccessedMemberTypes)] Type type)
+        static TypeAnalysisContext GetActionType(AssemblyAnalysisContext mscorlib, int parameterCount) => parameterCount switch
         {
-            var result = mscorlib.GetTypeByFullName(type.FullName!);
-            if (result is null)
-            {
-                var injectedType = mscorlib.InjectType(type);
-                injectedType.InjectContentFromSourceType(type);
-                result = injectedType;
-            }
-            return result;
-        }
+            0 => mscorlib.GetTypeByFullNameOrThrow("System.Action"),
+            _ => mscorlib.GetTypeByFullNameOrThrow($"System.Action`{parameterCount}"),
+        };
+        static TypeAnalysisContext GetFuncType(AssemblyAnalysisContext mscorlib, int parameterCount) => mscorlib.GetTypeByFullNameOrThrow($"System.Func`{parameterCount + 1}");
     }
 }

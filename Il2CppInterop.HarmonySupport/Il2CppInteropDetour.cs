@@ -155,9 +155,8 @@ internal sealed class Il2CppInteropDetour : ICoreDetourWithClone
     }
 
     [RequiresDynamicCode("")]
-#pragma warning disable IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
+    [SuppressMessage("AOT", "IL3051:'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.", Justification = "The constructor for this class requires dynamic code generation, which warns the user before this method can ever be called.")]
     public void Apply()
-#pragma warning restore IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
     {
         if (NativeSource.MethodPointer == default)
         {

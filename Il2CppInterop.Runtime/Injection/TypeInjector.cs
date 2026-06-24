@@ -653,6 +653,7 @@ public static unsafe class TypeInjector
         return GetIl2CppFields(type).Where(f => !f.Attributes.HasFlag(FieldAttributes.Static)).Select(f => f.FieldType);
     }
 
+    [RequiresDynamicCode("Calls System.Type.MakeGenericType(params Type[])")]
     private static void ValidateTypeUsingReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] Type type)
     {
         // Enums are transformed into structs during generation
@@ -714,9 +715,7 @@ public static unsafe class TypeInjector
             // This will throw if the type does not implement IIl2CppType<T> where T is the type itself
             // because T has a self-referential constraint that cannot be satisfied if the type does not implement the interface correctly.
             // If https://github.com/dotnet/runtime/issues/28033 is implemented, we can replace this with a more direct check.
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             typeof(IIl2CppType<>).MakeGenericType(type);
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
         }
         catch
         {

@@ -13,11 +13,9 @@ public sealed class Il2CppInteropDetourFactory(IDetourFactory? fallback = null) 
 
     [RequiresUnreferencedCode("")]
     [RequiresDynamicCode("")]
-#pragma warning disable IL2046 // 'RequiresUnreferencedCodeAttribute' annotations must match across all interface implementations or overrides.
-#pragma warning disable IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
+    [SuppressMessage("Trimming", "IL2046:'RequiresUnreferencedCodeAttribute' annotations must match across all interface implementations or overrides.", Justification = "This method will never be called in a trimmed context.")]
+    [SuppressMessage("AOT", "IL3051:'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.", Justification = "This method will never be called in an AOT context.")]
     public ICoreDetour CreateDetour(CreateDetourRequest request)
-#pragma warning restore IL3051 // 'RequiresDynamicCodeAttribute' annotations must match across all interface implementations or overrides.
-#pragma warning restore IL2046 // 'RequiresUnreferencedCodeAttribute' annotations must match across all interface implementations or overrides.
     {
         ArgumentNullException.ThrowIfNull(request.Source);
         ArgumentNullException.ThrowIfNull(request.Target);

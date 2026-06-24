@@ -16,6 +16,9 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
 {
     public override string Id => "reference_assembly_injector";
     public override string Name => "Inject required references into the Cpp2IL context system";
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "The accessed members are never invoked by this processing layer, only viewed for reference.")]
+    [SuppressMessage("Trimming", "IL2111:Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.", Justification = "The accessed members are never invoked by this processing layer, only viewed for reference.")]
     public override void Process(ApplicationAnalysisContext appContext, Action<int, int>? progressCallback = null)
     {
         // Types need to be provided twice, so that the linker can find them
@@ -89,14 +92,10 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank4<>));
             InjectContentFromSourceType(injectedAssembly, typeof(Il2CppArrayRank5<>));
 
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             InjectContentFromSourceType(injectedAssembly, typeof(Il2CppException));
-#pragma warning disable IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
             InjectContentFromSourceType(injectedAssembly, typeof(TypeInjector));
-#pragma warning restore IL2111 // Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. Trimmer can't guarantee availability of the requirements of the method.
             InjectContentFromSourceType(injectedAssembly, typeof(DelegateSupport));
             InjectContentFromSourceType(injectedAssembly, typeof(RuntimeInvoke));
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             InjectContentFromSourceType(injectedAssembly, typeof(FieldAccess));
             InjectContentFromSourceType(injectedAssembly, typeof(Pointer<>));
             InjectContentFromSourceType(injectedAssembly, typeof(ByReference<>));
