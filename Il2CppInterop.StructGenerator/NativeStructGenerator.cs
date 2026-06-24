@@ -16,7 +16,10 @@ internal class NativeStructGenerator
         FillStruct();
     }
 
-    public List<CodeGenField> FieldsToImport { get; } = [];
+    /// <summary>
+    /// Fields whose types might need to be imported from other namespaces
+    /// </summary>
+    public List<(CodeGenField, CppField)> FieldsToImport { get; } = [];
     public CodeGenStruct NativeStruct { get; }
     public CppClass CppClass { get; }
 
@@ -84,7 +87,8 @@ internal class NativeStructGenerator
             {
                 FinalizeBitfield();
                 CodeGenField codeGenField = new(normalizedType, ElementProtection.Public, GetFieldName(field));
-                if (needsImport) FieldsToImport.Add(codeGenField);
+                if (needsImport)
+                    FieldsToImport.Add((codeGenField, field));
                 NativeStruct.Fields.Add(codeGenField);
             }
         }

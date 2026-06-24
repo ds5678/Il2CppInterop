@@ -10,11 +10,7 @@ internal class Il2CppImageGenerator : VersionSpecificGenerator
     {
     }
 
-    public override string CppClassName => "Il2CppImage";
-    protected override string HandlerName => "NativeImageStructHandler";
-    protected override string HandlerInterface => "INativeImageStructHandler";
-    protected override string NativeInterface => "INativeImageStruct";
-    protected override string NativeStub => "Il2CppImage";
+    public override string GeneratorName => "Image";
 
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [

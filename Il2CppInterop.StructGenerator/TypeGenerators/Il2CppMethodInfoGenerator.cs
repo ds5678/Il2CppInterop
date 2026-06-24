@@ -9,11 +9,7 @@ internal class Il2CppMethodInfoGenerator : VersionSpecificGenerator
     {
     }
 
-    public override string CppClassName => "Il2CppMethodInfo";
-    protected override string HandlerName => "NativeMethodInfoStructHandler";
-    protected override string HandlerInterface => "INativeMethodInfoStructHandler";
-    protected override string NativeInterface => "INativeMethodInfoStruct";
-    protected override string NativeStub => "Il2CppMethodInfo";
+    public override string GeneratorName => "MethodInfo";
 
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [

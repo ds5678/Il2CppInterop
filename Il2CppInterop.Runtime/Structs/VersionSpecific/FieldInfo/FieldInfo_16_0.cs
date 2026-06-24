@@ -3,8 +3,12 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.FieldInfo
 {
     [ApplicableToUnityVersionsSince("5.2.2")]
+    [ApplicableToUnityVersionsSince("5.4.0")]
     public unsafe class NativeFieldInfoStructHandler_16_0 : INativeFieldInfoStructHandler
     {
+        private NativeFieldInfoStructHandler_16_0()
+        {
+        }
         public INativeFieldInfoStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +21,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.FieldInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeFieldInfoStructHandler_16_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppFieldInfo_16_0);
         internal unsafe struct Il2CppFieldInfo_16_0
         {

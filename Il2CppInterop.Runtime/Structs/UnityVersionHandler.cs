@@ -1,11 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using AssetRipper.Primitives;
-using Il2CppInterop.Common;
-using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Startup;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.Assembly;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName;
@@ -18,60 +13,13 @@ using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.ParameterInfo;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.PropertyInfo;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.Type;
-using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Structs;
 
-public static class UnityVersionHandler
+public static partial class UnityVersionHandler
 {
-    private static readonly Type[] InterfacesOfInterest;
-    private static readonly Dictionary<Type, List<(UnityVersion Version, object Handler)>> VersionedHandlers = new();
-    private static readonly Dictionary<Type, object> Handlers = new();
-
-#nullable disable
-    internal static INativeAssemblyStructHandler assemblyStructHandler;
-    internal static INativeAssemblyNameStructHandler assemblyNameStructHandler;
-    internal static INativeClassStructHandler classStructHandler;
-    internal static INativeEventInfoStructHandler eventInfoStructHandler;
-    internal static INativeExceptionStructHandler exceptionStructHandler;
-    internal static INativeFieldInfoStructHandler fieldInfoStructHandler;
-    internal static INativeImageStructHandler imageStructHandler;
-    internal static INativeMethodInfoStructHandler methodInfoStructHandler;
-    internal static INativeParameterInfoStructHandler parameterInfoStructHandler;
-    internal static INativePropertyInfoStructHandler propertyInfoStructHandler;
-    internal static INativeTypeStructHandler typeStructHandler;
-#nullable restore
-
     static UnityVersionHandler()
     {
-        var allTypes = typeof(UnityVersionHandler).Assembly.GetTypesSafe();
-        var interfacesOfInterest = allTypes.Where(t =>
-                t.IsInterface && typeof(INativeStructHandler).IsAssignableFrom(t) && t != typeof(INativeStructHandler))
-            .ToArray();
-        InterfacesOfInterest = interfacesOfInterest;
-
-        foreach (var i in interfacesOfInterest) VersionedHandlers[i] = new List<(UnityVersion Version, object Handler)>();
-
-        foreach (var handlerImpl in allTypes.Where(t =>
-                     !t.IsAbstract && interfacesOfInterest.Any(i => i.IsAssignableFrom(t))))
-            foreach (var startVersion in handlerImpl.GetCustomAttributes<ApplicableToUnityVersionsSinceAttribute>())
-            {
-#pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
-                var instance = Activator.CreateInstance(handlerImpl)!;
-#pragma warning restore IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
-
-#pragma warning disable IL2075 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
-                foreach (var i in handlerImpl.GetInterfaces())
-                {
-                    if (interfacesOfInterest.Contains(i))
-                        VersionedHandlers[i].Add((UnityVersion.Parse(startVersion.StartVersion), instance));
-                }
-#pragma warning restore IL2075 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
-            }
-
-        foreach (var handlerList in VersionedHandlers.Values)
-            handlerList.Sort((a, b) => -a.Version.CompareTo(b.Version));
-
         RecalculateHandlers();
     }
 
@@ -84,172 +32,152 @@ public static class UnityVersionHandler
 
     internal static void RecalculateHandlers()
     {
-        Handlers.Clear();
         var unityVersion = Il2CppInteropRuntime.Instance.UnityVersion;
-
-        foreach (var type in InterfacesOfInterest)
-            foreach (var valueTuple in VersionedHandlers[type])
-            {
-                if (valueTuple.Version > unityVersion) continue;
-
-                Handlers[type] = valueTuple.Handler;
-                break;
-            }
 
         HasGetMethodFromReflection = unityVersion.GreaterThanOrEquals(2018, 2, 0, UnityVersionType.Beta, 6);
         IsMetadataV29OrHigher = unityVersion.GreaterThanOrEquals(2021, 2, 0);
 
         HasShimForGetMethod = unityVersion.GreaterThanOrEquals(2020, 3, 41) || IsMetadataV29OrHigher;
 
-        assemblyStructHandler = GetHandler<INativeAssemblyStructHandler>();
-        assemblyNameStructHandler = GetHandler<INativeAssemblyNameStructHandler>();
-        classStructHandler = GetHandler<INativeClassStructHandler>();
-        eventInfoStructHandler = GetHandler<INativeEventInfoStructHandler>();
-        exceptionStructHandler = GetHandler<INativeExceptionStructHandler>();
-        fieldInfoStructHandler = GetHandler<INativeFieldInfoStructHandler>();
-        imageStructHandler = GetHandler<INativeImageStructHandler>();
-        methodInfoStructHandler = GetHandler<INativeMethodInfoStructHandler>();
-        parameterInfoStructHandler = GetHandler<INativeParameterInfoStructHandler>();
-        propertyInfoStructHandler = GetHandler<INativePropertyInfoStructHandler>();
-        typeStructHandler = GetHandler<INativeTypeStructHandler>();
-    }
-
-    private static T GetHandler<T>()
-    {
-        if (Handlers.TryGetValue(typeof(T), out var result))
-            return (T)result;
-
-        Logger.Instance.LogError("No direct for {TypeFullName} found for Unity {UnityVersion}; this likely indicates a severe error somewhere", typeof(T).FullName, Il2CppInteropRuntime.Instance.UnityVersion);
-
-        throw new ApplicationException("No handler");
+        SetAssemblyNameStructHandler(unityVersion);
+        SetAssemblyStructHandler(unityVersion);
+        SetClassStructHandler(unityVersion);
+        SetEventInfoStructHandler(unityVersion);
+        SetExceptionStructHandler(unityVersion);
+        SetFieldInfoStructHandler(unityVersion);
+        SetImageStructHandler(unityVersion);
+        SetMethodInfoStructHandler(unityVersion);
+        SetParameterInfoStructHandler(unityVersion);
+        SetPropertyInfoStructHandler(unityVersion);
+        SetTypeStructHandler(unityVersion);
     }
 
     //Assemblies
     public static INativeAssemblyStruct NewAssembly()
     {
-        return assemblyStructHandler.CreateNewStruct();
+        return AssemblyStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeAssemblyStruct Wrap(Il2CppAssembly* assemblyPointer)
     {
-        return assemblyStructHandler.Wrap(assemblyPointer);
+        return AssemblyStructHandler.Wrap(assemblyPointer);
     }
 
     public static int AssemblySize()
     {
-        return assemblyStructHandler.Size;
+        return AssemblyStructHandler.Size;
     }
 
     //Assembly Names
     public static INativeAssemblyNameStruct NewAssemblyName()
     {
-        return assemblyNameStructHandler.CreateNewStruct();
+        return AssemblyNameStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeAssemblyNameStruct Wrap(Il2CppAssemblyName* assemblyNamePointer)
     {
-        return assemblyNameStructHandler.Wrap(assemblyNamePointer);
+        return AssemblyNameStructHandler.Wrap(assemblyNamePointer);
     }
 
     public static int AssemblyNameSize()
     {
-        return assemblyNameStructHandler.Size;
+        return AssemblyNameStructHandler.Size;
     }
 
     //Classes
     public static INativeClassStruct NewClass(int vTableSlots)
     {
-        return classStructHandler.CreateNewStruct(vTableSlots);
+        return ClassStructHandler.CreateNewStruct(vTableSlots);
     }
 
     public static unsafe INativeClassStruct Wrap(Il2CppClass* classPointer)
     {
-        return classStructHandler.Wrap(classPointer);
+        return ClassStructHandler.Wrap(classPointer);
     }
 
     public static int ClassSize()
     {
-        return classStructHandler.Size;
+        return ClassStructHandler.Size;
     }
 
     //Events
     public static INativeEventInfoStruct NewEvent()
     {
-        return eventInfoStructHandler.CreateNewStruct();
+        return EventInfoStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeEventInfoStruct Wrap(Il2CppEventInfo* eventInfoPointer)
     {
-        return eventInfoStructHandler.Wrap(eventInfoPointer);
+        return EventInfoStructHandler.Wrap(eventInfoPointer);
     }
 
     public static int EventSize()
     {
-        return eventInfoStructHandler.Size;
+        return EventInfoStructHandler.Size;
     }
 
     //Exceptions
     public static INativeExceptionStruct NewException()
     {
-        return exceptionStructHandler.CreateNewStruct();
+        return ExceptionStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeExceptionStruct Wrap(Il2CppException* exceptionPointer)
     {
-        return exceptionStructHandler.Wrap(exceptionPointer);
+        return ExceptionStructHandler.Wrap(exceptionPointer);
     }
 
     public static int ExceptionSize()
     {
-        return exceptionStructHandler.Size;
+        return ExceptionStructHandler.Size;
     }
 
     //Fields
     public static INativeFieldInfoStruct NewField()
     {
-        return fieldInfoStructHandler.CreateNewStruct();
+        return FieldInfoStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeFieldInfoStruct Wrap(Il2CppFieldInfo* fieldInfoPointer)
     {
-        return fieldInfoStructHandler.Wrap(fieldInfoPointer);
+        return FieldInfoStructHandler.Wrap(fieldInfoPointer);
     }
 
     public static int FieldInfoSize()
     {
-        return fieldInfoStructHandler.Size;
+        return FieldInfoStructHandler.Size;
     }
 
     //Images
     public static INativeImageStruct NewImage()
     {
-        return imageStructHandler.CreateNewStruct();
+        return ImageStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeImageStruct Wrap(Il2CppImage* imagePointer)
     {
-        return imageStructHandler.Wrap(imagePointer);
+        return ImageStructHandler.Wrap(imagePointer);
     }
 
     public static int ImageSize()
     {
-        return imageStructHandler.Size;
+        return ImageStructHandler.Size;
     }
 
     //Methods
     public static INativeMethodInfoStruct NewMethod()
     {
-        return methodInfoStructHandler.CreateNewStruct();
+        return MethodInfoStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeMethodInfoStruct Wrap(Il2CppMethodInfo* methodPointer)
     {
-        return methodInfoStructHandler.Wrap(methodPointer);
+        return MethodInfoStructHandler.Wrap(methodPointer);
     }
 
     public static int MethodSize()
     {
-        return methodInfoStructHandler.Size;
+        return MethodInfoStructHandler.Size;
     }
 
     //Parameters
@@ -258,7 +186,7 @@ public static class UnityVersionHandler
         if (count == 0)
             return [];
 
-        var elementSize = parameterInfoStructHandler.Size;
+        var elementSize = ParameterInfoStructHandler.Size;
         var totalSize = elementSize * count;
         var startPointer = Marshal.AllocHGlobal(totalSize);
         new Span<byte>(startPointer.ToPointer(), totalSize).Clear();
@@ -272,44 +200,44 @@ public static class UnityVersionHandler
 
     public static unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* parameterInfo)
     {
-        return parameterInfoStructHandler.Wrap(parameterInfo);
+        return ParameterInfoStructHandler.Wrap(parameterInfo);
     }
 
     public static unsafe INativeParameterInfoStruct Wrap(Il2CppParameterInfo* parameterInfo, int index)
     {
-        var address = (nint)parameterInfo + index * parameterInfoStructHandler.Size;
-        return parameterInfoStructHandler.Wrap((Il2CppParameterInfo*)address);
+        var address = (nint)parameterInfo + index * ParameterInfoStructHandler.Size;
+        return ParameterInfoStructHandler.Wrap((Il2CppParameterInfo*)address);
     }
 
     //Properties
     public static INativePropertyInfoStruct NewProperty()
     {
-        return propertyInfoStructHandler.CreateNewStruct();
+        return PropertyInfoStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativePropertyInfoStruct Wrap(Il2CppPropertyInfo* propertyInfoPointer)
     {
-        return propertyInfoStructHandler.Wrap(propertyInfoPointer);
+        return PropertyInfoStructHandler.Wrap(propertyInfoPointer);
     }
 
     public static int ParameterInfoSize()
     {
-        return parameterInfoStructHandler.Size;
+        return ParameterInfoStructHandler.Size;
     }
 
     //Types
     public static INativeTypeStruct NewType()
     {
-        return typeStructHandler.CreateNewStruct();
+        return TypeStructHandler.CreateNewStruct();
     }
 
     public static unsafe INativeTypeStruct Wrap(Il2CppTypeStruct* typePointer)
     {
-        return typeStructHandler.Wrap(typePointer);
+        return TypeStructHandler.Wrap(typePointer);
     }
 
     public static int TypeSize()
     {
-        return typeStructHandler.Size;
+        return TypeStructHandler.Size;
     }
 }

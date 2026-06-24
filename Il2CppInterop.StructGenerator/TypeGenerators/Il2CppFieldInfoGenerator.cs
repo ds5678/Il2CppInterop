@@ -9,11 +9,7 @@ internal class Il2CppFieldInfoGenerator : VersionSpecificGenerator
     {
     }
 
-    public override string CppClassName => "Il2CppFieldInfo";
-    protected override string HandlerName => "NativeFieldInfoStructHandler";
-    protected override string HandlerInterface => "INativeFieldInfoStructHandler";
-    protected override string NativeInterface => "INativeFieldInfoStruct";
-    protected override string NativeStub => "Il2CppFieldInfo";
+    public override string GeneratorName => "FieldInfo";
 
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [

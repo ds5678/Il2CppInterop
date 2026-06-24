@@ -14,11 +14,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         ExtraUsings.Add("Il2CppInterop.Runtime.Structs.VersionSpecific.Type");
     }
 
-    public override string CppClassName => "Il2CppClass";
-    protected override string HandlerName => "NativeClassStructHandler";
-    protected override string HandlerInterface => "INativeClassStructHandler";
-    protected override string NativeInterface => "INativeClassStruct";
-    protected override string NativeStub => "Il2CppClass";
+    public override string GeneratorName => "Class";
 
     protected override IEnumerable<CodeGenParameter>? CreateNewParameters => [new CodeGenParameter("int", "vTableSlots")];
 

@@ -4,8 +4,12 @@ using Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Assembly
 {
     [ApplicableToUnityVersionsSince("5.3.2p1")]
+    [ApplicableToUnityVersionsSince("5.4.0b4")]
     public unsafe class NativeAssemblyStructHandler_20_0 : INativeAssemblyStructHandler
     {
+        private NativeAssemblyStructHandler_20_0()
+        {
+        }
         public INativeAssemblyStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -18,6 +22,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Assembly
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeAssemblyStructHandler_20_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppAssembly_20_0);
         internal unsafe struct Il2CppAssembly_20_0
         {

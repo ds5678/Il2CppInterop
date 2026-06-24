@@ -22,6 +22,14 @@ internal class CodeGenProperty : CodeGenElement
     public bool HasGet => GetMethod != null || ImmediateGet != null || EmptyGet;
     public bool HasSet => SetMethod != null || EmptySet;
 
+    /// <summary>
+    /// An optional initializer for the property. If provided, this will be used to initialize the property with a default value.
+    /// </summary>
+    /// <remarks>
+    /// This is only used if either <see cref="EmptyGet"/> or <see cref="EmptySet"/> is <see langword="true"/>.
+    /// </remarks>
+    public string? Initializer { get; set; }
+
     public override void Build(IndentedTextWriter writer)
     {
         base.Build(writer);
@@ -38,7 +46,15 @@ internal class CodeGenProperty : CodeGenElement
             writer.Write(" {");
             if (EmptyGet) writer.Write(" get;");
             if (EmptySet) writer.Write(" set;");
-            writer.WriteLine(" }");
+            if (!string.IsNullOrEmpty(Initializer))
+            {
+                writer.WriteLine($" }} = {Initializer};");
+            }
+            else
+            {
+
+                writer.WriteLine(" }");
+            }
         }
         else
         {

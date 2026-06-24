@@ -3,8 +3,12 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.EventInfo
 {
     [ApplicableToUnityVersionsSince("5.3.1p3")]
+    [ApplicableToUnityVersionsSince("5.4.0b3")]
     public unsafe class NativeEventInfoStructHandler_19_0 : INativeEventInfoStructHandler
     {
+        private NativeEventInfoStructHandler_19_0()
+        {
+        }
         public INativeEventInfoStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +21,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.EventInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeEventInfoStructHandler_19_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppEventInfo_19_0);
         internal unsafe struct Il2CppEventInfo_19_0
         {

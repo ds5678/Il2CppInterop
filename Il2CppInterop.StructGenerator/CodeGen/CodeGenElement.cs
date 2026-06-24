@@ -15,6 +15,7 @@ internal abstract class CodeGenElement
 
     public bool IsStatic { get; set; }
     public bool IsUnsafe { get; set; }
+    public bool IsPartial { get; set; }
     public string Name { get; }
     public ElementProtection? Protection { get; }
 
@@ -22,14 +23,10 @@ internal abstract class CodeGenElement
     {
         get
         {
-            if (IsStatic)
-            {
-                return IsUnsafe ? "static unsafe " : "static ";
-            }
-            else
-            {
-                return IsUnsafe ? "unsafe " : string.Empty;
-            }
+            var staticKeyword = IsStatic ? "static " : string.Empty;
+            var unsafeKeyword = IsUnsafe ? "unsafe " : string.Empty;
+            var partialKeyword = IsPartial ? "partial " : string.Empty;
+            return string.Concat(staticKeyword, unsafeKeyword, partialKeyword);
         }
     }
 

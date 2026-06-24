@@ -3,8 +3,12 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Image
 {
     [ApplicableToUnityVersionsSince("2017.1.2p1")]
+    [ApplicableToUnityVersionsSince("2017.2.0p2")]
     public unsafe class NativeImageStructHandler_24_1 : INativeImageStructHandler
     {
+        private NativeImageStructHandler_24_1()
+        {
+        }
         public INativeImageStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +21,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Image
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeImageStructHandler_24_1 Instance { get; } = new();
         public int Size => sizeof(Il2CppImage_24_1);
         internal unsafe struct Il2CppImage_24_1
         {

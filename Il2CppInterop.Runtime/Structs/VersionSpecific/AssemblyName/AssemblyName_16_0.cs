@@ -5,6 +5,9 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName
     [ApplicableToUnityVersionsSince("5.2.2")]
     public unsafe class NativeAssemblyNameStructHandler_16_0 : INativeAssemblyNameStructHandler
     {
+        private NativeAssemblyNameStructHandler_16_0()
+        {
+        }
         public INativeAssemblyNameStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +20,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeAssemblyNameStructHandler_16_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppAssemblyName_16_0);
         internal unsafe struct Il2CppAssemblyName_16_0
         {

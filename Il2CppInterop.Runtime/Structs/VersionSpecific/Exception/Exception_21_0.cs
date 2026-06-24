@@ -3,8 +3,12 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Exception
 {
     [ApplicableToUnityVersionsSince("5.3.4p3")]
+    [ApplicableToUnityVersionsSince("5.4.0b15")]
     public unsafe class NativeExceptionStructHandler_21_0 : INativeExceptionStructHandler
     {
+        private NativeExceptionStructHandler_21_0()
+        {
+        }
         public INativeExceptionStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +21,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Exception
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeExceptionStructHandler_21_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppException_21_0);
         internal unsafe struct Il2CppException_21_0
         {

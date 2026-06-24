@@ -15,10 +15,17 @@ internal class StructHandlerGenerator
             IsUnsafe = true,
             InterfaceNames = { handlerInterface }
         };
+        HandlerClass.Properties.Add(new CodeGenProperty(name, ElementProtection.Public, "Instance")
+        {
+            EmptyGet = true,
+            IsStatic = true,
+            Initializer = "new()"
+        });
         HandlerClass.Properties.Add(new CodeGenProperty("int", ElementProtection.Public, "Size")
         {
             ImmediateGet = $"sizeof({nativeStructGen.NativeStruct.Name})"
         });
+        HandlerClass.Methods.Add(new CodeGenConstructor(name, ElementProtection.Private));
         CodeGenMethod createNewMethod = new(nativeInterface, ElementProtection.Public, "CreateNewStruct")
         {
             MethodBodyBuilder = writer =>

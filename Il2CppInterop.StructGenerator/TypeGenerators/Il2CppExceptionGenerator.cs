@@ -9,11 +9,7 @@ internal class Il2CppExceptionGenerator : VersionSpecificGenerator
     {
     }
 
-    public override string CppClassName => "Il2CppException";
-    protected override string HandlerName => "NativeExceptionStructHandler";
-    protected override string HandlerInterface => "INativeExceptionStructHandler";
-    protected override string NativeInterface => "INativeExceptionStruct";
-    protected override string NativeStub => "Il2CppException";
+    public override string GeneratorName => "Exception";
 
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [

@@ -3,8 +3,12 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.PropertyInfo
 {
     [ApplicableToUnityVersionsSince("5.2.2")]
+    [ApplicableToUnityVersionsSince("5.4.0")]
     public unsafe class NativePropertyInfoStructHandler_16_0 : INativePropertyInfoStructHandler
     {
+        private NativePropertyInfoStructHandler_16_0()
+        {
+        }
         public INativePropertyInfoStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +21,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.PropertyInfo
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativePropertyInfoStructHandler_16_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppPropertyInfo_16_0);
         internal unsafe struct Il2CppPropertyInfo_16_0
         {

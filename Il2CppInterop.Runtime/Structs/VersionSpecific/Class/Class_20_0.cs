@@ -4,8 +4,12 @@ using Il2CppInterop.Runtime.Structs.VersionSpecific.Type;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
 {
     [ApplicableToUnityVersionsSince("5.3.2p2")]
+    [ApplicableToUnityVersionsSince("5.4.0b8")]
     public unsafe class NativeClassStructHandler_20_0 : INativeClassStructHandler
     {
+        private NativeClassStructHandler_20_0()
+        {
+        }
         public INativeClassStruct CreateNewStruct(int vTableSlots)
         {
             nint ptr = Marshal.AllocHGlobal(Size + sizeof(VirtualInvokeData) * vTableSlots);
@@ -20,6 +24,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeClassStructHandler_20_0 Instance { get; } = new();
         public int Size => sizeof(Il2CppClass_20_0);
         internal unsafe struct Il2CppClass_20_0
         {

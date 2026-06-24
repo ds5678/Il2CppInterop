@@ -9,11 +9,7 @@ internal class Il2CppParameterInfoGenerator : VersionSpecificGenerator
     {
     }
 
-    public override string CppClassName => "Il2CppParameterInfo";
-    protected override string HandlerName => "NativeParameterInfoStructHandler";
-    protected override string HandlerInterface => "INativeParameterInfoStructHandler";
-    protected override string NativeInterface => "INativeParameterInfoStruct";
-    protected override string NativeStub => "Il2CppParameterInfo";
+    public override string GeneratorName => "ParameterInfo";
 
     protected override IReadOnlyList<CodeGenProperty>? WrapperProperties =>
     [

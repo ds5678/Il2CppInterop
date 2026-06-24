@@ -5,6 +5,9 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Exception
     [ApplicableToUnityVersionsSince("5.6.0b6")]
     public unsafe class NativeExceptionStructHandler_23_1 : INativeExceptionStructHandler
     {
+        private NativeExceptionStructHandler_23_1()
+        {
+        }
         public INativeExceptionStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +20,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Exception
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeExceptionStructHandler_23_1 Instance { get; } = new();
         public int Size => sizeof(Il2CppException_23_1);
         internal unsafe struct Il2CppException_23_1
         {

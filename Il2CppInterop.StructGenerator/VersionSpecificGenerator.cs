@@ -12,7 +12,7 @@ internal abstract class VersionSpecificGenerator
         MetadataSuffix = metadataSuffix;
         NativeStructGenerator = new NativeStructGenerator(MetadataSuffix, nativeClass);
 
-        HandlerGenerator = new StructHandlerGenerator($"{HandlerName}_{MetadataSuffix}", HandlerInterface,
+        HandlerGenerator = new StructHandlerGenerator(HandlerName, HandlerInterface,
             NativeInterface, NativeStub, NativeStructGenerator, CreateNewParameters, CreateNewExtraBody)
         {
             SizeProviderOverride = SizeOverride
@@ -32,11 +32,12 @@ internal abstract class VersionSpecificGenerator
         HandlerGenerator.HandlerClass.NestedElements.Add(WrapperGenerator.WrapperClass);
     }
 
-    public abstract string CppClassName { get; }
-    protected abstract string HandlerName { get; }
-    protected abstract string HandlerInterface { get; }
-    protected abstract string NativeInterface { get; }
-    protected abstract string NativeStub { get; }
+    public string Namespace => $"Il2CppInterop.Runtime.Structs.VersionSpecific.{GeneratorName}";
+    public abstract string GeneratorName { get; }
+    public string HandlerName => $"Native{GeneratorName}StructHandler_{MetadataSuffix}";
+    public string HandlerInterface => $"INative{GeneratorName}StructHandler";
+    public string NativeInterface => $"INative{GeneratorName}Struct";
+    protected virtual string NativeStub => $"Il2Cpp{GeneratorName}";
 
     protected virtual IEnumerable<CodeGenParameter>? CreateNewParameters => null;
     protected virtual string? SizeOverride => null;
@@ -249,7 +250,7 @@ internal abstract class VersionSpecificGenerator
         }
         var file = new CodeGenFile()
         {
-            Namespace = $"Il2CppInterop.Runtime.Structs.VersionSpecific.{NativeStructGenerator.CppClass.Name.Replace("Il2Cpp", null)}",
+            Namespace = Namespace,
             Elements =
             {
                 handlerInterface,

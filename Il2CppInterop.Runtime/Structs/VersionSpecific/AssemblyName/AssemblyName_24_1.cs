@@ -3,8 +3,14 @@ using System.Runtime.InteropServices;
 namespace Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName
 {
     [ApplicableToUnityVersionsSince("2018.4.34")]
+    [ApplicableToUnityVersionsSince("2019.4.15")]
+    [ApplicableToUnityVersionsSince("2020.1.11")]
+    [ApplicableToUnityVersionsSince("2020.2.0b7")]
     public unsafe class NativeAssemblyNameStructHandler_24_1 : INativeAssemblyNameStructHandler
     {
+        private NativeAssemblyNameStructHandler_24_1()
+        {
+        }
         public INativeAssemblyNameStruct CreateNewStruct()
         {
             nint ptr = Marshal.AllocHGlobal(Size);
@@ -17,6 +23,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.AssemblyName
             if (ptr == null) return null;
             return new NativeStructWrapper((nint)ptr);
         }
+        public static NativeAssemblyNameStructHandler_24_1 Instance { get; } = new();
         public int Size => sizeof(Il2CppAssemblyName_24_1);
         internal unsafe struct Il2CppAssemblyName_24_1
         {
