@@ -12,43 +12,49 @@ public abstract class Type : Object, IIl2CppType<Type>
 
     public RuntimeTypeHandle _impl { get; set; }
 
-    public abstract Type GetNestedType(String name, BindingFlags bindingAttr);
+    public Assembly Assembly => throw null;
 
-    public static Type internal_from_handle(IntPtr handle)
-    {
-        throw null;
-    }
+    public Boolean ContainsGenericParameters => throw null;
 
-    public virtual RuntimeTypeHandle TypeHandle
-    {
-        get
-        {
-            throw null;
-        }
-    }
-
-    public Boolean IsPrimitive
-    {
-        get
-        {
-            throw null;
-        }
-    }
-
-    public Boolean IsByRef
-    {
-        get
-        {
-            throw null;
-        }
-    }
-
-    public MethodInfo GetMethod(String name)
-    {
-        throw null;
-    }
+    public Type DeclaringType => throw null;
 
     public abstract String FullName { get; }
+
+    public Boolean IsArray => throw null;
+
+    public Boolean IsByRef => throw null;
+
+    public Boolean IsGenericType => throw null;
+
+    public Boolean IsGenericTypeDefinition => throw null;
+
+    public Boolean IsNested => throw null;
+
+    public Boolean IsPointer => throw null;
+
+    public Boolean IsPrimitive => throw null;
+
+    public Boolean IsSZArray => throw null;
+
+    public Boolean IsTypeDefinition => throw null;
+
+    public String NameOrDefault => throw null;
+
+    public String Namespace => throw null;
+
+    public virtual RuntimeTypeHandle TypeHandle => throw null;
+
+    public Int32 GetArrayRank() => throw null;
+
+    public Type GetElementType() => throw null;
+
+    public Type GetGenericTypeDefinition() => throw null;
+
+    public MethodInfo GetMethod(String name) => throw null;
+
+    public abstract Type GetNestedType(String name, BindingFlags bindingAttr);
+
+    public static Type internal_from_handle(IntPtr handle) => throw null;
 
     public Type MakeByRefType() => throw null;
 
@@ -59,6 +65,6 @@ public abstract class Type : Object, IIl2CppType<Type>
     public static Boolean operator ==(Type left, Type right) => throw null;
     public static Boolean operator !=(Type left, Type right) => throw null;
 
-    public override bool Equals(object obj) => throw new System.NotImplementedException();
-    public override int GetHashCode() => throw new System.NotImplementedException();
+    public override bool Equals(object obj) => throw null;
+    public override int GetHashCode() => throw null;
 }

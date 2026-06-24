@@ -1,6 +1,10 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppSystem;
 
 namespace Il2CppInterop.Runtime.Extensions;
@@ -17,6 +21,7 @@ internal static class Il2CppSystemTypeExtensions
             return Type.internal_from_handle(typePointer);
         }
 
+        // Note: This method is referenced via UnsafeAccessor in Il2CppObjectPool
         public static Type FromClassPointer(nint classPointer)
         {
             var il2CppType = IL2CPP.il2cpp_class_get_type(classPointer);
@@ -39,6 +44,57 @@ internal static class Il2CppSystemTypeExtensions
             return FromClassPointer(classPointer);
         }
 
+        // Note: This method is referenced via UnsafeAccessor in Il2CppObjectPool
+        [RequiresDynamicCode("")]
+        [RequiresUnreferencedCode("")]
+        public System.Type ToSystemType()
+        {
+            if (type.IsTypeDefinition)
+            {
+                return GetSystemTypeDefinition(type);
+            }
+            else if (type.ContainsGenericParameters)
+            {
+                throw new System.NotSupportedException($"Cannot convert type {type.FullName} to a system type because it contains generic parameters.");
+            }
+            else if (type.IsByRef)
+            {
+                return typeof(ByReference<>).MakeGenericType(type.GetElementType().ToSystemType());
+            }
+            else if (type.IsPointer)
+            {
+                return typeof(Pointer<>).MakeGenericType(type.GetElementType().ToSystemType());
+            }
+            else if (type.IsSZArray)
+            {
+                return typeof(Il2CppArrayRank1<>).MakeGenericType(type.GetElementType().ToSystemType());
+            }
+            else if (type.IsArray)
+            {
+                int rank = type.GetArrayRank();
+                var arrayGenericType = rank switch
+                {
+                    1 => typeof(Il2CppArrayRank1<>),
+                    2 => typeof(Il2CppArrayRank2<>),
+                    3 => typeof(Il2CppArrayRank3<>),
+                    4 => typeof(Il2CppArrayRank4<>),
+                    5 => typeof(Il2CppArrayRank5<>),
+                    _ => throw new System.NotSupportedException($"Cannot convert type {type.FullName} to a system type because it is an array with rank {rank}, which is not supported.")
+                };
+                return arrayGenericType.MakeGenericType(type.GetElementType().ToSystemType());
+            }
+            else if (type.IsGenericType)
+            {
+                var genericTypeDefinition = type.GetGenericTypeDefinition().ToSystemType();
+                var genericArguments = type.GetGenericArguments().Select(t => t.ToSystemType()).ToArray();
+                return genericTypeDefinition.MakeGenericType(genericArguments);
+            }
+            else
+            {
+                throw new System.NotSupportedException($"Cannot convert type {type.FullName} to a system type.");
+            }
+        }
+
         public nint ToTypePointer()
         {
             return type.TypeHandle.value;
@@ -55,5 +111,110 @@ internal static class Il2CppSystemTypeExtensions
         {
             return IL2CPP.il2cpp_class_from_type(type.ToTypePointer());
         }
+    }
+
+    [RequiresDynamicCode("")]
+    [RequiresUnreferencedCode("")]
+    private static System.Type GetSystemTypeDefinition(Type type)
+    {
+        if (type.IsNested)
+        {
+            var declaringType = GetSystemTypeDefinition(type.DeclaringType);
+            var il2CppTypeName = type.NameOrDefault ?? "";
+            return TryGetNestedSystemType(declaringType, il2CppTypeName)
+                ?? throw new System.NullReferenceException($"Could not find system type for nested type {il2CppTypeName} in declaring type {declaringType.FullName}");
+        }
+        else
+        {
+            return TryGetTopLevelSystemType(type.Assembly.GetName().Name ?? "", type.Namespace ?? "", type.NameOrDefault ?? "")
+                ?? throw new System.NullReferenceException($"Could not find system type for top-level type {type.FullName}");
+        }
+    }
+
+    [RequiresDynamicCode("")]
+    private static System.Type? TryGetNestedSystemType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)] System.Type declaringType, string il2CppTypeName)
+    {
+        foreach (var nestedType in declaringType.GetNestedTypes(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
+        {
+            if (!nestedType.IsAssignableTo(typeof(IIl2CppType)))
+            {
+                continue;
+            }
+
+            var name = typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetName))!.MakeGenericMethod(nestedType).Invoke(null, null) as string ?? string.Empty;
+            if (string.Equals(name, il2CppTypeName, System.StringComparison.Ordinal))
+            {
+                return nestedType;
+            }
+        }
+        return null;
+    }
+
+    [RequiresUnreferencedCode("")]
+    [RequiresDynamicCode("")]
+    private static System.Type? TryGetTopLevelSystemType(string il2CppAssemblyName, string il2CppTypeNamespace, string il2CppTypeName)
+    {
+        var systemAssembly = TryGetSystemAssembly(il2CppAssemblyName);
+
+        if (systemAssembly == null)
+        {
+            return null;
+        }
+
+        foreach (var type in systemAssembly.GetTypes())
+        {
+            if (type.IsNested || !type.IsAssignableTo(typeof(IIl2CppType)))
+            {
+                continue;
+            }
+            var (typeNamespace, typeName) = GetIl2CppTypeNamespaceAndName(type);
+            if (string.Equals(typeNamespace, il2CppTypeNamespace, System.StringComparison.Ordinal) &&
+                string.Equals(typeName, il2CppTypeName, System.StringComparison.Ordinal))
+            {
+                return type;
+            }
+        }
+
+        return null;
+
+        [RequiresDynamicCode("")]
+        static (string Namespace, string Name) GetIl2CppTypeNamespaceAndName(System.Type systemType)
+        {
+            var @namespace = typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetNamespace))!.MakeGenericMethod(systemType).Invoke(null, null) as string ?? string.Empty;
+            var name = typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetName))!.MakeGenericMethod(systemType).Invoke(null, null) as string ?? string.Empty;
+            return (@namespace, name);
+        }
+    }
+
+    private static System.Reflection.Assembly? TryGetSystemAssembly(string il2CppAssemblyName)
+    {
+        return TryGetSystemAssemblyImplementation(il2CppAssemblyName) ?? TryGetSystemAssemblyImplementation("Il2Cpp" + il2CppAssemblyName);
+
+        static System.Reflection.Assembly? TryGetSystemAssemblyImplementation(string exactName)
+        {
+            var alternateName = exactName.EndsWith(".dll", System.StringComparison.OrdinalIgnoreCase)
+                ? exactName.Substring(0, exactName.Length - 4)
+                : exactName + ".dll";
+
+            foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var name = assembly.GetName().Name;
+                if (string.Equals(name, exactName, System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, alternateName, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return assembly;
+                }
+            }
+            return null;
+        }
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetGenericArguments")]
+    [return: UnsafeAccessorType($"Il2CppInterop.Runtime.InteropTypes.Arrays.{nameof(Il2CppArrayRank1<>)}`1[[Il2CppSystem.Type, Il2Cppmscorlib]]")]
+    private static extern object GetGenericArgumentsInternal(Type type);
+
+    private static IReadOnlyList<Type> GetGenericArguments(this Type type)
+    {
+        return (IReadOnlyList<Type>)GetGenericArgumentsInternal(type);
     }
 }

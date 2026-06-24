@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Il2CppInterop.Common;
 
@@ -13,6 +15,8 @@ public static class Il2CppObjectPool
         s_cache.TryRemove(ptr, out _);
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "This will never be called in a trimmed context.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "This will never be called in an AOT context.")]
     public static object? Get(nint ptr)
     {
         if (ptr == nint.Zero)
@@ -26,8 +30,11 @@ public static class Il2CppObjectPool
         var ownClass = IL2CPP.il2cpp_object_get_class(ptr);
         if (!s_initializers.TryGetValue(ownClass, out var initializer))
         {
-            var className = IL2CPP.il2cpp_class_get_name(ownClass);
-            throw new InvalidOperationException($"No initializer found for class {className}");
+            var systemType = EnsureClassInitialized(ownClass);
+            if (!s_initializers.TryGetValue(ownClass, out initializer))
+            {
+                throw new InvalidOperationException($"No initializer found for class {systemType}");
+            }
         }
 
         var newObj = initializer.Invoke((ObjectPointer)ptr);
@@ -72,5 +79,25 @@ public static class Il2CppObjectPool
         {
             return initializer(obj);
         }
+    }
+
+    [RequiresDynamicCode("")]
+    [RequiresUnreferencedCode("")]
+    private static Type EnsureClassInitialized(nint classPointer)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(classPointer);
+        var il2CppSystemType = Il2CppSystemTypeFromClassPointer(null, classPointer);
+        var systemType = Il2CppSystemTypeToSystemType(null, il2CppSystemType);
+        RuntimeHelpers.RunClassConstructor(systemType.TypeHandle);
+        return systemType;
+
+        [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "FromClassPointer")]
+        [return: UnsafeAccessorType("Il2CppSystem.Type, Il2Cppmscorlib")]
+        static extern object Il2CppSystemTypeFromClassPointer([UnsafeAccessorType("Il2CppInterop.Runtime.Extensions.Il2CppSystemTypeExtensions, Il2CppInterop.Runtime")] object? obj, nint classPointer);
+
+        [RequiresDynamicCode("")]
+        [RequiresUnreferencedCode("")]
+        [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "ToSystemType")]
+        static extern Type Il2CppSystemTypeToSystemType([UnsafeAccessorType("Il2CppInterop.Runtime.Extensions.Il2CppSystemTypeExtensions, Il2CppInterop.Runtime")] object? obj, [UnsafeAccessorType("Il2CppSystem.Type, Il2Cppmscorlib")] object il2CppSystemType);
     }
 }

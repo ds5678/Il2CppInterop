@@ -49,6 +49,13 @@ public static partial class GenerationInternals
     }
 
     [RequiresDynamicCode("")]
+    [RequiresUnreferencedCode("")]
+    public static Type Il2CppTypeToManagedType(Il2CppSystem.Type type)
+    {
+        return type.ToSystemType();
+    }
+
+    [RequiresDynamicCode("")]
     public static unsafe Il2CppSystem.TypedReference MakeRefAny<T>(void* value) where T : IIl2CppType<T>
     {
         Il2CppSystem.TypedReference result = default;
