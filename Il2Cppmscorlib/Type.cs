@@ -3,7 +3,7 @@ using Il2CppSystem.Reflection;
 
 namespace Il2CppSystem;
 
-public abstract class Type : Object, IIl2CppType<Type>
+public abstract class Type : MemberInfo, IIl2CppType<Type>
 {
     static int IIl2CppType<Type>.Size => throw null;
     nint IIl2CppType.ObjectClass => throw null;
@@ -16,13 +16,17 @@ public abstract class Type : Object, IIl2CppType<Type>
 
     public Boolean ContainsGenericParameters => throw null;
 
-    public Type DeclaringType => throw null;
-
     public abstract String FullName { get; }
+
+    public Boolean HasElementType => throw null;
 
     public Boolean IsArray => throw null;
 
     public Boolean IsByRef => throw null;
+
+    public Boolean IsConstructedGenericType => throw null;
+
+    public Boolean IsGenericParameter => throw null;
 
     public Boolean IsGenericType => throw null;
 
@@ -36,9 +40,7 @@ public abstract class Type : Object, IIl2CppType<Type>
 
     public Boolean IsSZArray => throw null;
 
-    public Boolean IsTypeDefinition => throw null;
-
-    public String NameOrDefault => throw null;
+    public Boolean IsTypeDefinition => !HasElementType && !IsConstructedGenericType && !IsGenericParameter;
 
     public String Namespace => throw null;
 

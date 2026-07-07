@@ -6,11 +6,20 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppSystem;
+using Il2CppSystem.Reflection;
 
 namespace Il2CppInterop.Runtime.Extensions;
 
 internal static class Il2CppSystemTypeExtensions
 {
+    static Il2CppSystemTypeExtensions()
+    {
+        RuntimeHelpers.RunClassConstructor(typeof(String).TypeHandle);
+        RuntimeHelpers.RunClassConstructor(typeof(Type).TypeHandle);
+        RuntimeHelpers.RunClassConstructor(typeof(RuntimeType).TypeHandle);
+        RuntimeHelpers.RunClassConstructor(typeof(AssemblyName).TypeHandle);
+        RuntimeHelpers.RunClassConstructor(typeof(RuntimeAssembly).TypeHandle);
+    }
     extension(Type type)
     {
         public static Type FromTypePointer(nint typePointer)
@@ -120,13 +129,13 @@ internal static class Il2CppSystemTypeExtensions
         if (type.IsNested)
         {
             var declaringType = GetSystemTypeDefinition(type.DeclaringType);
-            var il2CppTypeName = type.NameOrDefault ?? "";
+            var il2CppTypeName = type.Name ?? "";
             return TryGetNestedSystemType(declaringType, il2CppTypeName)
                 ?? throw new System.NullReferenceException($"Could not find system type for nested type {il2CppTypeName} in declaring type {declaringType.FullName}");
         }
         else
         {
-            return TryGetTopLevelSystemType(type.Assembly.GetName().Name ?? "", type.Namespace ?? "", type.NameOrDefault ?? "")
+            return TryGetTopLevelSystemType(type.Assembly.GetName().Name ?? "", type.Namespace ?? "", type.Name ?? "")
                 ?? throw new System.NullReferenceException($"Could not find system type for top-level type {type.FullName}");
         }
     }
@@ -188,7 +197,14 @@ internal static class Il2CppSystemTypeExtensions
 
     private static System.Reflection.Assembly? TryGetSystemAssembly(string il2CppAssemblyName)
     {
-        return TryGetSystemAssemblyImplementation(il2CppAssemblyName) ?? TryGetSystemAssemblyImplementation("Il2Cpp" + il2CppAssemblyName);
+        if (il2CppAssemblyName.StartsWith("Unity", System.StringComparison.Ordinal))
+        {
+            return TryGetSystemAssemblyImplementation(il2CppAssemblyName) ?? TryGetSystemAssemblyImplementation("Il2Cpp" + il2CppAssemblyName);
+        }
+        else
+        {
+            return TryGetSystemAssemblyImplementation("Il2Cpp" + il2CppAssemblyName) ?? TryGetSystemAssemblyImplementation(il2CppAssemblyName);
+        }
 
         static System.Reflection.Assembly? TryGetSystemAssemblyImplementation(string exactName)
         {
@@ -207,6 +223,12 @@ internal static class Il2CppSystemTypeExtensions
             }
             return null;
         }
+    }
+
+    private static bool IsTypeDefinition(Type type)
+    {
+        // IsTypeDefinition has a simple implementation and is frequently stripped, so we implement it here to avoid relying on unstripping.
+        return !type.HasElementType && !type.IsConstructedGenericType && !type.IsGenericParameter;
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetGenericArguments")]
