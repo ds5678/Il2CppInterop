@@ -24,9 +24,6 @@ internal static class Il2CppSystemTypeExtensions
     {
         public static Type FromTypePointer(nint typePointer)
         {
-            // Ensure Il2CppSystem.RuntimeType is initialized before we call Il2CppSystem.Type.internal_from_handle
-            RuntimeHelpers.RunClassConstructor(typeof(RuntimeType).TypeHandle);
-
             return Type.internal_from_handle(typePointer);
         }
 
