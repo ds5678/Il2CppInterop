@@ -55,7 +55,7 @@ internal static class Il2CppSystemTypeExtensions
         [RequiresUnreferencedCode("")]
         public System.Type ToSystemType()
         {
-            if (type.IsTypeDefinition)
+            if (IsTypeDefinition(type))
             {
                 return GetSystemTypeDefinition(type);
             }
