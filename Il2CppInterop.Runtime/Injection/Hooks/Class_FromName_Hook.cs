@@ -44,9 +44,9 @@ internal unsafe class Class_FromName_Hook : Hook<Class_FromName_Hook.MethodDeleg
         return XrefScanner.JumpTargets(classFromNameAPI).Single();
     }
 
-    internal static void AddTypeToLookup(string assemblyName, string namespaze, string klass, IntPtr typePointer)
+    internal static void AddTypeToLookup(string imageName, string namespaze, string klass, IntPtr typePointer)
     {
-        var image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
+        var image = AssemblyInjector.GetOrCreateImage(imageName).ImagePointer;
         s_ClassNameLookup.Add(((IntPtr)image, namespaze, klass), typePointer);
     }
 }

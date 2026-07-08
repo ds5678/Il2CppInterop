@@ -66,6 +66,12 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
 
         var il2CppTypeAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppTypeAttribute));
         var il2CppTypeAttributeConstructor = il2CppTypeAttribute.GetMethodByName(".ctor");
+        var il2CppTypeAttributeNamespaceProperty = il2CppTypeAttribute.Properties.Single(p => p.Name == nameof(Il2CppTypeAttribute.Namespace));
+        var il2CppTypeAttributeNameProperty = il2CppTypeAttribute.Properties.Single(p => p.Name == nameof(Il2CppTypeAttribute.Name));
+
+        var il2CppAssemblyAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppAssemblyAttribute));
+        var il2CppAssemblyAttributeConstructor = il2CppAssemblyAttribute.GetMethodByName(".ctor");
+        var il2CppAssemblyAttributeNameProperty = il2CppAssemblyAttribute.Properties.Single(p => p.Name == nameof(Il2CppAssemblyAttribute.Name));
 
         var tokenLessMethodCount = 0;
 
@@ -76,6 +82,14 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
                 continue;
+
+            // Il2CppAssemblyAttribute
+            {
+                var attribute = new AnalyzedCustomAttribute(il2CppAssemblyAttributeConstructor);
+                attribute.Properties.Add(new CustomAttributeProperty(il2CppAssemblyAttributeNameProperty, new CustomAttributePrimitiveParameter(assembly.ImageName, attribute, CustomAttributeParameterKind.Property, 0)));
+                assembly.CustomAttributes ??= new(1);
+                assembly.CustomAttributes.Add(attribute);
+            }
 
             for (var i = 0; i < assembly.Types.Count; i++)
             {
@@ -98,6 +112,12 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                 {
                     var attribute = new AnalyzedCustomAttribute(il2CppTypeAttributeConstructor);
                     attribute.ConstructorParameters.Add(new CustomAttributeTypeParameter(initializationType, attribute, CustomAttributeParameterKind.ConstructorParam, 0));
+
+                    if (type.Namespace != type.DefaultNamespace)
+                        attribute.Properties.Add(new CustomAttributeProperty(il2CppTypeAttributeNamespaceProperty, new CustomAttributePrimitiveParameter(type.DefaultNamespace, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count)));
+
+                    if (type.Name != type.DefaultName)
+                        attribute.Properties.Add(new CustomAttributeProperty(il2CppTypeAttributeNameProperty, new CustomAttributePrimitiveParameter(type.DefaultName, attribute, CustomAttributeParameterKind.Property, attribute.Properties.Count)));
 
                     type.CustomAttributes ??= new(1);
                     type.CustomAttributes.Add(attribute);

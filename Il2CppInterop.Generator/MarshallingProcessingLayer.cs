@@ -18,9 +18,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
         var iil2CppTypeGeneric = appContext.ResolveTypeOrThrow(typeof(IIl2CppType<>));
         var iil2CppTypeGeneric_get_Size = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Size)}");
-        var iil2CppTypeGeneric_get_AssemblyName = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.AssemblyName)}");
-        var iil2CppTypeGeneric_get_Namespace = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Namespace)}");
-        var iil2CppTypeGeneric_get_Name = iil2CppTypeGeneric.GetMethodByName($"get_{nameof(IIl2CppType<>.Name)}");
         var iil2CppTypeGeneric_ReadFromSpan = iil2CppTypeGeneric.GetMethodByName(nameof(IIl2CppType<>.ReadFromSpan));
         var iil2CppTypeGeneric_WriteToSpan = iil2CppTypeGeneric.GetMethodByName(nameof(IIl2CppType<>.WriteToSpan));
 
@@ -32,10 +29,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
         var il2CppTypeHelper_WriteToSpan = il2CppTypeHelper.GetMethodByName(nameof(Il2CppType.WriteToSpan));
         var il2CppTypeHelper_GetClassPointer = il2CppTypeHelper.Methods.Single(m => m.Name == nameof(Il2CppType.GetClassPointer) && m.GenericParameters.Count == 1);
 
-        var il2CppSystemIObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
-        var il2CppSystemIValueType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IValueType");
-        var il2CppSystemIEnum = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IEnum");
-
         foreach (var assembly in appContext.Assemblies)
         {
             if (assembly.IsReferenceAssembly || assembly.IsInjected)
@@ -43,7 +36,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
 
             foreach (var type in assembly.Types)
             {
-                if (type.IsInjected && type != il2CppSystemIObject && type != il2CppSystemIValueType && type != il2CppSystemIEnum)
+                if (type.IsInjected && type.KnownType is not KnownTypeCode.Il2CppSystem_IObject and not KnownTypeCode.Il2CppSystem_IValueType and not KnownTypeCode.Il2CppSystem_IEnum)
                     continue;
 
                 type.InterfaceContexts.Add(iil2CppType);
@@ -51,29 +44,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                 var instantiatedType = type.SelfInstantiateIfGeneric();
                 var instantiatedIl2CppTypeGeneric = iil2CppTypeGeneric.MakeGenericInstanceType([instantiatedType]);
                 type.InterfaceContexts.Add(instantiatedIl2CppTypeGeneric);
-
-                TypeAnalysisContext nameReferenceType;
-                TypeAnalysisContext classReferenceType;
-                if (type == il2CppSystemIObject)
-                {
-                    nameReferenceType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
-                    classReferenceType = nameReferenceType;
-                }
-                else if (type == il2CppSystemIValueType)
-                {
-                    nameReferenceType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.ValueType");
-                    classReferenceType = nameReferenceType;
-                }
-                else if (type == il2CppSystemIEnum)
-                {
-                    nameReferenceType = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Enum");
-                    classReferenceType = nameReferenceType;
-                }
-                else
-                {
-                    nameReferenceType = type;
-                    classReferenceType = instantiatedType;
-                }
 
                 // ObjectClass
                 {
@@ -93,7 +63,7 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                     {
                         Instructions =
                         [
-                            new Instruction(CilOpCodes.Call, il2CppTypeHelper_GetClassPointer.MakeGenericInstanceMethod(classReferenceType)),
+                            new Instruction(CilOpCodes.Call, il2CppTypeHelper_GetClassPointer.MakeGenericInstanceMethod(instantiatedType)),
                             new Instruction(CilOpCodes.Ret),
                         ],
                     });
@@ -165,126 +135,6 @@ public class MarshallingProcessingLayer : Cpp2IlProcessingLayer
                         };
                         type.Properties.Add(property);
                     }
-                }
-
-                // AssemblyName
-                if (assembly.Name != assembly.ImageName)
-                {
-                    var instantiated_iil2CppTypeGeneric_get_AssemblyName = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_AssemblyName, [instantiatedType], []);
-                    var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.AssemblyName)}";
-                    var method = new InjectedMethodAnalysisContext(
-                        type,
-                        methodName,
-                        instantiated_iil2CppTypeGeneric_get_AssemblyName.ReturnType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                        [])
-                    {
-                        IsInjected = true,
-                    };
-                    type.Methods.Add(method);
-                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_AssemblyName);
-
-                    method.PutExtraData(new NativeMethodBody()
-                    {
-                        Instructions =
-                        [
-                            new Instruction(CilOpCodes.Ldstr, assembly.ImageName),
-                            new Instruction(CilOpCodes.Ret),
-                        ],
-                    });
-
-                    var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.AssemblyName)}";
-                    var property = new InjectedPropertyAnalysisContext(
-                        propertyName,
-                        method.ReturnType,
-                        method,
-                        null,
-                        PropertyAttributes.None,
-                        type)
-                    {
-                        IsInjected = true,
-                    };
-                    type.Properties.Add(property);
-                }
-
-                // Namespace
-                if (type.Namespace != nameReferenceType.DefaultNamespace)
-                {
-                    var instantiated_iil2CppTypeGeneric_get_Namespace = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Namespace, [instantiatedType], []);
-                    var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Namespace)}";
-                    var method = new InjectedMethodAnalysisContext(
-                        type,
-                        methodName,
-                        instantiated_iil2CppTypeGeneric_get_Namespace.ReturnType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                        [])
-                    {
-                        IsInjected = true,
-                    };
-                    type.Methods.Add(method);
-                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Namespace);
-
-                    method.PutExtraData(new NativeMethodBody()
-                    {
-                        Instructions =
-                        [
-                            new Instruction(CilOpCodes.Ldstr, nameReferenceType.DefaultNamespace),
-                            new Instruction(CilOpCodes.Ret),
-                        ],
-                    });
-
-                    var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.Namespace)}";
-                    var property = new InjectedPropertyAnalysisContext(
-                        propertyName,
-                        method.ReturnType,
-                        method,
-                        null,
-                        PropertyAttributes.None,
-                        type)
-                    {
-                        IsInjected = true,
-                    };
-                    type.Properties.Add(property);
-                }
-
-                // Name
-                if (type.Name != nameReferenceType.DefaultName)
-                {
-                    var instantiated_iil2CppTypeGeneric_get_Name = new ConcreteGenericMethodAnalysisContext(iil2CppTypeGeneric_get_Name, [instantiatedType], []);
-                    var methodName = $"{instantiatedIl2CppTypeGeneric.FullName}.get_{nameof(IIl2CppType<>.Name)}";
-                    var method = new InjectedMethodAnalysisContext(
-                        type,
-                        methodName,
-                        instantiated_iil2CppTypeGeneric_get_Name.ReturnType,
-                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.SpecialName,
-                        [])
-                    {
-                        IsInjected = true,
-                    };
-                    type.Methods.Add(method);
-                    method.Overrides.Add(instantiated_iil2CppTypeGeneric_get_Name);
-
-                    method.PutExtraData(new NativeMethodBody()
-                    {
-                        Instructions =
-                        [
-                            new Instruction(CilOpCodes.Ldstr, nameReferenceType.DefaultName),
-                            new Instruction(CilOpCodes.Ret),
-                        ],
-                    });
-
-                    var propertyName = $"{instantiatedIl2CppTypeGeneric.FullName}.{nameof(IIl2CppType<>.Name)}";
-                    var property = new InjectedPropertyAnalysisContext(
-                        propertyName,
-                        method.ReturnType,
-                        method,
-                        null,
-                        PropertyAttributes.None,
-                        type)
-                    {
-                        IsInjected = true,
-                    };
-                    type.Properties.Add(property);
                 }
 
                 var instanceFieldCount = type.Fields.Count(f => !f.IsStatic);

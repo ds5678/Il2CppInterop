@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.InteropTypes;
 
-[InjectedType(Assembly = "Assembly-CSharp.dll")]
+[InjectedType]
 internal sealed partial class Il2CppToMonoDelegateReference : Object
 {
     [Il2CppField]

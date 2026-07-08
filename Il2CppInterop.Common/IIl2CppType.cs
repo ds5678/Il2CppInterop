@@ -43,33 +43,6 @@ public interface IIl2CppType<TSelf> : IIl2CppType where TSelf : notnull, IIl2Cpp
         }
     }
     /// <summary>
-    /// The file name of the assembly that the type is defined in
-    /// </summary>
-    /// <remarks>
-    /// Technically, this is the image name, not the assembly name.
-    /// In practice, the assembly name has no file extension, whereas the image name does.
-    /// </remarks>
-    static virtual string AssemblyName
-    {
-        get
-        {
-            var result = typeof(TSelf).Assembly.GetName().Name;
-            return string.IsNullOrEmpty(result)
-                ? "Assembly-CSharp.dll"
-                : result.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
-                    ? result
-                    : $"{result}.dll";
-        }
-    }
-    /// <summary>
-    /// The namespace of type
-    /// </summary>
-    static virtual string Namespace => typeof(TSelf).Namespace ?? "";
-    /// <summary>
-    /// The class name of the type
-    /// </summary>
-    static virtual string Name => typeof(TSelf).Name;
-    /// <summary>
     /// Writes the native representation of the value to the provided span. The span is required to be at least <see cref="Size"/> bytes long.
     /// </summary>
     /// <param name="value">The value to write.</param>

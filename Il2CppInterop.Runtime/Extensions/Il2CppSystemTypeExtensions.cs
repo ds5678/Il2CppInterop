@@ -119,7 +119,6 @@ internal static class Il2CppSystemTypeExtensions
         }
     }
 
-    [RequiresDynamicCode("")]
     [RequiresUnreferencedCode("")]
     private static System.Type GetSystemTypeDefinition(Type type)
     {
@@ -137,7 +136,6 @@ internal static class Il2CppSystemTypeExtensions
         }
     }
 
-    [RequiresDynamicCode("")]
     private static System.Type? TryGetNestedSystemType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicNestedTypes | DynamicallyAccessedMemberTypes.NonPublicNestedTypes)] System.Type declaringType, string il2CppTypeName)
     {
         foreach (var nestedType in declaringType.GetNestedTypes(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic))
@@ -147,8 +145,7 @@ internal static class Il2CppSystemTypeExtensions
                 continue;
             }
 
-            var name = typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetName))!.MakeGenericMethod(nestedType).Invoke(null, null) as string ?? string.Empty;
-            if (string.Equals(name, il2CppTypeName, System.StringComparison.Ordinal))
+            if (string.Equals(Il2CppType.GetName(nestedType), il2CppTypeName, System.StringComparison.Ordinal))
             {
                 return nestedType;
             }
@@ -157,7 +154,6 @@ internal static class Il2CppSystemTypeExtensions
     }
 
     [RequiresUnreferencedCode("")]
-    [RequiresDynamicCode("")]
     private static System.Type? TryGetTopLevelSystemType(string il2CppAssemblyName, string il2CppTypeNamespace, string il2CppTypeName)
     {
         var systemAssembly = TryGetSystemAssembly(il2CppAssemblyName);
@@ -173,23 +169,14 @@ internal static class Il2CppSystemTypeExtensions
             {
                 continue;
             }
-            var (typeNamespace, typeName) = GetIl2CppTypeNamespaceAndName(type);
-            if (string.Equals(typeNamespace, il2CppTypeNamespace, System.StringComparison.Ordinal) &&
-                string.Equals(typeName, il2CppTypeName, System.StringComparison.Ordinal))
+            if (string.Equals(Il2CppType.GetNamespace(type), il2CppTypeNamespace, System.StringComparison.Ordinal) &&
+                string.Equals(Il2CppType.GetName(type), il2CppTypeName, System.StringComparison.Ordinal))
             {
                 return type;
             }
         }
 
         return null;
-
-        [RequiresDynamicCode("")]
-        static (string Namespace, string Name) GetIl2CppTypeNamespaceAndName(System.Type systemType)
-        {
-            var @namespace = typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetNamespace))!.MakeGenericMethod(systemType).Invoke(null, null) as string ?? string.Empty;
-            var name = typeof(Il2CppType).GetMethod(nameof(Il2CppType.GetName))!.MakeGenericMethod(systemType).Invoke(null, null) as string ?? string.Empty;
-            return (@namespace, name);
-        }
     }
 
     private static System.Reflection.Assembly? TryGetSystemAssembly(string il2CppAssemblyName)

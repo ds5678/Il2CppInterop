@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -6,10 +5,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Il2CppInterop.SourceGenerator;
 
 internal sealed record TypeModel(
-    string? Namespace,
+    string Namespace,
     string TypeName,
+    string? Il2CppNamespace,
+    string? Il2CppName,
     TypeKind TypeKind, // "class", "struct", or "interface"
-    string? AssemblyName,
     EquatableArray<MemberModel> Members,
     EquatableArray<string> FinalizerMethodNames,
     bool NeedsObjectPointerConstructor,
@@ -17,7 +17,7 @@ internal sealed record TypeModel(
     bool IsAbstract
 )
 {
-    internal static TypeModel? FromSymbol(INamedTypeSymbol node, string? assemblyName, CancellationToken ct)
+    internal static TypeModel? FromSymbol(INamedTypeSymbol node, string? il2CppNamespace, string? il2CppName, CancellationToken ct)
     {
 
         var typeKind = node.TypeKind;
@@ -117,11 +117,12 @@ internal sealed record TypeModel(
 
         return new TypeModel(
             Namespace: node.ContainingNamespace.IsGlobalNamespace
-                ? null
+                ? string.Empty
                 : node.ContainingNamespace.ToDisplayString(),
             TypeName: node.Name,
+            Il2CppNamespace: il2CppNamespace,
+            Il2CppName: il2CppName,
             TypeKind: typeKind,
-            AssemblyName: assemblyName,
             Members: new EquatableArray<MemberModel>(members),
             FinalizerMethodNames: new EquatableArray<string>(finalizerMethods),
             NeedsObjectPointerConstructor: needsObjectPointerConstructor,

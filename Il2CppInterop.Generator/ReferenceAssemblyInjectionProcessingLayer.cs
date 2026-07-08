@@ -36,6 +36,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             typeof(Il2CppPropertyAttribute),
             typeof(Il2CppEventAttribute),
             typeof(Il2CppTypeAttribute),
+            typeof(Il2CppAssemblyAttribute),
 
             typeof(IIl2CppType),
             typeof(IIl2CppType<>),
@@ -54,6 +55,7 @@ public class ReferenceAssemblyInjectionProcessingLayer : Cpp2IlProcessingLayer
             InjectContentFromSourceType(injectedAssembly, typeof(Il2CppPropertyAttribute));
             InjectContentFromSourceType(injectedAssembly, typeof(Il2CppEventAttribute));
             InjectContentFromSourceType(injectedAssembly, typeof(Il2CppTypeAttribute));
+            InjectContentFromSourceType(injectedAssembly, typeof(Il2CppAssemblyAttribute));
 
             InjectContentFromSourceType(injectedAssembly, typeof(IIl2CppType));
             InjectContentFromSourceType(injectedAssembly, typeof(IIl2CppType<>));

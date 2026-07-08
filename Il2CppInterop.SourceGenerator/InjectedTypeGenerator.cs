@@ -32,10 +32,13 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
                 {
 
                     var injectedTypeAttr = ctx.Attributes[0];
-                    var assemblyName = injectedTypeAttr.NamedArguments
-                        .FirstOrDefault(a => a.Key == "Assembly")
+                    var @namespace = injectedTypeAttr.NamedArguments
+                        .FirstOrDefault(a => a.Key == "Namespace")
                         .Value.Value as string;
-                    return TypeModel.FromSymbol((INamedTypeSymbol)ctx.TargetSymbol, assemblyName, ct);
+                    var name = injectedTypeAttr.NamedArguments
+                        .FirstOrDefault(a => a.Key == "Name")
+                        .Value.Value as string;
+                    return TypeModel.FromSymbol((INamedTypeSymbol)ctx.TargetSymbol, @namespace, name, ct);
                 })
             .Where(static m => m is not null);
 
@@ -55,7 +58,7 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         writer.WriteLine("#nullable enable");
         writer.WriteLine();
 
-        if (model.Namespace is not null)
+        if (!string.IsNullOrEmpty(model.Namespace))
         {
             writer.WriteLine($"namespace {model.Namespace}");
             writer.WriteLine("{");
@@ -66,13 +69,13 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         writer.WriteLineNoTabs();
         EmitInternalsClass(writer, model);
 
-        if (model.Namespace is not null)
+        if (!string.IsNullOrEmpty(model.Namespace))
         {
             writer.Indent--;
             writer.WriteLine("}");
         }
 
-        var hint = model.Namespace is null
+        var hint = string.IsNullOrEmpty(model.Namespace)
             ? $"{model.TypeName}.g.cs"
             : $"{model.Namespace}.{model.TypeName}.g.cs";
 
@@ -83,7 +86,16 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
     {
         var access = model.DeclaredAccessibility?.GetAccessibilityKeyword();
 
-        writer.WriteLine("[global::Il2CppInterop.Common.Attributes.Il2CppType(typeof(Il2CppInternals))]");
+        writer.Write("[global::Il2CppInterop.Common.Attributes.Il2CppType(typeof(Il2CppInternals)");
+        if (model.Il2CppNamespace is not null && !string.Equals(model.Il2CppNamespace, model.Namespace, StringComparison.Ordinal))
+        {
+            writer.Write($", Namespace = {SymbolDisplay.FormatLiteral(model.Il2CppNamespace, true)}");
+        }
+        if (model.Il2CppName is not null && !string.Equals(model.Il2CppName, model.TypeName, StringComparison.Ordinal))
+        {
+            writer.Write($", Name = {SymbolDisplay.FormatLiteral(model.Il2CppName, true)}");
+        }
+        writer.WriteLine(")]");
 
         if (model.TypeKind == TypeKind.Struct)
         {
@@ -375,12 +387,6 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
             writer.WriteLine("global::Il2CppInterop.Common.Il2CppType.WriteReference(value, span);");
             writer.Indent--;
             writer.WriteLine("}");
-            writer.WriteLineNoTabs();
-        }
-
-        if (!string.IsNullOrEmpty(model.AssemblyName))
-        {
-            writer.WriteLine($"static string global::Il2CppInterop.Common.IIl2CppType<{typeName}>.AssemblyName => \"{model.AssemblyName}\";");
             writer.WriteLineNoTabs();
         }
 

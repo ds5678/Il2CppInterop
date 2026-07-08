@@ -33,7 +33,7 @@ public static class Il2CppObjectPool
             var systemType = EnsureClassInitialized(ownClass);
             if (!s_initializers.TryGetValue(ownClass, out initializer))
             {
-                throw new InvalidOperationException($"No initializer found for class {systemType}");
+                throw new InvalidOperationException($"No object initializer found for class {systemType}");
             }
         }
 

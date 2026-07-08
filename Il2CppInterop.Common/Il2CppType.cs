@@ -1,7 +1,9 @@
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Il2CppInterop.Common.Attributes;
 
 namespace Il2CppInterop.Common;
 
@@ -50,19 +52,44 @@ public static class Il2CppType
         value.WriteToPointer(ptr);
     }
 
-    public static string GetAssemblyName<T>() where T : IIl2CppType<T>
+    /// <summary>
+    /// The file name of the assembly
+    /// </summary>
+    /// <remarks>
+    /// Note: this is the image name, not the assembly name.
+    /// In practice, the assembly name has no file extension, whereas the image name does.
+    /// </remarks>
+    public static string GetImageName(Assembly assembly)
     {
-        return T.AssemblyName;
+        var name = assembly.GetCustomAttribute<Il2CppAssemblyAttribute>()?.Name;
+        if (string.IsNullOrEmpty(name))
+            name = assembly.GetName().Name;
+        if (string.IsNullOrEmpty(name))
+            return "Assembly-CSharp.dll"; // This line should be unreachable, but just in case, we return the default assembly name.
+
+        return name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? name : $"{name}.dll";
     }
 
-    public static string GetNamespace<T>() where T : IIl2CppType<T>
+    /// <summary>
+    /// The file name of the assembly that the type is defined in
+    /// </summary>
+    /// <remarks>
+    /// Note: this is the image name, not the assembly name.
+    /// In practice, the assembly name has no file extension, whereas the image name does.
+    /// </remarks>
+    public static string GetImageName(Type type)
     {
-        return T.Namespace;
+        return GetImageName(type.Assembly);
     }
 
-    public static string GetName<T>() where T : IIl2CppType<T>
+    public static string GetNamespace(Type type)
     {
-        return T.Name;
+        return type.GetCustomAttribute<Il2CppTypeAttribute>()?.Namespace ?? type.Namespace ?? "";
+    }
+
+    public static string GetName(Type type)
+    {
+        return type.GetCustomAttribute<Il2CppTypeAttribute>()?.Name ?? type.Name;
     }
 
     public static void WriteToSpan<T>(this T? value, Span<byte> span) where T : IIl2CppType<T>

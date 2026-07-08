@@ -74,8 +74,8 @@ public static unsafe class TypeInjector
         var classPointer = UnityVersionHandler.NewClass(vtableUpperBound);
 
         // Initialize as much of the class pointer as possible without touching other types.
-        (var assemblyName, var @namespace, var name) = GetFullyQualifiedName(type);
-        classPointer.Image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
+        (var imageName, var @namespace, var name) = GetFullyQualifiedName(type);
+        classPointer.Image = AssemblyInjector.GetOrCreateImage(imageName).ImagePointer;
         classPointer.Name = Marshal.StringToCoTaskMemUTF8(name);
         classPointer.Namespace = Marshal.StringToCoTaskMemUTF8(@namespace);
         classPointer.ElementClass = classPointer.Class = classPointer.CastClass = classPointer.ClassPointer;
@@ -104,7 +104,7 @@ public static unsafe class TypeInjector
         NeedsVTableSet.Add(type, vtableUpperBound);
         NeedsFieldsSet.Add(type);
         Il2CppType.SetClassPointer(type, (nint)classPointer.ClassPointer);
-        Class_FromName_Hook.AddTypeToLookup(assemblyName, @namespace, name, (nint)classPointer.ClassPointer);
+        Class_FromName_Hook.AddTypeToLookup(imageName, @namespace, name, (nint)classPointer.ClassPointer);
 
         // Ensure that all other types that this type depends on are at least registered
         {
@@ -847,8 +847,8 @@ public static unsafe class TypeInjector
             UnityVersionHandler.Wrap(
                 (Il2CppClass*)Il2CppType.GetClassPointer(GetEnumUnderlyingType(type)));
 
-        (var assemblyName, var @namespace, var name) = GetFullyQualifiedName(type);
-        il2cppEnum.Image = AssemblyInjector.GetOrCreateImage(assemblyName).ImagePointer;
+        (var imageName, var @namespace, var name) = GetFullyQualifiedName(type);
+        il2cppEnum.Image = AssemblyInjector.GetOrCreateImage(imageName).ImagePointer;
         il2cppEnum.Class = il2cppEnum.CastClass = il2cppEnum.ElementClass = elementClass.ClassPointer;
         il2cppEnum.Parent = baseEnum.ClassPointer;
         il2cppEnum.ActualSize = il2cppEnum.InstanceSize =
@@ -928,7 +928,7 @@ public static unsafe class TypeInjector
         il2cppEnum.TypeHierarchy[il2cppEnum.TypeHierarchyDepth - 1] = il2cppEnum.ClassPointer;
 
         Il2CppType.SetClassPointer(type, il2cppEnum.Pointer);
-        Class_FromName_Hook.AddTypeToLookup(assemblyName, @namespace, name, il2cppEnum.Pointer);
+        Class_FromName_Hook.AddTypeToLookup(imageName, @namespace, name, il2cppEnum.Pointer);
     }
 
     private static bool IsIl2CppInterface(Type type)
@@ -1199,18 +1199,9 @@ public static unsafe class TypeInjector
         return @delegate;
     }
 
-    [RequiresDynamicCode("")]
-    private static (string AssemblyName, string Namespace, string Name) GetFullyQualifiedName(Type type)
+    private static (string ImageName, string Namespace, string Name) GetFullyQualifiedName(Type type)
     {
-        var methodInfo = typeof(TypeInjector).GetMethod(nameof(GetFullyQualifiedNameGeneric), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type);
-        return methodInfo.Invoke(null, null) is ValueTuple<string, string, string> result
-            ? result
-            : throw new InvalidOperationException("GetFullyQualifiedName should return a ValueTuple<string, string, string>");
-    }
-
-    private static (string AssemblyName, string Namespace, string Name) GetFullyQualifiedNameGeneric<T>() where T : IIl2CppType<T>
-    {
-        return (T.AssemblyName, T.Namespace, T.Name);
+        return (Il2CppType.GetImageName(type), Il2CppType.GetNamespace(type), Il2CppType.GetName(type));
     }
 
     private static Il2CppClassAttributes TypeAttributesToClassAttributes(TypeAttributes typeAttributes)
