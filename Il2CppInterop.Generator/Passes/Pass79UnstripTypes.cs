@@ -1,3 +1,4 @@
+using AsmResolver;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
 using AsmResolver.PE.DotNet.Metadata.Tables;
@@ -47,15 +48,20 @@ public static class Pass79UnstripTypes
         if (unityType.BaseType != null && unityType.BaseType.FullName == "System.MulticastDelegate")
             return;
         var newModule = processedAssembly.NewAssembly.ManifestModule!;
-        var processedType = enclosingNewType == null
-            ? processedAssembly.TryGetTypeByName(unityType.FullName)?.NewType
-            : enclosingNewType.NestedTypes.SingleOrDefault(it => it.Name == unityType.Name);
+        var processedType = processedAssembly.TryGetTypeByName(unityType.FullName)?.NewType;
+        var convertedTypeName = GetConvertedUnityTypeName(processedAssembly.GlobalContext, unityType);
+
+        // If the parent type does not exist in the rewritten assembly, this nested type cannot be emitted safely.
+        // Promoting it to a top-level type creates orphan compiler-generated types such as __O/__c.
+        if ((unityType.DeclaringType is null) != (enclosingNewType is null))
+            return;
+
         if (unityType.IsEnum)
         {
             if (processedType != null) return;
 
             typesUnstripped++;
-            var clonedType = CloneEnum(unityType, imports);
+            var clonedType = CloneEnum(unityType, convertedTypeName, imports);
             if (enclosingNewType == null)
             {
                 newModule.TopLevelTypes.Add(clonedType);
@@ -74,7 +80,8 @@ public static class Pass79UnstripTypes
             !unityType.HasGenericParameters()) // restore all types even if it would be not entirely correct
         {
             typesUnstripped++;
-            var clonedType = new TypeDefinition(unityType.Namespace, unityType.Name, ForcePublic(unityType.Attributes), unityType.BaseType == null ? null : newModule.DefaultImporter.ImportType(unityType.BaseType));
+            var clonedType = new TypeDefinition(unityType.Namespace, convertedTypeName, ForcePublic(unityType.Attributes),
+                unityType.BaseType == null ? null : newModule.DefaultImporter.ImportType(unityType.BaseType));
             if (enclosingNewType == null)
             {
                 newModule.TopLevelTypes.Add(clonedType);
@@ -100,9 +107,9 @@ public static class Pass79UnstripTypes
             ProcessType(processedAssembly, nestedUnityType, processedType, imports, ref typesUnstripped);
     }
 
-    private static TypeDefinition CloneEnum(TypeDefinition sourceEnum, RuntimeAssemblyReferences imports)
+    private static TypeDefinition CloneEnum(TypeDefinition sourceEnum, Utf8String convertedTypeName, RuntimeAssemblyReferences imports)
     {
-        var newType = new TypeDefinition(sourceEnum.Namespace, sourceEnum.Name, ForcePublic(sourceEnum.Attributes),
+        var newType = new TypeDefinition(sourceEnum.Namespace, convertedTypeName, ForcePublic(sourceEnum.Attributes),
             imports.Module.Enum().ToTypeDefOrRef());
         foreach (var sourceEnumField in sourceEnum.Fields)
         {
@@ -130,12 +137,23 @@ public static class Pass79UnstripTypes
             if (!fieldDefinition.Signature!.FieldType.IsValueType())
                 return true;
 
-            if (fieldDefinition.Signature.FieldType.Namespace?.StartsWith("System") ?? false &&
-                HasNonBlittableFields(fieldDefinition.Signature.FieldType.Resolve()))
-                return true;
+            if (fieldDefinition.Signature.FieldType.Namespace?.StartsWith("System") ?? false)
+            {
+                var resolved = fieldDefinition.Signature.FieldType.Resolve();
+                if (resolved != null && HasNonBlittableFields(resolved))
+                    return true;
+            }
         }
 
         return false;
+    }
+
+    private static Utf8String GetConvertedUnityTypeName(RewriteGlobalContext context, TypeDefinition unityType)
+    {
+        if (context.Options.PassthroughNames)
+            return unityType.Name ?? Utf8String.Empty;
+
+        return unityType.Name.MakeValidInSource();
     }
 
     private static TypeAttributes ForcePublic(TypeAttributes typeAttributes)
