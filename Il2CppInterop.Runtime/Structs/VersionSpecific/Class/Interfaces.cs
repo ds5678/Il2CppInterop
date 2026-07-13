@@ -13,6 +13,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
         unsafe Il2CppClass* ClassPointer { get; }
         INativeTypeStruct ByValArg { get; }
         INativeTypeStruct ThisArg { get; }
+        bool HasCombinedInterfaceData { get; }
         ref uint InstanceSize { get; }
         ref ushort VTableCount { get; }
         ref ushort InterfaceCount { get; }
@@ -35,6 +36,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
         unsafe ref Il2CppMethodInfo** Methods { get; }
         unsafe ref Il2CppClass** ImplementedInterfaces { get; }
         unsafe ref Il2CppRuntimeInterfaceOffsetPair* InterfaceOffsets { get; }
+        unsafe ref Il2CppRuntimeInterfaceData* Interfaces { get; }
         unsafe ref Il2CppClass** TypeHierarchy { get; }
         bool ValueType { get; set; }
         bool Initialized { get; set; }

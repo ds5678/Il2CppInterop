@@ -245,6 +245,14 @@ public unsafe struct Il2CppRuntimeInterfaceOffsetPair
 }
 
 [StructLayout(LayoutKind.Sequential)]
+public unsafe struct Il2CppRuntimeInterfaceData
+{
+    public Il2CppClass* interfaceType;
+    public int offset;
+    public int depth;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 public struct Il2CppObject
 {
     private readonly IntPtr data;

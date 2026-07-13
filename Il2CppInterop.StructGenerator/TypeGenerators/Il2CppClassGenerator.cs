@@ -68,6 +68,10 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
                 },
                 byvalArg,
                 thisArg,
+                new CodeGenProperty("bool", ElementProtection.Public, "HasCombinedInterfaceData")
+                {
+                    ImmediateGet = GetNativeField("interfaces") is not null ? "true" : "false"
+                },
             ];
         }
     }
@@ -112,8 +116,9 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         new ByRefWrapper("Il2CppClass*", "Class", ["klass"], makeDummyIfNotExist: true),
         new ByRefWrapper("Il2CppFieldInfo*", "Fields", ["fields"]),
         new ByRefWrapper("Il2CppMethodInfo**", "Methods", ["methods"]),
-        new ByRefWrapper("Il2CppClass**", "ImplementedInterfaces", ["implementedInterfaces"]),
-        new ByRefWrapper("Il2CppRuntimeInterfaceOffsetPair*", "InterfaceOffsets", ["interfaceOffsets"]),
+        new ByRefWrapper("Il2CppClass**", "ImplementedInterfaces", ["implementedInterfaces"], addNotSupportedIfNotExist: true),
+        new ByRefWrapper("Il2CppRuntimeInterfaceOffsetPair*", "InterfaceOffsets", ["interfaceOffsets"], addNotSupportedIfNotExist: true),
+        new ByRefWrapper("Il2CppRuntimeInterfaceData*", "Interfaces", ["interfaces"], addNotSupportedIfNotExist: true),
         new ByRefWrapper("Il2CppClass**", "TypeHierarchy", ["typeHierarchy"])
     ];
 }

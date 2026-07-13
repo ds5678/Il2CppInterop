@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime.Injection;
 
+// Note: This currently throws NotSupportedException for v108+ (Unity 6.6+) interfaces
 public static unsafe class TypeInjector
 {
     private static readonly IntPtr value__Cached = Marshal.StringToCoTaskMemUTF8("value__");

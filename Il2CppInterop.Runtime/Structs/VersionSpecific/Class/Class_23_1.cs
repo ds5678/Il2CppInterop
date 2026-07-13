@@ -122,6 +122,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
             public Il2CppClass* ClassPointer => (Il2CppClass*)Pointer;
             public INativeTypeStruct ByValArg => UnityVersionHandler.Wrap(_->byval_arg);
             public INativeTypeStruct ThisArg => UnityVersionHandler.Wrap(_->this_arg);
+            public bool HasCombinedInterfaceData => false;
             public ref uint InstanceSize => ref _->instance_size;
             public ref ushort VTableCount => ref _->vtable_count;
             public ref ushort InterfaceCount => ref _->interfaces_count;
@@ -144,6 +145,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
             public ref Il2CppMethodInfo** Methods => ref _->methods;
             public ref Il2CppClass** ImplementedInterfaces => ref _->implementedInterfaces;
             public ref Il2CppRuntimeInterfaceOffsetPair* InterfaceOffsets => ref _->interfaceOffsets;
+            public ref Il2CppRuntimeInterfaceData* Interfaces => throw new System.NotSupportedException();
             public ref Il2CppClass** TypeHierarchy => ref _->typeHierarchy;
             public bool ValueType
             {

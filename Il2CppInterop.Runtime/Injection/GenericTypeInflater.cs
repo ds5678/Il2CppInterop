@@ -41,8 +41,15 @@ internal static unsafe class GenericTypeInflater
         inflatedClassPointer.Class = inflatedClassPointer.Class;
         inflatedClassPointer.Fields = genericClassPointer.Fields;
         inflatedClassPointer.Methods = genericClassPointer.Methods;
-        inflatedClassPointer.ImplementedInterfaces = genericClassPointer.ImplementedInterfaces;
-        inflatedClassPointer.InterfaceOffsets = genericClassPointer.InterfaceOffsets;
+        if (inflatedClassPointer.HasCombinedInterfaceData)
+        {
+            inflatedClassPointer.Interfaces = genericClassPointer.Interfaces;
+        }
+        else
+        {
+            inflatedClassPointer.ImplementedInterfaces = genericClassPointer.ImplementedInterfaces;
+            inflatedClassPointer.InterfaceOffsets = genericClassPointer.InterfaceOffsets;
+        }
         inflatedClassPointer.TypeHierarchy = genericClassPointer.TypeHierarchy;
         inflatedClassPointer.ValueType = genericClassPointer.ValueType;
         inflatedClassPointer.Initialized = true;

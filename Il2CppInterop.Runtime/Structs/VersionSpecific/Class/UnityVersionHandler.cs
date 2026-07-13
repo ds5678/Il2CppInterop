@@ -7,13 +7,21 @@ namespace Il2CppInterop.Runtime.Structs
     {
         private static void SetClassStructHandler(UnityVersion version)
         {
-            if (version >= new UnityVersion(6000, 5, 0, UnityVersionType.Alpha, 5))
+            if (version >= new UnityVersion(6000, 6, 0, UnityVersionType.Beta, 1))
+            {
+                ClassStructHandler = NativeClassStructHandler_108_0.Instance;
+            }
+            else if (version >= new UnityVersion(6000, 5, 0, UnityVersionType.Alpha, 5))
             {
                 ClassStructHandler = NativeClassStructHandler_105_0.Instance;
             }
             else if (version >= new UnityVersion(6000, 5, 0, UnityVersionType.Alpha, 0))
             {
                 ClassStructHandler = NativeClassStructHandler_104_0.Instance;
+            }
+            else if (version >= new UnityVersion(6000, 4, 0, UnityVersionType.Beta, 8))
+            {
+                ClassStructHandler = NativeClassStructHandler_39_0.Instance;
             }
             else if (version >= new UnityVersion(6000, 4, 0, UnityVersionType.Alpha, 0))
             {
