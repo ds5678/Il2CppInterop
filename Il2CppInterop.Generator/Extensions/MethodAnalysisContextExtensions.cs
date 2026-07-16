@@ -176,7 +176,7 @@ internal static class MethodAnalysisContextExtensions
         {
             if (slot >= interfaceOffset.offset)
             {
-                var interfaceTypeContext = interfaceOffset.Type.ToContext(method.CustomAttributeAssembly);
+                var interfaceTypeContext = interfaceOffset.Type.ToContext(method.AppContext);
                 if (interfaceTypeContext != null && TryGetMethodForSlot(interfaceTypeContext, slot - interfaceOffset.offset, out _))
                 {
                     return true;

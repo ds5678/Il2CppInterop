@@ -284,11 +284,11 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         List<(MethodAnalysisContext, MethodDefinition)> methodsNeedingBodies = new();
         foreach (var (type, typeContext) in injectedTypes)
         {
-            CopyCustomAttributes(type, typeContext, typeContext.DeclaringAssembly, runtimeContext);
+            CopyCustomAttributes(type, typeContext, typeContext.AppContext, runtimeContext);
 
             for (var i = 0; i < type.GenericParameters.Count; i++)
             {
-                CopyCustomAttributes(type.GenericParameters[i], typeContext.GenericParameters[i], typeContext.DeclaringAssembly, runtimeContext);
+                CopyCustomAttributes(type.GenericParameters[i], typeContext.GenericParameters[i], typeContext.AppContext, runtimeContext);
             }
 
             foreach (var field in type.Fields)
@@ -537,7 +537,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
 
             fieldContext.OverrideConstantValue = field.Constant?.InterpretData();
 
-            CopyCustomAttributes(field, fieldContext, typeContext.DeclaringAssembly, runtimeContext);
+            CopyCustomAttributes(field, fieldContext, typeContext.AppContext, runtimeContext);
 
             fieldContext.IsUnstripped = true;
 
@@ -601,14 +601,14 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             return false;
         }
 
-        CopyCustomAttributes(method, methodContext, typeContext.DeclaringAssembly, runtimeContext);
+        CopyCustomAttributes(method, methodContext, typeContext.AppContext, runtimeContext);
         for (var i = 0; i < method.Parameters.Count; i++)
         {
-            CopyCustomAttributes(method.Parameters[i].GetOrCreateDefinition(), methodContext.Parameters[i], typeContext.DeclaringAssembly, runtimeContext);
+            CopyCustomAttributes(method.Parameters[i].GetOrCreateDefinition(), methodContext.Parameters[i], typeContext.AppContext, runtimeContext);
         }
         for (var i = 0; i < method.GenericParameters.Count; i++)
         {
-            CopyCustomAttributes(method.GenericParameters[i], methodContext.GenericParameters[i], typeContext.DeclaringAssembly, runtimeContext);
+            CopyCustomAttributes(method.GenericParameters[i], methodContext.GenericParameters[i], typeContext.AppContext, runtimeContext);
         }
 
         methodContext.IsUnstripped = true;
@@ -667,7 +667,7 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             typeContext);
         typeContext.Properties.Add(propertyContext);
 
-        CopyCustomAttributes(property, propertyContext, typeContext.DeclaringAssembly, runtimeContext);
+        CopyCustomAttributes(property, propertyContext, typeContext.AppContext, runtimeContext);
 
         propertyContext.IsUnstripped = true;
 
@@ -703,21 +703,21 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             typeContext);
         typeContext.Events.Add(eventContext);
 
-        CopyCustomAttributes(@event, eventContext, typeContext.DeclaringAssembly, runtimeContext);
+        CopyCustomAttributes(@event, eventContext, typeContext.AppContext, runtimeContext);
 
         eventContext.IsUnstripped = true;
 
         return true;
     }
 
-    private static void CopyCustomAttributes(IHasCustomAttribute source, HasCustomAttributes destination, AssemblyAnalysisContext assembly, RuntimeContext runtimeContext)
+    private static void CopyCustomAttributes(IHasCustomAttribute source, HasCustomAttributes destination, ApplicationAnalysisContext appContext, RuntimeContext runtimeContext)
     {
         foreach (var customAttribute in source.CustomAttributes)
         {
             if (customAttribute.Constructor is null or { Signature: null or { ParameterTypes.Count: > 0 } })
                 continue; // Skip custom attributes with parameters or an invalid constructor
 
-            if (!new ContextResolver(assembly, runtimeContext).TryResolve(customAttribute.Constructor, out var constructorContext))
+            if (!new ContextResolver(appContext, runtimeContext).TryResolve(customAttribute.Constructor, out var constructorContext))
                 continue; // Skip custom attributes with an invalid constructor
 
             destination.CustomAttributes ??= [];

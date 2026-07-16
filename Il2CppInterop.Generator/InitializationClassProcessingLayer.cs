@@ -496,7 +496,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
             // Ensure all generic instantiations are initialized
             foreach (var typeToResolve in appContext.Binary.AllTypes)
             {
-                var typeContext = injectedAssembly.ResolveIl2CppType(typeToResolve);
+                var typeContext = appContext.ResolveIl2CppType(typeToResolve);
 
                 if (typeContext is not ReferencedTypeAnalysisContext && typeContext.GenericParameters.Count > 0)
                     continue; // Skip open generics

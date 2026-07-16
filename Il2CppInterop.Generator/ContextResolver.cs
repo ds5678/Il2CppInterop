@@ -9,12 +9,12 @@ namespace Il2CppInterop.Generator;
 
 public readonly struct ContextResolver
 {
-    private readonly AssemblyAnalysisContext referencedFrom;
+    private readonly ApplicationAnalysisContext referencedFrom;
     private readonly TypeAnalysisContext? referencingType;
     private readonly MethodAnalysisContext? referencingMethod;
     private readonly RuntimeContext runtimeContext;
 
-    public ContextResolver(AssemblyAnalysisContext referencedFrom, RuntimeContext runtimeContext)
+    public ContextResolver(ApplicationAnalysisContext referencedFrom, RuntimeContext runtimeContext)
     {
         this.referencedFrom = referencedFrom;
         this.runtimeContext = runtimeContext;
@@ -24,7 +24,7 @@ public readonly struct ContextResolver
     {
         if (referencingType is ReferencedTypeAnalysisContext)
             throw new ArgumentException("Must be a simple type", nameof(referencingType));
-        referencedFrom = referencingType.DeclaringAssembly;
+        referencedFrom = referencingType.AppContext;
         this.referencingType = referencingType;
         this.runtimeContext = runtimeContext;
     }
@@ -33,7 +33,7 @@ public readonly struct ContextResolver
     {
         if (referencingMethod is ConcreteGenericMethodAnalysisContext)
             throw new ArgumentException("Must be a simple method", nameof(referencingMethod));
-        referencedFrom = referencingMethod.CustomAttributeAssembly;
+        referencedFrom = referencingMethod.AppContext;
         referencingType = referencingMethod.DeclaringType;
         this.referencingMethod = referencingMethod;
         this.runtimeContext = runtimeContext;
@@ -77,14 +77,14 @@ public readonly struct ContextResolver
     private GenericInstanceTypeAnalysisContext? Resolve(GenericInstanceTypeSignature genericInstance)
     {
         return TryResolve(genericInstance.GenericType, out var genericType) && TryResolve(genericInstance.TypeArguments, out var genericArguments)
-            ? new GenericInstanceTypeAnalysisContext(genericType, genericArguments, referencedFrom)
+            ? new GenericInstanceTypeAnalysisContext(genericType, genericArguments)
             : null;
     }
 
     private CustomModifierTypeAnalysisContext? Resolve(CustomModifierTypeSignature customModifier)
     {
         return TryResolve(customModifier.BaseType, out var baseType) && TryResolve(customModifier.ModifierType, out var modifier)
-            ? new CustomModifierTypeAnalysisContext(baseType, modifier, customModifier.IsRequired, referencedFrom)
+            ? new CustomModifierTypeAnalysisContext(baseType, modifier, customModifier.IsRequired)
             : null;
     }
 
@@ -125,7 +125,7 @@ public readonly struct ContextResolver
         if (assemblyName == null)
             return null;
 
-        if (!referencedFrom.AppContext.AssembliesByName.TryGetValue(assemblyName, out var targetAssembly))
+        if (!referencedFrom.AssembliesByName.TryGetValue(assemblyName, out var targetAssembly))
             return null;
 
         return targetAssembly.GetTypeByFullName(typeDefOrRef.FullName);
@@ -140,7 +140,7 @@ public readonly struct ContextResolver
 
     private TypeAnalysisContext? Resolve(CorLibTypeSignature corLibType)
     {
-        return referencedFrom.AppContext.Mscorlib.GetTypeByFullName(corLibType.FullName);
+        return referencedFrom.Mscorlib.GetTypeByFullName(corLibType.FullName);
     }
 
     public TypeAnalysisContext? Resolve(ITypeDescriptor? type)

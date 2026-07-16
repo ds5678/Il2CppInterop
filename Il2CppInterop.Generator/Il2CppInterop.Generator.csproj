@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AssetRipper.Cpp2IL.Core" Version="1.0.7" />
-    <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.8" />
+    <PackageReference Include="AssetRipper.Cpp2IL.Core" Version="1.0.8" />
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.9" />
     <PackageReference Include="PolySharp" Version="1.16.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
