@@ -537,6 +537,9 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
 
             fieldContext.OverrideConstantValue = field.Constant?.InterpretData();
 
+            if (field.FieldOffset is { } offset)
+                fieldContext.Offset = offset;
+
             CopyCustomAttributes(field, fieldContext, typeContext.AppContext, runtimeContext);
 
             fieldContext.IsUnstripped = true;
