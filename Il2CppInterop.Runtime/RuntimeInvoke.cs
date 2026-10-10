@@ -1,9 +1,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppInterop.Runtime.InteropTypes;
@@ -170,14 +170,14 @@ public static unsafe class RuntimeInvoke
 
         if (invoke.ReturnType == typeof(void))
         {
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), parameterTypes, null);
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Winapi, typeof(void), parameterTypes);
         }
         else
         {
             var returnType = invoke.ReturnType;
             var nativeStruct = TrampolineBuilder.GetNativeType(returnType);
 
-            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeStruct, parameterTypes, null);
+            bodyBuilder.EmitCalli(OpCodes.Calli, CallingConvention.Winapi, nativeStruct, parameterTypes);
 
             var returnLocal = bodyBuilder.DeclareLocal(nativeStruct);
             bodyBuilder.Emit(OpCodes.Stloc, returnLocal);

@@ -1144,7 +1144,7 @@ public static unsafe class TypeInjector
             ..monoMethod.GetParameters().Select(it => TrampolineBuilder.GetNativeType(it.ParameterType)),
             typeof(Il2CppMethodInfo*),
         ];
-        body.EmitCalli(OpCodes.Calli, CallingConventions.Standard, nativeReturnType, nativeParameterTypes, null);
+        body.EmitCalli(OpCodes.Calli, CallingConvention.Winapi, nativeReturnType, nativeParameterTypes);
 
         if (UnityVersionHandler.IsMetadataV29OrHigher)
         {
