@@ -239,17 +239,13 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         writer.WriteLine("{");
         writer.Indent++;
 
-        writer.WriteLine($"get => global::System.Runtime.InteropServices.GCHandle<{member.Type}>.FromIntPtr({member.Name}__BackingField).Target;");
+        writer.WriteLine($"get => global::Il2CppInterop.Runtime.FieldAccess.GCHandleGetTarget(global::Il2CppInterop.Runtime.FieldAccess.GCHandleFromIntPtr<{member.Type}>({member.Name}__BackingField));");
 
         writer.WriteLine("set");
         writer.WriteLine("{");
         writer.Indent++;
-        writer.WriteLine($"global::System.Runtime.InteropServices.GCHandle<{member.Type}>.FromIntPtr({member.Name}__BackingField).Dispose();");
-        writer.WriteLine($"{member.Name}__BackingField = value is not null");
-        writer.Indent++;
-        writer.WriteLine($"? global::System.Runtime.InteropServices.GCHandle<{member.Type}>.ToIntPtr(new global::System.Runtime.InteropServices.GCHandle<{member.Type}>(value))");
-        writer.WriteLine(": default;");
-        writer.Indent--;
+        writer.WriteLine($"global::Il2CppInterop.Runtime.FieldAccess.GCHandleFromIntPtr<{member.Type}>({member.Name}__BackingField).Dispose();");
+        writer.WriteLine($"{member.Name}__BackingField = global::Il2CppInterop.Runtime.FieldAccess.GCHandleToIntPtr(new global::System.Runtime.InteropServices.GCHandle<{member.Type}>(value));");
         writer.Indent--;
         writer.WriteLine("}");
 

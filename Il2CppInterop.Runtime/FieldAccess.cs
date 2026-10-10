@@ -91,6 +91,21 @@ public static unsafe class FieldAccess
         return (int)IL2CPP.il2cpp_field_get_offset(fieldInfo);
     }
 
+    public static GCHandle<T> GCHandleFromIntPtr<T>(nint ptr) where T : class?
+    {
+        return ptr is 0 ? default : GCHandle<T>.FromIntPtr(ptr);
+    }
+
+    public static nint GCHandleToIntPtr<T>(GCHandle<T> handle) where T : class?
+    {
+        return handle.IsAllocated ? GCHandle<T>.ToIntPtr(handle) : nint.Zero;
+    }
+
+    public static T GCHandleGetTarget<T>(GCHandle<T> handle) where T : class?
+    {
+        return handle.IsAllocated ? handle.Target : null!;
+    }
+
     private static bool HasWriteBarrierSupport()
     {
         if (NativeLibrary.TryLoad("GameAssembly", out var handle))
