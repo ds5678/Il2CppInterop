@@ -209,7 +209,7 @@ public static class TrampolineBuilder
         for (var i = argOffset; i < managedParameters.Length; i++)
         {
             body.Emit(OpCodes.Ldarg, i);
-            body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(ConvertNativeToManaged), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(nativeParameterTypes[i], managedParameters[i]));
+            body.Emit(OpCodes.Call, typeof(TrampolineBuilder).GetMethod(nameof(ConvertNativeToManaged), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(nativeParameterTypes[i], managedParameters[i]));
             if (managedParameters[i].IsInterface)
             {
                 var local = body.DeclareLocal(managedParameters[i]);
@@ -224,7 +224,7 @@ public static class TrampolineBuilder
         if (monoMethod.ReturnType != typeof(void))
         {
             nativeReturnVariable = body.DeclareLocal(nativeReturnType);
-            body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(ConvertManagedToNative), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(monoMethod.ReturnType, nativeReturnType));
+            body.Emit(OpCodes.Call, typeof(TrampolineBuilder).GetMethod(nameof(ConvertManagedToNative), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(monoMethod.ReturnType, nativeReturnType));
             body.Emit(OpCodes.Stloc, nativeReturnVariable);
         }
 
@@ -243,11 +243,11 @@ public static class TrampolineBuilder
         {
             body.Emit(OpCodes.Ldarg, argumentIndex);
             body.Emit(OpCodes.Ldloc, local);
-            body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(UpdateBoxedValue), BindingFlags.Static | BindingFlags.NonPublic)!);
+            body.Emit(OpCodes.Call, typeof(TrampolineBuilder).GetMethod(nameof(UpdateBoxedValue), BindingFlags.Static | BindingFlags.NonPublic)!);
         }
 
         body.BeginCatchBlock(typeof(Exception));
-        body.Emit(OpCodes.Call, typeof(TypeInjector).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
+        body.Emit(OpCodes.Call, typeof(TrampolineBuilder).GetMethod(nameof(LogError), BindingFlags.Static | BindingFlags.NonPublic)!);
 
         body.EndExceptionBlock();
 
