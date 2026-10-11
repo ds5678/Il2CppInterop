@@ -1050,8 +1050,17 @@ public class TranslatedMethodBody : MethodBodyBase
                 else if (originalCode == CilOpCodes.Ldsflda)
                 {
                     // Load static field address
-                    // Not implemented yet
-                    return false;
+                    Debug.Assert(baseField.IsStatic);
+
+                    // Static field addresses require an export that Il2Cpp has from Unity 2021.
+                    if (baseField.FieldAddressAccessor is not { } staticFieldAddressAccessor)
+                        return false;
+
+                    var fieldAddressAccessor = staticFieldAddressAccessor.MaybeMakeConcreteGeneric(declaringTypeArguments, []);
+
+                    translatedInstruction.Code = CilOpCodes.Nop;
+                    translatedInstructions.Add(CilOpCodes.Call, fieldAddressAccessor);
+                    MonoIl2CppConversion.AddIl2CppToMonoConversion(translatedInstructions, fieldAddressAccessor.ReturnType);
                 }
                 else if (originalCode == CilOpCodes.Ldtoken)
                 {

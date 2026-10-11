@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Il2CppInterop.Common;
+using Il2CppInterop.Runtime.InteropTypes;
 using Microsoft.Extensions.Logging;
 
 namespace Il2CppInterop.Runtime;
@@ -30,6 +31,30 @@ public static unsafe class FieldAccess
             IL2CPP.il2cpp_field_static_set_value(fieldInfo, (void*)NativeBoxing.Box(value));
         }
     }
+
+    /// <summary>
+    /// Gets the address of a static field in the static field data of its class.
+    /// </summary>
+    /// <remarks>
+    /// This requires <c>il2cpp_class_get_static_field_data</c>, which Il2Cpp exports from Unity 2021.
+    /// </remarks>
+    public static ByReference<T> GetStaticFieldAddress<T>(nint fieldInfo) where T : IIl2CppType<T>
+    {
+        ArgumentNullException.ThrowIfNull(fieldInfo.ToPointer(), nameof(fieldInfo));
+        var declaringClass = IL2CPP.il2cpp_field_get_parent(fieldInfo);
+
+        // As for any access to a static field, the static constructor runs first. Class initialization also allocates the static field data.
+        IL2CPP.il2cpp_runtime_class_init(declaringClass);
+
+        var offset = IL2CPP.il2cpp_field_get_offset(fieldInfo);
+        if (offset == ThreadStaticFieldOffset)
+            throw new NotSupportedException($"Thread static field {IL2CPP.il2cpp_field_get_name(fieldInfo)} has no address in the static field data");
+
+        return new ByReference<T>((byte*)IL2CPP.il2cpp_class_get_static_field_data(declaringClass) + offset);
+    }
+
+    // THREAD_STATIC_FIELD_OFFSET in libil2cpp
+    private const uint ThreadStaticFieldOffset = unchecked((uint)-1);
 
     public static T? GetInstanceFieldValue<T>(Object instance, int fieldOffset) where T : IIl2CppType<T>
     {
