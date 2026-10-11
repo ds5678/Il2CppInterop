@@ -535,7 +535,11 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                 typeContext);
             typeContext.Fields.Add(fieldContext);
 
-            fieldContext.OverrideConstantValue = field.Constant?.InterpretData();
+            if (field.Constant is { } constant)
+            {
+                fieldContext.OverrideConstantValue = constant.InterpretData();
+                fieldContext.UseOverrideConstantValue = true;
+            }
 
             if (field.FieldOffset is { } offset)
                 fieldContext.Offset = offset;

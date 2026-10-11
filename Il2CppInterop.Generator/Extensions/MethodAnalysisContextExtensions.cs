@@ -176,7 +176,7 @@ internal static class MethodAnalysisContextExtensions
         {
             if (slot >= interfaceOffset.offset)
             {
-                var interfaceTypeContext = interfaceOffset.Type.ToContext(method.AppContext);
+                var interfaceTypeContext = Il2CppTypeToContext.ResolveIl2CppType(method.AppContext, interfaceOffset.Type);
                 if (interfaceTypeContext != null && TryGetMethodForSlot(interfaceTypeContext, slot - interfaceOffset.offset, out _))
                 {
                     return true;
