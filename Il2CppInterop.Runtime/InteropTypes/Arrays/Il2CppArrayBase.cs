@@ -19,6 +19,8 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array
 
     public new int Length => base.Length;
 
+    protected internal abstract int Rank { get; }
+
     private protected static bool ThrowImmutableLength()
     {
         throw new NotSupportedException("Arrays have immutable length");

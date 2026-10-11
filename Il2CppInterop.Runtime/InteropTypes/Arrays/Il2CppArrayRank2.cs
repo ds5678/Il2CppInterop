@@ -12,6 +12,8 @@ public sealed class Il2CppArrayRank2<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
         SetClassPointer<Il2CppArrayRank2<T>, T>(2);
     }
 
+    protected internal override int Rank => 2;
+
     public Il2CppArrayRank2(ObjectPointer pointer) : base(pointer)
     {
     }
@@ -67,6 +69,16 @@ public sealed class Il2CppArrayRank2<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     nint IIl2CppType.ObjectClass => Il2CppType.GetClassPointer<Il2CppArrayRank2<T>>();
     static void IIl2CppType<Il2CppArrayRank2<T>>.WriteToSpan(Il2CppArrayRank2<T>? value, Span<byte> span) => Il2CppType.WriteReference(value, span);
     static Il2CppArrayRank2<T>? IIl2CppType<Il2CppArrayRank2<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppType.ReadReference<Il2CppArrayRank2<T>>(span);
+    static Il2CppArrayRank2<T> IIl2CppType<Il2CppArrayRank2<T>>.Unbox(object? obj)
+    {
+        if (obj is Il2CppArrayRank2<T> array)
+            return array;
+
+        if (obj is Il2CppArrayBase { Rank: 2 } covariantArray)
+            return new Il2CppArrayRank2<T>((ObjectPointer)covariantArray.Pointer);
+
+        throw new InvalidCastException($"Cannot unbox object of type {obj?.GetType()} to {typeof(Il2CppArrayRank2<T>)}");
+    }
     static Il2CppArrayRank2<T> IIl2CppType<Il2CppArrayRank2<T>>.UnboxNative(ObjectPointer pointer) => new(pointer);
     #endregion
 }
