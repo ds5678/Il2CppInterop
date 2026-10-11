@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppInterop.Runtime.Structs;
 using Il2CppSystem;
 using Il2CppSystem.Reflection;
 
@@ -71,7 +72,7 @@ internal static class Il2CppSystemTypeExtensions
             {
                 return typeof(Pointer<>).MakeGenericType(type.GetElementType().ToSystemType());
             }
-            else if (type.IsSZArray)
+            else if (IsSZArray(type))
             {
                 return typeof(Il2CppArrayRank1<>).MakeGenericType(type.GetElementType().ToSystemType());
             }
@@ -131,7 +132,10 @@ internal static class Il2CppSystemTypeExtensions
         }
         else
         {
-            return TryGetTopLevelSystemType(type.Assembly.GetName().Name ?? "", type.Namespace ?? "", type.Name ?? "")
+            // The image name comes from Il2Cpp rather than from Type.Assembly, which creates an assembly object. Its class may not
+            // be initialized yet, and initializing it would convert its type with this method again.
+            var imageName = IL2CPP.il2cpp_image_get_name(IL2CPP.il2cpp_class_get_image(type.ToClassPointer()));
+            return TryGetTopLevelSystemType(imageName ?? "", type.Namespace ?? "", type.Name ?? "")
                 ?? throw new System.NullReferenceException($"Could not find system type for top-level type {type.FullName}");
         }
     }
@@ -209,10 +213,18 @@ internal static class Il2CppSystemTypeExtensions
         }
     }
 
+    // Unity's managed code stripping can remove IsConstructedGenericType and IsSZArray from a game's corlib. A method that calls
+    // a member the game's corlib does not have cannot be compiled, so these do not use them.
+
     private static bool IsTypeDefinition(Type type)
     {
         // IsTypeDefinition has a simple implementation and is frequently stripped, so we implement it here to avoid relying on unstripping.
-        return !type.HasElementType && !type.IsConstructedGenericType && !type.IsGenericParameter;
+        return !type.HasElementType && !(type.IsGenericType && !type.IsGenericTypeDefinition) && !type.IsGenericParameter;
+    }
+
+    private static bool IsSZArray(Type type)
+    {
+        return IL2CPP.il2cpp_type_get_type(type.ToTypePointer()) == (int)Il2CppTypeEnum.IL2CPP_TYPE_SZARRAY;
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "GetGenericArguments")]
