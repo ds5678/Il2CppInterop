@@ -90,3 +90,7 @@ Null checking and bounds checking are handled in the array helper methods.
 ## Numeric op codes
 
 These are untyped, so some rudimentary analysis is needed to determine the type.
+
+## Type References
+
+Unity 2021 and later reference the base class library through `netstandard`, which Il2Cpp games do not have. A type reference into `netstandard` resolves to the type of the same name in the game's `mscorlib`, or failing that, in another assembly of the game.
