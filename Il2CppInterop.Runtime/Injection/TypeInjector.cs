@@ -548,7 +548,25 @@ public static unsafe class TypeInjector
     [RequiresDynamicCode("")]
     private static Dictionary<NamedSignatureHash, MethodInfo> CreateHashToMethodInfoDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
     {
-        return GetAllIl2CppMethods(type).ToDictionary(m => new NamedSignatureHash(m));
+        // The methods of base types are included, so two methods can have the same hash, such as a method and a base
+        // type's method that it hides (MemberwiseClone, with unstripped Unity libraries). The method declared in the most
+        // derived type is kept, and a non-generic method takes precedence over a generic one.
+        var result = new Dictionary<NamedSignatureHash, MethodInfo>();
+        foreach (var method in GetAllIl2CppMethods(type).OrderByDescending(m => GetInheritanceDepth(m.DeclaringType)).ThenBy(m => m.IsGenericMethodDefinition))
+        {
+            result.TryAdd(new NamedSignatureHash(method), method);
+        }
+        return result;
+    }
+
+    private static int GetInheritanceDepth(Type? type)
+    {
+        var depth = 0;
+        for (; type is not null; type = type.BaseType)
+        {
+            depth++;
+        }
+        return depth;
     }
 
     [RequiresDynamicCode("")]
