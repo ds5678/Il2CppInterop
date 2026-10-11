@@ -126,7 +126,7 @@ public readonly struct ContextResolver
             return null;
 
         if (!referencedFrom.AssembliesByName.TryGetValue(assemblyName, out var targetAssembly))
-            return null;
+            return assemblyName == NetStandard ? ResolveThroughNetStandard(typeDefOrRef.FullName) : null;
 
         return targetAssembly.GetTypeByFullName(typeDefOrRef.FullName);
 
@@ -136,6 +136,32 @@ public readonly struct ContextResolver
             AssemblyReference assembly => assembly.Name,
             _ => throw new NotImplementedException(),
         };
+    }
+
+    private const string NetStandard = "netstandard";
+
+    /// <summary>
+    /// Resolves a type that an assembly references through netstandard, a facade that forwards to the assemblies that
+    /// implement .NET Standard (mscorlib, System, System.Core and others). Unity's libraries reference the base class
+    /// library through it, but IL2CPP builds do not contain it, so when the runtime context cannot resolve the forward
+    /// (netstandard.dll is not among the given assemblies), the type is looked up by name in the game's corlib, then in
+    /// its other assemblies.
+    /// </summary>
+    private TypeAnalysisContext? ResolveThroughNetStandard(string fullName)
+    {
+        if (referencedFrom.Mscorlib.GetTypeByFullName(fullName) is { } corLibType)
+            return corLibType;
+
+        foreach (var assembly in referencedFrom.Assemblies)
+        {
+            if (assembly.IsReferenceAssembly || assembly.IsInjected || assembly == referencedFrom.Mscorlib)
+                continue;
+
+            if (assembly.GetTypeByFullName(fullName) is { } type)
+                return type;
+        }
+
+        return null;
     }
 
     private TypeAnalysisContext? Resolve(CorLibTypeSignature corLibType)
