@@ -33,11 +33,13 @@ internal readonly record struct NamedSignatureHash
         // TODO: Hash the generic arity instead, in both constructors.
         hash.Append(methodInfo.IsGeneric);
         hash.Append(methodInfo.ParametersCount);
-        AppendTypeName(hash, GetFullName(methodInfo.ReturnType));
+        hash.AppendFullName(methodInfo.ReturnType);
+        hash.Append(TypeNameEnd);
         for (var i = 0; i < methodInfo.ParametersCount; i++)
         {
             var parameter = UnityVersionHandler.Wrap(methodInfo.Parameters, i);
-            AppendTypeName(hash, GetFullName(parameter.ParameterType));
+            hash.AppendFullName(parameter.ParameterType);
+            hash.Append(TypeNameEnd);
         }
         _hash = hash.GetCurrentHashAsUInt128();
     }
@@ -53,31 +55,18 @@ internal readonly record struct NamedSignatureHash
         hash.Append(methodInfo.IsGenericMethodDefinition);
         var parameters = methodInfo.GetParameters();
         hash.Append((byte)parameters.Length);
-        AppendTypeName(hash, GetFullName(methodInfo.ReturnType));
+        hash.AppendFullName(methodInfo.ReturnType);
+        hash.Append(TypeNameEnd);
         foreach (var parameter in parameters)
         {
-            AppendTypeName(hash, GetFullName(parameter.ParameterType));
+            hash.AppendFullName(parameter.ParameterType);
+            hash.Append(TypeNameEnd);
         }
         _hash = hash.GetCurrentHashAsUInt128();
     }
 
     // The full name of a generic parameter is null, so it adds no characters before the end of the name.
-    private static void AppendTypeName(XxHash128 hash, Il2CppSystem.String? fullName)
-    {
-        hash.Append(fullName);
-        hash.Append("\0".AsSpan());
-    }
-
-    [RequiresDynamicCode("")]
-    private static unsafe Il2CppSystem.String GetFullName(Type type)
-    {
-        return GetFullName((Il2CppTypeStruct*)Il2CppTypePointerStore.GetNativeTypePointer(type));
-    }
-
-    private static unsafe Il2CppSystem.String GetFullName(Il2CppTypeStruct* type)
-    {
-        return Il2CppSystem.Type.FromTypePointer((nint)type).FullName;
-    }
+    private static ReadOnlySpan<char> TypeNameEnd => "\0";
 
     public override string ToString() => _hash.ToString();
 }
