@@ -213,9 +213,6 @@ internal static class Il2CppSystemTypeExtensions
         }
     }
 
-    // Unity's managed code stripping can remove IsConstructedGenericType and IsSZArray from a game's corlib. A method that calls
-    // a member the game's corlib does not have cannot be compiled, so these do not use them.
-
     private static bool IsTypeDefinition(Type type)
     {
         // IsTypeDefinition has a simple implementation and is frequently stripped, so we implement it here to avoid relying on unstripping.
