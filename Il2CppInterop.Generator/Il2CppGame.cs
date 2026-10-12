@@ -109,6 +109,7 @@ public static class Il2CppGame
         new MethodInvokerProcessingLayer(),
         new MethodBodyTranslationProcessingLayer(),
         new NativeMethodBodyProcessingLayer(),
+        new PredefinedMethodBodyProcessingLayer(),
         new DelegateConversionProcessingLayer(),
         new ByRefParameterOverloadProcessingLayer(),
         new UserFriendlyOverloadProcessingLayer(),
