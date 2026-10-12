@@ -635,9 +635,12 @@ public static unsafe class TypeInjector
                 fields.Add((fieldType, fieldAttributes, fieldName));
             }
         }
+        // [Il2CppField] is optional for the instance fields of injected value types, as their source generator treats them.
+        // The generator of the interop assemblies marks the fields of unstripped value types, some of which have unmarked storage fields.
+        var isInjectedValueType = type.IsValueType && type.IsDefined(typeof(InjectedTypeAttribute), false);
         foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
         {
-            if (IsIl2CppField(field))
+            if (IsIl2CppField(field) || isInjectedValueType)
             {
                 var fieldAttribute = field.GetCustomAttribute<Il2CppFieldAttribute>();
                 var fieldName = fieldAttribute?.Name ?? field.Name;
