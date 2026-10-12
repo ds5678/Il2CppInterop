@@ -216,7 +216,7 @@ public static unsafe class TypeInjector
             var methodCount = methodsOffset + methods.Length;
 
             classPointer.MethodCount = (ushort)methodCount;
-            var methodPointerArray = (Il2CppMethodInfo**)Marshal.AllocHGlobal(methodCount * IntPtr.Size);
+            var methodPointerArray = (Il2CppMethodInfo**)AllocateClassArray(methodCount, IntPtr.Size);
             classPointer.Methods = methodPointerArray;
 
             if (!type.IsInterface)
@@ -487,6 +487,21 @@ public static unsafe class TypeInjector
     }
 
     /// <summary>
+    /// Allocates an array of a class, such as its methods or interfaces, with at least one element, all zero.
+    /// </summary>
+    /// <remarks>
+    /// Il2Cpp's iterators over the interfaces and methods of a class return the first element before they check the count,
+    /// so the first element of an empty array has to be null, as it is in the empty lists of Il2Cpp.
+    /// </remarks>
+    private static void* AllocateClassArray(int count, int elementSize)
+    {
+        var size = int.Max(count, 1) * elementSize;
+        var array = (void*)Marshal.AllocHGlobal(size);
+        new Span<byte>(array, size).Clear();
+        return array;
+    }
+
+    /// <summary>
     /// Sets the interfaces of a class: the interfaces that it implements and the offsets of their vtable blocks.
     /// </summary>
     /// <param name="classPointer">The class.</param>
@@ -510,14 +525,14 @@ public static unsafe class TypeInjector
         implementedInterfaces.AddRange(newInterfaceTypes.Select(Il2CppType.GetClassPointer));
 
         classPointer.InterfaceCount = (ushort)implementedInterfaces.Count;
-        classPointer.ImplementedInterfaces = (Il2CppClass**)Marshal.AllocHGlobal(int.Max(implementedInterfaces.Count, 1) * IntPtr.Size);
+        classPointer.ImplementedInterfaces = (Il2CppClass**)AllocateClassArray(implementedInterfaces.Count, IntPtr.Size);
         for (var i = 0; i < implementedInterfaces.Count; i++)
         {
             classPointer.ImplementedInterfaces[i] = (Il2CppClass*)implementedInterfaces[i];
         }
 
         classPointer.InterfaceOffsetsCount = (ushort)interfaceOffsets.Count;
-        classPointer.InterfaceOffsets = (Il2CppRuntimeInterfaceOffsetPair*)Marshal.AllocHGlobal(int.Max(interfaceOffsets.Count, 1) * sizeof(Il2CppRuntimeInterfaceOffsetPair));
+        classPointer.InterfaceOffsets = (Il2CppRuntimeInterfaceOffsetPair*)AllocateClassArray(interfaceOffsets.Count, sizeof(Il2CppRuntimeInterfaceOffsetPair));
         for (var i = 0; i < interfaceOffsets.Count; i++)
         {
             classPointer.InterfaceOffsets[i] = new Il2CppRuntimeInterfaceOffsetPair
@@ -580,7 +595,7 @@ public static unsafe class TypeInjector
 
         classPointer.InterfaceOffsetsCount = (ushort)interfaceOffsets.Count;
         classPointer.InterfaceCount = (ushort)entries.Count;
-        classPointer.Interfaces = (Il2CppRuntimeInterfaceData*)Marshal.AllocHGlobal(int.Max(entries.Count, 1) * sizeof(Il2CppRuntimeInterfaceData));
+        classPointer.Interfaces = (Il2CppRuntimeInterfaceData*)AllocateClassArray(entries.Count, sizeof(Il2CppRuntimeInterfaceData));
         for (var i = 0; i < entries.Count; i++)
         {
             classPointer.Interfaces[i] = entries[i];
