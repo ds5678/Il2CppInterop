@@ -476,6 +476,12 @@ public static unsafe class TypeInjector
 
             var il2cppFields = (Il2CppFieldInfo*)Marshal.AllocHGlobal(classPointer.FieldCount * UnityVersionHandler.FieldInfoSize());
             var fieldOffset = (int)classPointer.InstanceSize;
+            // Il2Cpp allocates the objects of a class without references so that the garbage collector does not scan them,
+            // and the collector only finds references at aligned offsets.
+            var hasReferences = classPointer.Parent is not null && UnityVersionHandler.Wrap(classPointer.Parent).HasReferences;
+            // As in Il2Cpp, the size is a multiple of the largest alignment of the fields (for a class, at least that of a
+            // pointer), so that the fields in each element of an array are aligned too.
+            var alignment = type.IsValueType ? 1 : sizeof(Il2CppObject*);
             for (var i = 0; i < classPointer.FieldCount; i++)
             {
                 var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
@@ -510,19 +516,28 @@ public static unsafe class TypeInjector
                 }
                 else
                 {
-                    fieldInfo.Offset = fieldOffset;
+                    int fieldSize, fieldAlignment;
                     if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
                     {
-                        var fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out _);
-                        fieldOffset += fieldSize;
+                        fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out var valueAlignment);
+                        // Injected value types have no alignment of their own, so they are aligned like a pointer.
+                        fieldAlignment = valueAlignment > 0 ? (int)valueAlignment : sizeof(Il2CppObject*);
+                        hasReferences |= UnityVersionHandler.Wrap((Il2CppClass*)fieldInfoClass).HasReferences;
                     }
                     else
                     {
-                        fieldOffset += sizeof(Il2CppObject*);
+                        fieldSize = fieldAlignment = sizeof(Il2CppObject*);
+                        hasReferences = true;
                     }
+                    fieldOffset = (fieldOffset + fieldAlignment - 1) / fieldAlignment * fieldAlignment;
+                    fieldInfo.Offset = fieldOffset;
+                    fieldOffset += fieldSize;
+                    alignment = Math.Max(alignment, fieldAlignment);
                 }
             }
+            fieldOffset = (fieldOffset + alignment - 1) / alignment * alignment;
 
+            classPointer.HasReferences = hasReferences;
             classPointer.Fields = il2cppFields;
 
             classPointer.InstanceSize = (uint)fieldOffset;
