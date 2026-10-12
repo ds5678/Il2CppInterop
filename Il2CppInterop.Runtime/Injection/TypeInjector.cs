@@ -252,6 +252,17 @@ public static unsafe class TypeInjector
                     }
                 }
 
+                // The slots of an interface's methods are relative to its block in the vtable of a class that implements it.
+                var interfaceSlot = 0;
+                for (var i = 0; i < classPointer.MethodCount; i++)
+                {
+                    var method = UnityVersionHandler.Wrap(classPointer.Methods[i]);
+                    if ((method.Flags & Il2CppMethodFlags.METHOD_ATTRIBUTE_VIRTUAL) != 0)
+                    {
+                        method.Slot = (ushort)interfaceSlot++;
+                    }
+                }
+
                 SetInterfaceData(classPointer, null, interfaceTypes, []);
                 classPointer.IsVtableInitialized = true;
                 NeedsVTableSet.Remove(type);
@@ -298,7 +309,7 @@ public static unsafe class TypeInjector
                     && baseHashToMethod.TryGetValue(hash, out var inheritedMethod)
                     && overriddenToOverridingMethod.TryGetValue(inheritedMethod.GetBaseDefinition(), out var overridingMethod))
                 {
-                    vtable.Set(slot, overridingMethod);
+                    vtable.SetVirtualMethod(slot, overridingMethod);
                 }
                 else
                 {
@@ -313,7 +324,7 @@ public static unsafe class TypeInjector
             {
                 if ((method.IsVirtual || method.IsAbstract) && !method.IsFinal && method.GetBaseDefinition() == method)
                 {
-                    vtable.Set(index, method);
+                    vtable.SetVirtualMethod(index, method);
                     index++;
                 }
             }
@@ -627,6 +638,15 @@ public static unsafe class TypeInjector
                 methodPtr = nativeMethod.MethodPointer,
                 method = nativeMethod.MethodInfoPointer,
             });
+        }
+
+        /// <summary>
+        /// Puts a virtual method of the type in its slot of the vtable, which Il2Cpp reads from the method when it calls it.
+        /// </summary>
+        public void SetVirtualMethod(int slot, MethodInfo method)
+        {
+            Set(slot, method);
+            GetNativeMethod(method).Slot = (ushort)slot;
         }
 
         /// <summary>
