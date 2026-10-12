@@ -1050,7 +1050,8 @@ public static unsafe class TypeInjector
             throw new ArgumentException("Generic methods cannot be converted.", nameof(monoMethod));
 
         var converted = UnityVersionHandler.NewMethod();
-        converted.Name = Marshal.StringToCoTaskMemUTF8(monoMethod.Name);
+        // The name Il2Cpp knows the method by, which its hash uses too: the generated override of Il2CppFinalize is Finalize.
+        converted.Name = Marshal.StringToCoTaskMemUTF8(monoMethod.GetCustomAttribute<Il2CppMethodAttribute>()?.Name ?? monoMethod.Name);
         converted.Class = declaringClass.ClassPointer;
 
         var parameters = monoMethod.GetParameters();
