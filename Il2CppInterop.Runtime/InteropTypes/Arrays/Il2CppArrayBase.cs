@@ -59,7 +59,7 @@ public abstract class Il2CppArrayBase : Il2CppSystem.Array
         ThrowIfIndexOutOfRange(index);
         var span = GetUnsafeSpanForElement(index);
         var ptr = (nint)NativeBoxing.Box(value);
-        Il2CppType.WritePointer(ptr, span);
+        Il2CppType.WriteObjectPointer(ptr, span);
     }
 
     private protected virtual Span<byte> GetUnsafeSpanForElement(int index)
