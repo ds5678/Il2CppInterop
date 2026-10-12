@@ -305,8 +305,11 @@ public static unsafe class TypeInjector
                     ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
                     var vtableEntry = classPointer.VTable + index;
                     var baseVTableEntry = baseClassPointer.VTable + index;
-                    var baseMethodInfo = baseMap2[baseMap3[(nint)baseVTableEntry->method]];
-                    if (baseMethodToMethodMap.TryGetValue(baseMethodInfo, out var methodInfo))
+                    // A slot whose method has no managed counterpart, such as a generic virtual method, which is never
+                    // injected, keeps the base type's entry.
+                    if (baseMap3.TryGetValue((nint)baseVTableEntry->method, out var baseMethodKey)
+                        && baseMap2.TryGetValue(baseMethodKey, out var baseMethodInfo)
+                        && baseMethodToMethodMap.TryGetValue(baseMethodInfo, out var methodInfo))
                     {
                         var nativeMethodInfo = map4[map1[methodInfo]];
                         vtableEntry->methodPtr = nativeMethodInfo.MethodPointer;
@@ -375,8 +378,9 @@ public static unsafe class TypeInjector
                         ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
                         var vtableEntry = classPointer.VTable + interfaceOffset + i;
                         var interfaceVTableEntry = interfaceClassPointer.VTable + i;
-                        var interfaceMethodInfo = interfaceMap2[interfaceMap3[(nint)interfaceVTableEntry->method]];
-                        if (interfaceMethodToImplementingMethod.TryGetValue(interfaceMethodInfo, out var methodInfo) && methodInfo.DeclaringType == type)
+                        if (interfaceMap3.TryGetValue((nint)interfaceVTableEntry->method, out var interfaceMethodKey)
+                            && interfaceMap2.TryGetValue(interfaceMethodKey, out var interfaceMethodInfo)
+                            && interfaceMethodToImplementingMethod.TryGetValue(interfaceMethodInfo, out var methodInfo) && methodInfo.DeclaringType == type)
                         {
                             var nativeMethodInfo = map4[map1[methodInfo]];
                             vtableEntry->methodPtr = nativeMethodInfo.MethodPointer;
@@ -545,46 +549,57 @@ public static unsafe class TypeInjector
         return result;
     }
 
+    /// <summary>
+    /// A method's declaring class and a hash of its name and signature. A method and a base class's method that it hides with
+    /// <c>new</c> have the same name and signature, and a class's vtable holds both, each in a slot of its own, so the
+    /// declaring class tells them apart.
+    /// </summary>
+    private readonly record struct MethodKey(nint DeclaringClass, NamedSignatureHash Signature);
+
+    private static unsafe MethodKey GetMethodKey(INativeMethodInfoStruct method) => new((nint)method.Class, new NamedSignatureHash(method));
+
+    // The declaring type of an inherited method is the base type that declares it.
     [RequiresDynamicCode("")]
-    private static Dictionary<NamedSignatureHash, MethodInfo> CreateHashToMethodInfoDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
+    private static MethodKey GetMethodKey(MethodInfo method, Dictionary<Type, nint> classPointers)
     {
-        // The methods of base types are included, so two methods can have the same hash, such as a method and a base
-        // type's method that it hides (MemberwiseClone, with unstripped Unity libraries). The method declared in the most
-        // derived type is kept.
-        var result = new Dictionary<NamedSignatureHash, MethodInfo>();
-        foreach (var method in GetAllIl2CppMethods(type).OrderByDescending(m => GetInheritanceDepth(m.DeclaringType)))
+        var declaringType = method.DeclaringType!;
+        if (!classPointers.TryGetValue(declaringType, out var classPointer))
         {
-            result.TryAdd(new NamedSignatureHash(method), method);
+            classPointer = Il2CppType.GetClassPointer(declaringType);
+            classPointers.Add(declaringType, classPointer);
+        }
+        return new MethodKey(classPointer, new NamedSignatureHash(method));
+    }
+
+    [RequiresDynamicCode("")]
+    private static Dictionary<MethodKey, MethodInfo> CreateHashToMethodInfoDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
+    {
+        var classPointers = new Dictionary<Type, nint>();
+        var result = new Dictionary<MethodKey, MethodInfo>();
+        foreach (var method in GetAllIl2CppMethods(type))
+        {
+            result.TryAdd(GetMethodKey(method, classPointers), method);
         }
         return result;
     }
 
-    private static int GetInheritanceDepth(Type? type)
-    {
-        var depth = 0;
-        for (; type is not null; type = type.BaseType)
-        {
-            depth++;
-        }
-        return depth;
-    }
-
     [RequiresDynamicCode("")]
-    private static Dictionary<MethodInfo, NamedSignatureHash> CreateMethodInfoToHashDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
+    private static Dictionary<MethodInfo, MethodKey> CreateMethodInfoToHashDictionary([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
     {
-        return GetAllIl2CppMethods(type).ToDictionary(m => m, m => new NamedSignatureHash(m));
+        var classPointers = new Dictionary<Type, nint>();
+        return GetAllIl2CppMethods(type).ToDictionary(m => m, m => GetMethodKey(m, classPointers));
     }
 
-    private static Dictionary<NamedSignatureHash, INativeMethodInfoStruct> CreateHashToNativeMethodInfoDictionary(INativeClassStruct classPointer)
+    private static Dictionary<MethodKey, INativeMethodInfoStruct> CreateHashToNativeMethodInfoDictionary(INativeClassStruct classPointer)
     {
-        var dict = new Dictionary<NamedSignatureHash, INativeMethodInfoStruct>(classPointer.MethodCount);
+        var dict = new Dictionary<MethodKey, INativeMethodInfoStruct>(classPointer.MethodCount);
         var currentClassPointer = classPointer;
         while (true)
         {
             for (var i = 0; i < currentClassPointer.MethodCount; i++)
             {
                 var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
-                dict.TryAdd(new NamedSignatureHash(methodInfo), methodInfo);
+                dict.TryAdd(GetMethodKey(methodInfo), methodInfo);
             }
             if (currentClassPointer.Parent is null)
                 break;
@@ -593,16 +608,16 @@ public static unsafe class TypeInjector
         return dict;
     }
 
-    private static Dictionary<IntPtr, NamedSignatureHash> CreateNativeMethodInfoToHashDictionary(INativeClassStruct classPointer)
+    private static Dictionary<IntPtr, MethodKey> CreateNativeMethodInfoToHashDictionary(INativeClassStruct classPointer)
     {
-        var dict = new Dictionary<IntPtr, NamedSignatureHash>(classPointer.MethodCount);
+        var dict = new Dictionary<IntPtr, MethodKey>(classPointer.MethodCount);
         var currentClassPointer = classPointer;
         while (true)
         {
             for (var i = 0; i < currentClassPointer.MethodCount; i++)
             {
                 var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
-                dict.Add(methodInfo.Pointer, new NamedSignatureHash(methodInfo));
+                dict.Add(methodInfo.Pointer, GetMethodKey(methodInfo));
             }
             if (currentClassPointer.Parent is null)
                 break;
