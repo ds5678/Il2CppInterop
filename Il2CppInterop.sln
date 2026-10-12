@@ -24,6 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		Documentation\Common-Problems.md = Documentation\Common-Problems.md
 		Documentation\Implementing-Interfaces.md = Documentation\Implementing-Interfaces.md
 		Documentation\Injected-Components-In-Asset-Bundles.md = Documentation\Injected-Components-In-Asset-Bundles.md
+		Documentation\Integration-API.md = Documentation\Integration-API.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Il2CppInterop.CLI", "Il2CppInterop.CLI\Il2CppInterop.CLI.csproj", "{F5AA88D1-5E62-46B8-A11C-3FAC40C25600}"

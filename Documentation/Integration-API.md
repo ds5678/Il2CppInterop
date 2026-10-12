@@ -24,6 +24,13 @@ a processing layer can put an `IReadOnlyList<AsmResolver.DotNet.AssemblyDefiniti
 `UnstripBaseProcessingLayer.AssembliesKey` in its `PreProcess` method. Without either, the `UnstripProcessingLayer` only
 logs a warning, so remove it from the list.
 
+The unstrip directory must include all files recursively contained in both of these Unity directories (shown for Windows):
+
+- `Editor\Data\MonoBleedingEdge\lib\mono\unityaot-win32`
+- `Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\win64_player_nondevelopment_il2cpp\Data\Managed`
+
+These paths are relative to the Unity installation. The corresponding paths differ on other platforms.
+
 The generator logs through Cpp2IL's logger (`Cpp2IL.Core.Logging.Logger.InfoLog`, `WarningLog`, `ErrorLog` and `VerboseLog`).
 
 ## Initializing the runtime
