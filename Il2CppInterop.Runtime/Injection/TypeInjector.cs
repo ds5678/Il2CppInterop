@@ -550,9 +550,9 @@ public static unsafe class TypeInjector
     {
         // The methods of base types are included, so two methods can have the same hash, such as a method and a base
         // type's method that it hides (MemberwiseClone, with unstripped Unity libraries). The method declared in the most
-        // derived type is kept, and a non-generic method takes precedence over a generic one.
+        // derived type is kept.
         var result = new Dictionary<NamedSignatureHash, MethodInfo>();
-        foreach (var method in GetAllIl2CppMethods(type).OrderByDescending(m => GetInheritanceDepth(m.DeclaringType)).ThenBy(m => m.IsGenericMethodDefinition))
+        foreach (var method in GetAllIl2CppMethods(type).OrderByDescending(m => GetInheritanceDepth(m.DeclaringType)))
         {
             result.TryAdd(new NamedSignatureHash(method), method);
         }
