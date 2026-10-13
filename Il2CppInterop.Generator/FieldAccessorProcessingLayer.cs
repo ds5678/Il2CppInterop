@@ -27,6 +27,11 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
             ? setInstanceFieldValue_WriteBarrier
             : setInstanceFieldValue_Pointer;
 
+        // Static field addresses (ldsflda) require il2cpp_class_get_static_field_data, which Il2Cpp exports from Unity 2021.
+        var getStaticFieldAddress = appContext.Binary.GetExportedFunctions().Any(pair => pair.Key == "il2cpp_class_get_static_field_data")
+            ? fieldAccessHelper.GetMethodByName(nameof(FieldAccess.GetStaticFieldAddress))
+            : null;
+
         var il2CppFieldAttribute = appContext.ResolveTypeOrThrow(typeof(Il2CppFieldAttribute));
         var il2CppFieldAttributeConstructor = il2CppFieldAttribute.GetMethodByName(".ctor");
         var il2CppFieldAttributeIndex = il2CppFieldAttribute.GetPropertyByName(nameof(Il2CppFieldAttribute.Index));
@@ -112,6 +117,31 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                                 ],
                             });
                         }
+
+                        field.FieldAddressAccessor = getFieldAddress;
+                    }
+                    else if (field.IsStatic && getStaticFieldAddress is not null)
+                    {
+                        var name = GetNonConflictingName($"GetFieldAddress_{field.Name}", existingNames);
+                        var getFieldAddress = new InjectedMethodAnalysisContext(
+                            type,
+                            name,
+                            byReference.MakeGenericInstanceType([field.FieldType]),
+                            MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
+                            [])
+                        {
+                            IsInjected = true,
+                        };
+                        type.Methods.Add(getFieldAddress);
+
+                        getFieldAddress.PutExtraData(new NativeMethodBody()
+                        {
+                            Instructions = [
+                                new Instruction(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage()),
+                                new Instruction(CilOpCodes.Call, getStaticFieldAddress.MakeGenericInstanceMethod([field.FieldType])),
+                                new Instruction(CilOpCodes.Ret)
+                            ],
+                        });
 
                         field.FieldAddressAccessor = getFieldAddress;
                     }

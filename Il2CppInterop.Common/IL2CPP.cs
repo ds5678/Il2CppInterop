@@ -260,6 +260,13 @@ public static unsafe partial class IL2CPP
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial uint il2cpp_class_get_type_token(nint klass);
 
+    /// <remarks>
+    /// Exported from Unity 2021.
+    /// </remarks>
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial nint il2cpp_class_get_static_field_data(nint klass);
+
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.I1)]
