@@ -3,10 +3,12 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Exceptions;
 using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Structs;
 using Microsoft.Extensions.Logging;
 
@@ -93,6 +95,87 @@ public static partial class GenerationInternals
         ArgumentNullException.ThrowIfNull(address);
         var objectPointer = obj?.BoxNative() ?? ObjectPointer.Null;
         *(nint*)address = (nint)objectPointer;
+    }
+
+    // Il2Cpp compiles Interlocked.CompareExchange<T> and Interlocked.Exchange<T> inline at each call, so their generic instances
+    // have no code, and invoking one raises ExecutionEngineException ("Invalid call to method"). The compiler implements the
+    // accessors of field-like events with CompareExchange<T>. These methods replace them: they call the game's Interlocked methods
+    // for object, which mark the location for an incremental collection after the atomic operation, as Il2Cpp's own code does;
+    // Il2Cpp exports no function that only marks a location. If the game's build does not include them, the operation is done
+    // here, without marking the location.
+
+    public static unsafe T? InterlockedCompareExchange<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
+    {
+        var location = (nint*)location1.ToPointer();
+        if (location is null)
+            throw new NullReferenceException();
+        var newValue = (nint)NativeBoxing.Box(value);
+        var expected = (nint)NativeBoxing.Box(comparand);
+        var original = GameInterlocked.CompareExchange != null
+            ? GameInterlocked.CompareExchange(location, newValue, expected, GameInterlocked.CompareExchangeMethod)
+            : Interlocked.CompareExchange(ref *location, newValue, expected);
+        return T.Unbox(Il2CppObjectPool.Get(original));
+    }
+
+    public static unsafe T? InterlockedExchange<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
+    {
+        var location = (nint*)location1.ToPointer();
+        if (location is null)
+            throw new NullReferenceException();
+        var newValue = (nint)NativeBoxing.Box(value);
+        var original = GameInterlocked.Exchange != null
+            ? GameInterlocked.Exchange(location, newValue, GameInterlocked.ExchangeMethod)
+            : Interlocked.Exchange(ref *location, newValue);
+        return T.Unbox(Il2CppObjectPool.Get(original));
+    }
+
+    /// <summary>
+    /// The game's <c>Interlocked.CompareExchange(ref object, object, object)</c> and <c>Interlocked.Exchange(ref object, object)</c>.
+    /// </summary>
+    private static unsafe class GameInterlocked
+    {
+        public static readonly nint CompareExchangeMethod = Find("CompareExchange", 3);
+        public static readonly nint ExchangeMethod = Find("Exchange", 2);
+        public static readonly delegate* unmanaged[Cdecl]<nint*, nint, nint, nint, nint> CompareExchange = (delegate* unmanaged[Cdecl]<nint*, nint, nint, nint, nint>)GetMethodPointer(CompareExchangeMethod);
+        public static readonly delegate* unmanaged[Cdecl]<nint*, nint, nint, nint> Exchange = (delegate* unmanaged[Cdecl]<nint*, nint, nint, nint>)GetMethodPointer(ExchangeMethod);
+
+        // The overload whose first parameter is ref object, whose other parameters are object, and which returns object.
+        private static nint Find(string name, uint parameterCount)
+        {
+            var interlocked = IL2CPP.il2cpp_class_from_name(IL2CPP.il2cpp_get_corlib(), "System.Threading", "Interlocked");
+            if (interlocked == nint.Zero)
+                return nint.Zero;
+
+            var iterator = nint.Zero;
+            nint method;
+            while ((method = IL2CPP.il2cpp_class_get_methods(interlocked, ref iterator)) != nint.Zero)
+            {
+                if (IL2CPP.il2cpp_method_get_name(method) != name
+                    || IL2CPP.il2cpp_method_get_param_count(method) != parameterCount
+                    || IL2CPP.il2cpp_method_is_generic(method)
+                    || !IsObject(IL2CPP.il2cpp_method_get_return_type(method), byRef: false))
+                {
+                    continue;
+                }
+
+                var matches = IsObject(IL2CPP.il2cpp_method_get_param(method, 0), byRef: true);
+                for (uint i = 1; matches && i < parameterCount; i++)
+                    matches = IsObject(IL2CPP.il2cpp_method_get_param(method, i), byRef: false);
+                if (matches)
+                    return method;
+            }
+            return nint.Zero;
+        }
+
+        private static bool IsObject(nint type, bool byRef)
+        {
+            return IL2CPP.il2cpp_type_get_type(type) == (int)Il2CppTypeEnum.IL2CPP_TYPE_OBJECT && IL2CPP.il2cpp_type_is_byref(type) == byRef;
+        }
+
+        private static nint GetMethodPointer(nint method)
+        {
+            return method == nint.Zero ? nint.Zero : UnityVersionHandler.Wrap((Il2CppMethodInfo*)method).MethodPointer;
+        }
     }
 
     // For unstripping the box instruction

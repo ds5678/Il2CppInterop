@@ -178,3 +178,9 @@ Return types are unchanged for two reasons:
 
 * There's no way to convert `ByReference<T>` to a managed reference for all type parameters.
 * Overloads can't differ only on the return type.
+
+## Predefined implementations
+
+Some methods cannot be invoked in Il2Cpp, so their unsafe implementation is predefined instead. It replaces a translated implementation as well.
+
+* `Interlocked.CompareExchange<T>` and `Interlocked.Exchange<T>`: Il2Cpp compiles them inline at each call, so their generic instances have no code. The compiler implements the accessors of field-like events with `CompareExchange<T>`. The implementations call `GenerationInternals.InterlockedCompareExchange<T>` and `GenerationInternals.InterlockedExchange<T>`, which call the game's `Interlocked` methods for `object`: like Il2Cpp's inlined code, they mark the location for an incremental collection after the atomic operation. If the game's build does not include them, the atomic operation is performed on the object pointer itself.
