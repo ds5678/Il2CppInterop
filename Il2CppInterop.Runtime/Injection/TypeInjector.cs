@@ -919,6 +919,8 @@ public static unsafe class TypeInjector
 
         // Has to be IL2CPP_TYPE_VALUETYPE because IL2CPP_TYPE_ENUM isn't used
         il2cppEnum.ThisArg.Type = il2cppEnum.ByValArg.Type = Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE;
+        // Newer versions of Il2Cpp box a value only if its type has this bit (Object::Box), and read it as a pointer otherwise.
+        il2cppEnum.ThisArg.ValueType = il2cppEnum.ByValArg.ValueType = true;
 
         il2cppEnum.Flags = (Il2CppClassAttributes)type.Attributes;
 
@@ -945,6 +947,7 @@ public static unsafe class TypeInjector
         enumValueType.Type = elementClass.ThisArg.Type;
         enumValueType.ByRef = elementClass.ThisArg.ByRef;
         enumValueType.Pinned = elementClass.ThisArg.Pinned;
+        enumValueType.ValueType = elementClass.ThisArg.ValueType;
 
         valueField.Type = enumValueType.TypePointer;
 
@@ -955,6 +958,7 @@ public static unsafe class TypeInjector
         enumConstType.Type = Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE;
         enumConstType.ByRef = false;
         enumConstType.Pinned = false;
+        enumConstType.ValueType = true;
 
         for (var i = 1; i < il2cppEnum.FieldCount; i++)
         {
