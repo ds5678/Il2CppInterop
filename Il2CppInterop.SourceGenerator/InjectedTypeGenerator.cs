@@ -105,6 +105,15 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
             writer.WriteLine($"global::Il2CppInterop.Common.IIl2CppType<{model.TypeName}>");
             writer.Indent--;
         }
+        else if (model.TypeKind == TypeKind.Interface)
+        {
+            // The type injector registers an interface as an Il2Cpp interface only if it extends Il2CppSystem.IObject.
+            writer.WriteLine($"{access} partial interface {model.TypeName} :");
+            writer.Indent++;
+            writer.WriteLine("global::Il2CppSystem.IObject,");
+            writer.WriteLine($"global::Il2CppInterop.Common.IIl2CppType<{model.TypeName}>");
+            writer.Indent--;
+        }
         else
         {
             writer.WriteLine($"{access} partial {model.TypeKind.GetTypeKeyword()} {model.TypeName} : global::Il2CppInterop.Common.IIl2CppType<{model.TypeName}>");
