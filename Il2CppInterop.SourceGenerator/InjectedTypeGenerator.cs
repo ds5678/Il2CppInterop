@@ -357,6 +357,10 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
             writer.WriteLine("}");
             writer.WriteLineNoTabs();
         }
+        else if (model.TypeKind == TypeKind.Interface)
+        {
+            // An interface keeps the default static members, as generated interfaces do, since it cannot be unboxed.
+        }
         else
         {
             // UnboxNative
