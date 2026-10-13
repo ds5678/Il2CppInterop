@@ -23,7 +23,7 @@ public static FieldType staticFieldName
     get => throw null;
     set => throw null;
 }
-public static ByReference<FieldType> GetStaticFieldAddress_staticFieldName() => throw null;
+public static ByReference<FieldType> GetFieldAddress_staticFieldName() => throw null;
 private static readonly IntPtr FieldInfoPtr_fieldIndex;
 ```
 

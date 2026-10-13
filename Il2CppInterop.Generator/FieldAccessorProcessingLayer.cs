@@ -122,7 +122,7 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                     }
                     else if (field.IsStatic && !type.IsIl2CppPrimitive && getStaticFieldAddress is not null)
                     {
-                        var name = GetNonConflictingName($"GetStaticFieldAddress_{field.Name}", existingNames);
+                        var name = GetNonConflictingName($"GetFieldAddress_{field.Name}", existingNames);
                         var getFieldAddress = new InjectedMethodAnalysisContext(
                             type,
                             name,
