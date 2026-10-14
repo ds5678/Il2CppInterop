@@ -1161,6 +1161,8 @@ public static unsafe class TypeInjector
         for (var i = 0; i < baseEnum.VTableCount; i++)
             vtable[i] = baseVTable[i];
 
+        SetInterfaceData(il2cppEnum, baseEnum, [], GetInterfaceOffsets(baseEnum));
+
         var enumNamesAndValues = GetEnumNamesAndValues(type);
         il2cppEnum.FieldCount = (ushort)(enumNamesAndValues.Length + 1); // value__
 
