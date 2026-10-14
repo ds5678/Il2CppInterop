@@ -181,14 +181,14 @@ internal static class Il2CppSystemTypeExtensions
 
     private static System.Reflection.Assembly? TryGetSystemAssembly(string il2CppAssemblyName)
     {
-        if (il2CppAssemblyName.StartsWith("Unity", System.StringComparison.Ordinal))
-        {
-            return TryGetSystemAssemblyImplementation(il2CppAssemblyName) ?? TryGetSystemAssemblyImplementation("Il2Cpp" + il2CppAssemblyName);
-        }
-        else
-        {
-            return TryGetSystemAssemblyImplementation("Il2Cpp" + il2CppAssemblyName) ?? TryGetSystemAssemblyImplementation(il2CppAssemblyName);
-        }
+        var (first, second) = il2CppAssemblyName.StartsWith("Unity", System.StringComparison.Ordinal)
+            ? (il2CppAssemblyName, "Il2Cpp" + il2CppAssemblyName)
+            : ("Il2Cpp" + il2CppAssemblyName, il2CppAssemblyName);
+
+        // An interop assembly that no code has used yet is not loaded, such as that of the game's own code when no mod
+        // refers to it, so it is loaded by name if no loaded assembly has either name.
+        return TryGetSystemAssemblyImplementation(first) ?? TryGetSystemAssemblyImplementation(second)
+            ?? TryLoadSystemAssembly(first) ?? TryLoadSystemAssembly(second);
 
         static System.Reflection.Assembly? TryGetSystemAssemblyImplementation(string exactName)
         {
@@ -206,6 +206,21 @@ internal static class Il2CppSystemTypeExtensions
                 }
             }
             return null;
+        }
+
+        static System.Reflection.Assembly? TryLoadSystemAssembly(string exactName)
+        {
+            var name = exactName.EndsWith(".dll", System.StringComparison.OrdinalIgnoreCase)
+                ? exactName.Substring(0, exactName.Length - 4)
+                : exactName;
+            try
+            {
+                return System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(name));
+            }
+            catch (System.Exception e) when (e is System.IO.FileNotFoundException or System.IO.FileLoadException or System.BadImageFormatException)
+            {
+                return null;
+            }
         }
     }
 
