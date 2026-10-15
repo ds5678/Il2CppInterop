@@ -433,6 +433,9 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         {
             if (member.IsStatic)
                 writer.WriteLine($"FieldInfoPtr_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\");");
+            else if (isValueType)
+                // il2cpp_field_get_offset includes the object header, which the value of a value type does not have
+                writer.WriteLine($"FieldOffset_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\")) - 2 * nint.Size;");
             else
                 writer.WriteLine($"FieldOffset_{member.Index} = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<{model.TypeName}>(), \"{member.Name}\"));");
         }
