@@ -86,8 +86,11 @@ public sealed class Il2CppArrayRank4<T> : Il2CppArrayBase<T>, IIl2CppType<Il2Cpp
     nint IIl2CppType.ObjectClass => Il2CppType.GetClassPointer<Il2CppArrayRank4<T>>();
     static void IIl2CppType<Il2CppArrayRank4<T>>.WriteToSpan(Il2CppArrayRank4<T>? value, Span<byte> span) => Il2CppType.WriteReference(value, span);
     static Il2CppArrayRank4<T>? IIl2CppType<Il2CppArrayRank4<T>>.ReadFromSpan(ReadOnlySpan<byte> span) => Il2CppType.ReadReference<Il2CppArrayRank4<T>>(span);
-    static Il2CppArrayRank4<T> IIl2CppType<Il2CppArrayRank4<T>>.Unbox(object? obj)
+    static Il2CppArrayRank4<T>? IIl2CppType<Il2CppArrayRank4<T>>.Unbox(object? obj)
     {
+        if (obj is null)
+            return null;
+
         if (obj is Il2CppArrayRank4<T> array)
             return array;
 
