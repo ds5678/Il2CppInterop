@@ -138,6 +138,8 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
             public ref Il2CppClass* DeclaringType => ref _->declaringType;
             public ref Il2CppClass* Class => ref _klassDummy;
             public ref Il2CppFieldInfo* Fields => ref _->fields;
+            public ref void* StaticFields => ref _->static_fields;
+            public ref uint StaticFieldsSize => ref _->static_fields_size;
             public ref Il2CppMethodInfo** Methods => ref _->methods;
             public ref Il2CppClass** ImplementedInterfaces => ref _->implementedInterfaces;
             public ref Il2CppRuntimeInterfaceOffsetPair* InterfaceOffsets => ref _->interfaceOffsets;

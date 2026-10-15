@@ -494,6 +494,7 @@ public static unsafe class TypeInjector
             // pointer), so that the fields in each element of an array are aligned too. The class records that alignment
             // (minimumAlignment), which Il2Cpp reads, like this method, to lay out a field of a value type.
             var alignment = type.IsValueType ? 1 : sizeof(Il2CppObject*);
+            var staticFieldIndices = new List<int>();
             for (var i = 0; i < classPointer.FieldCount; i++)
             {
                 var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
@@ -524,39 +525,74 @@ public static unsafe class TypeInjector
 
                 if (fieldAttributes.HasFlag(FieldAttributes.Static))
                 {
-                    fieldInfo.Offset = 0;
+                    staticFieldIndices.Add(i);
+                    continue;
+                }
+
+                int fieldSize, fieldAlignment;
+                if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
+                {
+                    fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out var valueAlignment);
+                    fieldAlignment = (int)valueAlignment;
+                    hasReferences |= UnityVersionHandler.Wrap((Il2CppClass*)fieldInfoClass).HasReferences;
                 }
                 else
                 {
-                    int fieldSize, fieldAlignment;
-                    if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
-                    {
-                        fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out var valueAlignment);
-                        fieldAlignment = (int)valueAlignment;
-                        hasReferences |= UnityVersionHandler.Wrap((Il2CppClass*)fieldInfoClass).HasReferences;
-                    }
-                    else
-                    {
-                        fieldSize = fieldAlignment = sizeof(Il2CppObject*);
-                        hasReferences = true;
-                    }
-                    fieldOffset = (fieldOffset + fieldAlignment - 1) / fieldAlignment * fieldAlignment;
-                    fieldInfo.Offset = fieldOffset;
-                    fieldOffset += fieldSize;
-                    alignment = Math.Max(alignment, fieldAlignment);
+                    fieldSize = fieldAlignment = sizeof(Il2CppObject*);
+                    hasReferences = true;
                 }
+                fieldOffset = (fieldOffset + fieldAlignment - 1) / fieldAlignment * fieldAlignment;
+                fieldInfo.Offset = fieldOffset;
+                fieldOffset += fieldSize;
+                alignment = Math.Max(alignment, fieldAlignment);
             }
             fieldOffset = (fieldOffset + alignment - 1) / alignment * alignment;
 
             classPointer.HasReferences = hasReferences;
             classPointer.MinimumAlignment = (byte)alignment;
             classPointer.Fields = il2cppFields;
-
             classPointer.InstanceSize = (uint)fieldOffset;
             classPointer.ActualSize = classPointer.InstanceSize;
             classPointer.SizeInited = true;
 
             NeedsFieldsSet.Remove(type);
+
+            if (staticFieldIndices.Count > 0)
+            {
+                SetStaticFields(classPointer, il2cppFields, fieldsToInject, staticFieldIndices);
+            }
+        }
+
+        // Laid out after the instance fields, as in Il2Cpp, so that a static field of an injected value type, even the class's own, has its final size.
+        static void SetStaticFields(INativeClassStruct classPointer, Il2CppFieldInfo* il2cppFields, (Type FieldType, FieldAttributes Attributes, string Name)[] fields, List<int> staticFieldIndices)
+        {
+            var staticFieldsSize = 0;
+            foreach (var i in staticFieldIndices)
+            {
+                var fieldType = fields[i].FieldType;
+                var fieldInfoClass = Il2CppType.GetClassPointer(fieldType);
+                int fieldSize, fieldAlignment;
+                if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
+                {
+                    if (NeedsFieldsSet.Contains(fieldType))
+                    {
+                        SetFields(fieldType, UnityVersionHandler.Wrap((Il2CppClass*)fieldInfoClass));
+                    }
+                    fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out var valueAlignment);
+                    fieldAlignment = (int)valueAlignment;
+                }
+                else
+                {
+                    fieldSize = fieldAlignment = sizeof(Il2CppObject*);
+                }
+                staticFieldsSize = (staticFieldsSize + fieldAlignment - 1) / fieldAlignment * fieldAlignment;
+                UnityVersionHandler.Wrap(il2cppFields + i * UnityVersionHandler.FieldInfoSize()).Offset = staticFieldsSize;
+                staticFieldsSize += fieldSize;
+            }
+            if (staticFieldsSize > 0)
+            {
+                AllocateStaticFields(classPointer, staticFieldsSize);
+            }
         }
     }
 
@@ -1277,6 +1313,22 @@ public static unsafe class TypeInjector
         var @delegate = TrampolineBuilder.CreateTrampoline(monoMethod, callVirt);
         GCHandle.Alloc(@delegate); // pin it forever
         return @delegate;
+    }
+
+    /// <summary>
+    /// Allocates the block of the static fields of an injected class, which Il2Cpp reads and writes at the offsets of the fields.
+    /// </summary>
+    /// <remarks>
+    /// Il2Cpp allocates the static fields of its own classes in memory that its garbage collector scans for references and does
+    /// not move. The elements of an array of objects are such memory, and a handle keeps the array alive for as long as the class.
+    /// </remarks>
+    private static void AllocateStaticFields(INativeClassStruct classPointer, int size)
+    {
+        var slots = (size + sizeof(Il2CppObject*) - 1) / sizeof(Il2CppObject*);
+        var array = IL2CPP.il2cpp_array_new(Il2CppType.GetClassPointer<Il2CppSystem.Object>(), (ulong)slots);
+        IL2CPP.il2cpp_gchandle_new(array, false);
+        classPointer.StaticFields = (byte*)array + sizeof(Il2CppObject) + sizeof(void*) /* bounds */ + sizeof(nuint) /* max_length */;
+        classPointer.StaticFieldsSize = (uint)size;
     }
 
     private static (string ImageName, string Namespace, string Name) GetFullyQualifiedName(Type type)
