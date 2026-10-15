@@ -208,6 +208,7 @@ public static unsafe class TypeInjector
                 classPointer.ActualSize = classPointer.InstanceSize = baseClassPointer.InstanceSize;
                 classPointer.SizeInited = true;
             }
+            SetTypeHierarchy(classPointer, baseClassPointer);
 
             //var properties = GetIl2CppProperties(type).ToArray();
 
@@ -598,6 +599,28 @@ public static unsafe class TypeInjector
             currentClassPointer = UnityVersionHandler.Wrap(currentClassPointer.Parent);
         }
         return dict;
+    }
+
+    /// <summary>
+    /// Sets the classes that a class derives from, starting with <c>System.Object</c> and ending with the class itself.
+    /// </summary>
+    /// <remarks>
+    /// Il2Cpp checks casts to a class with the type hierarchy, which it only sets up in <c>Class::Init</c>, and injected classes are already initialized.
+    /// </remarks>
+    /// <param name="classPointer">The class.</param>
+    /// <param name="baseClassPointer">The base class, whose type hierarchy is set, or null for an interface.</param>
+    private static void SetTypeHierarchy(INativeClassStruct classPointer, INativeClassStruct? baseClassPointer)
+    {
+        var depth = baseClassPointer is null ? 1 : baseClassPointer.TypeHierarchyDepth + 1;
+        var typeHierarchy = (Il2CppClass**)Marshal.AllocHGlobal(depth * sizeof(Il2CppClass*));
+        for (var i = 0; i < depth - 1; i++)
+        {
+            typeHierarchy[i] = baseClassPointer!.TypeHierarchy[i];
+        }
+        typeHierarchy[depth - 1] = classPointer.ClassPointer;
+
+        classPointer.TypeHierarchyDepth = (byte)depth;
+        classPointer.TypeHierarchy = typeHierarchy;
     }
 
     private static IEnumerable<MethodInfo> GetAllIl2CppMethods([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllMethods)] Type type)
