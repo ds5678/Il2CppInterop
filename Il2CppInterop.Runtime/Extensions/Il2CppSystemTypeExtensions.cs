@@ -216,7 +216,12 @@ internal static class Il2CppSystemTypeExtensions
     private static bool IsTypeDefinition(Type type)
     {
         // IsTypeDefinition has a simple implementation and is frequently stripped, so we implement it here to avoid relying on unstripping.
-        return !type.HasElementType && !(type.IsGenericType && !type.IsGenericTypeDefinition) && !type.IsGenericParameter;
+        return !type.HasElementType && !IsConstructedGenericType(type) && !type.IsGenericParameter;
+    }
+
+    private static bool IsConstructedGenericType(Type type)
+    {
+        return type.IsGenericType && !type.IsGenericTypeDefinition;
     }
 
     private static bool IsSZArray(Type type)
