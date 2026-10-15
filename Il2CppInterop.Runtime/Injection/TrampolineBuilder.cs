@@ -29,9 +29,11 @@ public static class TrampolineBuilder
     // Il2CppSystem's primitive types.
     // Native code passes them like the corresponding .NET primitives: in particular, float and double are passed and
     // returned in floating-point registers, whereas a struct of the same size is passed in an integer register.
+    // Boolean is represented by byte: by default, the marshaller converts a bool to a four-byte Win32 BOOL.
     // Char is represented by ushort: by default, the marshaller converts a char to a one-byte ANSI character.
     private static readonly Dictionary<Type, Type> _primitiveTypes = new()
     {
+        [typeof(Il2CppSystem.Boolean)] = typeof(byte),
         [typeof(Il2CppSystem.SByte)] = typeof(sbyte),
         [typeof(Il2CppSystem.Byte)] = typeof(byte),
         [typeof(Il2CppSystem.Int16)] = typeof(short),
@@ -86,11 +88,6 @@ public static class TrampolineBuilder
 
             // General reference type
             return typeof(IntPtr);
-        }
-        else if (managedType == typeof(Il2CppSystem.Boolean))
-        {
-            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
-            return typeof(byte);
         }
         else if (_primitiveTypes.TryGetValue(managedType, out var primitiveType))
         {
