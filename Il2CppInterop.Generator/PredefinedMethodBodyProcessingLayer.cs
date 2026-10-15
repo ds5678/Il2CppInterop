@@ -16,28 +16,48 @@ public class PredefinedMethodBodyProcessingLayer : Cpp2IlProcessingLayer
         var byReference_GetValue = byReference.GetMethodByName(nameof(ByReference.GetValue));
 
         var generationInternals = appContext.ResolveTypeOrThrow(typeof(GenerationInternals));
-        var interlockedCompareExchange = generationInternals.GetMethodByName(nameof(GenerationInternals.InterlockedCompareExchange));
-        var interlockedExchange = generationInternals.GetMethodByName(nameof(GenerationInternals.InterlockedExchange));
 
         // Il2Cpp compiles Interlocked.CompareExchange<T> and Interlocked.Exchange<T> inline at each call, so their generic instances have no code to invoke.
         var interlocked = appContext.Il2CppMscorlib.GetTypeByFullName("Il2CppSystem.Threading.Interlocked");
         if (interlocked is not null)
         {
+            var iObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
             foreach (var method in interlocked.Methods)
             {
                 if (method.IsInjected || method.GenericParameters.Count != 1)
                     continue;
 
+                // The methods with object support call the game's overload for object, which only the game's build can include.
                 var replacement = method.DefaultName switch
                 {
-                    "CompareExchange" => interlockedCompareExchange,
-                    "Exchange" => interlockedExchange,
+                    "CompareExchange" => HasObjectOverload(interlocked, "CompareExchange", 3, iObject)
+                        ? nameof(GenerationInternals.InterlockedCompareExchangeWithObjectSupport)
+                        : nameof(GenerationInternals.InterlockedCompareExchangeWithoutObjectSupport),
+                    "Exchange" => HasObjectOverload(interlocked, "Exchange", 2, iObject)
+                        ? nameof(GenerationInternals.InterlockedExchangeWithObjectSupport)
+                        : nameof(GenerationInternals.InterlockedExchangeWithoutObjectSupport),
                     _ => null,
                 };
                 if (replacement is not null)
-                    ReplaceImplementation(method, replacement, byReference_GetValue);
+                    ReplaceImplementation(method, generationInternals.GetMethodByName(replacement), byReference_GetValue);
             }
         }
+    }
+
+    /// <summary>
+    /// Whether the game's build includes the overload of <paramref name="name"/> for object, such as <c>CompareExchange(ref object, object, object)</c>.
+    /// </summary>
+    private static bool HasObjectOverload(TypeAnalysisContext interlocked, string name, int parameterCount, TypeAnalysisContext iObject)
+    {
+        return interlocked.Methods.Any(method => method.DefaultName == name
+            && !method.IsInjected
+            && !method.IsUnstripped
+            && method.GenericParameters.Count == 0
+            && method.Parameters.Count == parameterCount
+            && method.ReturnType == iObject
+            && method.Parameters[0] is { DefaultParameterType: ByRefTypeAnalysisContext, ParameterType: GenericInstanceTypeAnalysisContext { GenericArguments.Count: 1 } byReference }
+            && byReference.GenericArguments[0] == iObject
+            && method.Parameters.Skip(1).All(parameter => parameter.ParameterType == iObject));
     }
 
     /// <summary>

@@ -1,6 +1,8 @@
-﻿namespace Il2CppSystem;
+﻿using Il2CppInterop.Common;
 
-public interface IObject
+namespace Il2CppSystem;
+
+public interface IObject : IIl2CppType<IObject>
 {
     Boolean Equals(IObject @object) => default;
     Int32 GetIl2CppHashCode() => default;
