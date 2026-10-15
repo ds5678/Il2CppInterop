@@ -11,6 +11,7 @@ using Il2CppInterop.Common;
 using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection.Hooks;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Structs;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.Class;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
@@ -155,7 +156,13 @@ public static unsafe class TypeInjector
             SetFields(type, classPointer);
         }
 
-        static void EnsureNativeClassPointerNotNull(Type type) => GetClassPointerNotNull(type);
+        static void EnsureNativeClassPointerNotNull(Type type)
+        {
+            // ByReference types have no class, so the class of the type they refer to is needed instead.
+            while (typeof(IByReference).IsAssignableFrom(type))
+                type = type.GetGenericArguments()[0];
+            GetClassPointerNotNull(type);
+        }
 
         static nint GetClassPointerNotNull(Type type)
         {
