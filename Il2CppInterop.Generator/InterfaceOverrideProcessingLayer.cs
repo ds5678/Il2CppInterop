@@ -120,7 +120,7 @@ public class InterfaceOverrideProcessingLayer : Cpp2IlProcessingLayer
         {
             if (index >= interfaceOffset.offset)
             {
-                var interfaceTypeContext = interfaceOffset.Type.ToContext(type.AppContext);
+                var interfaceTypeContext = Il2CppTypeToContext.ResolveIl2CppType(type.AppContext, interfaceOffset.Type);
                 if (interfaceTypeContext != null && interfaceTypeContext.TryGetMethodInSlot(index - interfaceOffset.offset, out var method))
                 {
                     return method;
