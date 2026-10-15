@@ -26,6 +26,29 @@ public static class TrampolineBuilder
     private static readonly ModuleBuilder _delegateModule = _delegateAssembly.DefineDynamicModule("Il2CppTrampolineDelegates");
     private static readonly ConcurrentDictionary<TrampolineSignatureHash, Type> ourDelegateTypes = new();
 
+    // Il2CppSystem's primitive types.
+    // Native code passes them like the corresponding .NET primitives: in particular, float and double are passed and
+    // returned in floating-point registers, whereas a struct of the same size is passed in an integer register.
+    // Boolean is represented by byte: by default, the marshaller converts a bool to a four-byte Win32 BOOL.
+    // Char is represented by ushort: by default, the marshaller converts a char to a one-byte ANSI character.
+    private static readonly Dictionary<Type, Type> _primitiveTypes = new()
+    {
+        [typeof(Il2CppSystem.Boolean)] = typeof(byte),
+        [typeof(Il2CppSystem.SByte)] = typeof(sbyte),
+        [typeof(Il2CppSystem.Byte)] = typeof(byte),
+        [typeof(Il2CppSystem.Int16)] = typeof(short),
+        [typeof(Il2CppSystem.UInt16)] = typeof(ushort),
+        [typeof(Il2CppSystem.Char)] = typeof(ushort),
+        [typeof(Il2CppSystem.Int32)] = typeof(int),
+        [typeof(Il2CppSystem.UInt32)] = typeof(uint),
+        [typeof(Il2CppSystem.Int64)] = typeof(long),
+        [typeof(Il2CppSystem.UInt64)] = typeof(ulong),
+        [typeof(Il2CppSystem.Single)] = typeof(float),
+        [typeof(Il2CppSystem.Double)] = typeof(double),
+        [typeof(Il2CppSystem.IntPtr)] = typeof(nint),
+        [typeof(Il2CppSystem.UIntPtr)] = typeof(nuint),
+    };
+
     private static Type GetFixedSizeStructType(int size)
     {
         if (_fixedStructCache.TryGetValue(size, out var result))
@@ -66,10 +89,9 @@ public static class TrampolineBuilder
             // General reference type
             return typeof(IntPtr);
         }
-        else if (managedType == typeof(Il2CppSystem.Boolean))
+        else if (_primitiveTypes.TryGetValue(managedType, out var primitiveType))
         {
-            // bool is byte in Il2Cpp, but int in CLR => force size to be correct
-            return typeof(byte);
+            return primitiveType;
         }
         else if (typeof(IByReference).IsAssignableFrom(managedType))
         {
