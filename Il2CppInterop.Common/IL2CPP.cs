@@ -435,6 +435,31 @@ public static unsafe partial class IL2CPP
 
     [LibraryImport("GameAssembly")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool il2cpp_gc_is_incremental();
+
+    /// <summary>
+    /// Whether a reference that is stored in Il2Cpp's heap has to go through <see cref="il2cpp_gc_wbarrier_set_field"/>.
+    /// </summary>
+    /// <remarks>
+    /// An incremental collection finds a reference that was stored while it ran only if the store went through the write
+    /// barrier, as it does in Il2Cpp's own code. Il2Cpp collects incrementally if the game's build enables it (Unity 2019 and later).
+    /// </remarks>
+    public static bool UsesWriteBarriers { get; } = HasExport(nameof(il2cpp_gc_wbarrier_set_field))
+        && HasExport(nameof(il2cpp_gc_is_incremental))
+        && il2cpp_gc_is_incremental();
+
+    private static bool HasExport(string name)
+    {
+        if (!NativeLibrary.TryLoad("GameAssembly", out var handle))
+            return false;
+        var result = NativeLibrary.TryGetExport(handle, name, out _);
+        NativeLibrary.Free(handle);
+        return result;
+    }
+
+    [LibraryImport("GameAssembly")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial nint il2cpp_gchandle_new(nint obj, [MarshalAs(UnmanagedType.I1)] bool pinned);
 
     [LibraryImport("GameAssembly")]

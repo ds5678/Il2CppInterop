@@ -92,7 +92,7 @@ public static partial class GenerationInternals
     {
         ArgumentNullException.ThrowIfNull(address);
         var objectPointer = obj?.BoxNative() ?? ObjectPointer.Null;
-        *(nint*)address = (nint)objectPointer;
+        Il2CppType.WriteObjectPointer((nint)objectPointer, new Span<byte>(address, IntPtr.Size));
     }
 
     // For unstripping the box instruction
