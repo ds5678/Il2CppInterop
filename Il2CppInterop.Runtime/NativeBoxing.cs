@@ -33,8 +33,11 @@ public static class NativeBoxing
         if (pointer != ObjectPointer.Null)
         {
             result.hasValue = true;
-            result.value = T.UnboxNative(pointer);
+            result.value = UnboxNative<T>(pointer);
         }
         return result;
     }
+
+    // IValueType extends IObject, which is an IIl2CppType<IObject> too, so T.UnboxNative would be ambiguous where T is an IValueType.
+    private static T? UnboxNative<T>(ObjectPointer pointer) where T : IIl2CppType<T> => T.UnboxNative(pointer);
 }
