@@ -111,7 +111,7 @@ public static partial class GenerationInternals
             return InterlockedCompareExchangeValue(location1, value, comparand);
         if (location1.IsNull)
             throw new NullReferenceException();
-        var original = InterlockedCompareExchangeObject(null, new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value, (Il2CppSystem.IObject?)(object?)comparand);
+        var original = InterlockedCompareExchangeObject(new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value, (Il2CppSystem.IObject?)(object?)comparand);
         return T.Unbox(original);
     }
 
@@ -128,7 +128,7 @@ public static partial class GenerationInternals
             return InterlockedExchangeValue(location1, value);
         if (location1.IsNull)
             throw new NullReferenceException();
-        var original = InterlockedExchangeObject(null, new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value);
+        var original = InterlockedExchangeObject(new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value);
         return T.Unbox(original);
     }
 
@@ -139,64 +139,64 @@ public static partial class GenerationInternals
         throw new NotSupportedException("The game's build does not include Interlocked.Exchange(ref object, object), which a reference type requires.");
     }
 
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "CompareExchange")]
-    private static extern Il2CppSystem.IObject? InterlockedCompareExchangeObject([UnsafeAccessorType(Il2CppInterlocked)] object? interlocked, ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value, Il2CppSystem.IObject? comparand);
+    // The accessors are local functions of methods that are not generic: a local function of a generic method is generic too,
+    // and UnsafeAccessor does not bind a generic accessor to a method that is not generic.
 
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "Exchange")]
-    private static extern Il2CppSystem.IObject? InterlockedExchangeObject([UnsafeAccessorType(Il2CppInterlocked)] object? interlocked, ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value);
+    private static Il2CppSystem.IObject? InterlockedCompareExchangeObject(ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value, Il2CppSystem.IObject? comparand)
+    {
+        return CompareExchange(null, location1, value, comparand);
+
+        [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "CompareExchange")]
+        static extern Il2CppSystem.IObject? CompareExchange([UnsafeAccessorType(Il2CppInterlocked)] object? interlocked, ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value, Il2CppSystem.IObject? comparand);
+    }
+
+    private static Il2CppSystem.IObject? InterlockedExchangeObject(ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value)
+    {
+        return Exchange(null, location1, value);
+
+        [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "Exchange")]
+        static extern Il2CppSystem.IObject? Exchange([UnsafeAccessorType(Il2CppInterlocked)] object? interlocked, ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value);
+    }
 
     private const string Il2CppInterlocked = "Il2CppSystem.Threading.Interlocked, Il2Cppmscorlib";
 
     private static unsafe T? InterlockedCompareExchangeValue<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
     {
-        var location = GetValueLocation(location1);
+        ThrowIfNotCompatibleWithInterlocked<T>();
+        var location = location1.ToPointer();
         return T.Size switch
         {
-            sizeof(byte) => FromBits<T, byte>(Interlocked.CompareExchange(ref *(byte*)location, ToBits<T, byte>(value), ToBits<T, byte>(comparand))),
-            sizeof(ushort) => FromBits<T, ushort>(Interlocked.CompareExchange(ref *(ushort*)location, ToBits<T, ushort>(value), ToBits<T, ushort>(comparand))),
-            sizeof(uint) => FromBits<T, uint>(Interlocked.CompareExchange(ref *(uint*)location, ToBits<T, uint>(value), ToBits<T, uint>(comparand))),
-            _ => FromBits<T, ulong>(Interlocked.CompareExchange(ref *(ulong*)location, ToBits<T, ulong>(value), ToBits<T, ulong>(comparand))),
+            sizeof(byte) => Unsafe.BitCast<byte, T>(Interlocked.CompareExchange(ref *(byte*)location, Unsafe.BitCast<T, byte>(value!), Unsafe.BitCast<T, byte>(comparand!))),
+            sizeof(ushort) => Unsafe.BitCast<ushort, T>(Interlocked.CompareExchange(ref *(ushort*)location, Unsafe.BitCast<T, ushort>(value!), Unsafe.BitCast<T, ushort>(comparand!))),
+            sizeof(uint) => Unsafe.BitCast<uint, T>(Interlocked.CompareExchange(ref *(uint*)location, Unsafe.BitCast<T, uint>(value!), Unsafe.BitCast<T, uint>(comparand!))),
+            _ => Unsafe.BitCast<ulong, T>(Interlocked.CompareExchange(ref *(ulong*)location, Unsafe.BitCast<T, ulong>(value!), Unsafe.BitCast<T, ulong>(comparand!))),
         };
     }
 
     private static unsafe T? InterlockedExchangeValue<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
     {
-        var location = GetValueLocation(location1);
+        ThrowIfNotCompatibleWithInterlocked<T>();
+        var location = location1.ToPointer();
         return T.Size switch
         {
-            sizeof(byte) => FromBits<T, byte>(Interlocked.Exchange(ref *(byte*)location, ToBits<T, byte>(value))),
-            sizeof(ushort) => FromBits<T, ushort>(Interlocked.Exchange(ref *(ushort*)location, ToBits<T, ushort>(value))),
-            sizeof(uint) => FromBits<T, uint>(Interlocked.Exchange(ref *(uint*)location, ToBits<T, uint>(value))),
-            _ => FromBits<T, ulong>(Interlocked.Exchange(ref *(ulong*)location, ToBits<T, ulong>(value))),
+            sizeof(byte) => Unsafe.BitCast<byte, T>(Interlocked.Exchange(ref *(byte*)location, Unsafe.BitCast<T, byte>(value!))),
+            sizeof(ushort) => Unsafe.BitCast<ushort, T>(Interlocked.Exchange(ref *(ushort*)location, Unsafe.BitCast<T, ushort>(value!))),
+            sizeof(uint) => Unsafe.BitCast<uint, T>(Interlocked.Exchange(ref *(uint*)location, Unsafe.BitCast<T, uint>(value!))),
+            _ => Unsafe.BitCast<ulong, T>(Interlocked.Exchange(ref *(ulong*)location, Unsafe.BitCast<T, ulong>(value!))),
         };
     }
 
-    // The atomic operations of .NET's Interlocked apply to values of 1, 2, 4 or 8 bytes, and a value with references would
-    // need the mark for an incremental collection.
-    private static unsafe void* GetValueLocation<T>(ByReference<T> location1) where T : IIl2CppType<T>
+    // .NET's Interlocked operates on the value itself, so the value type must be laid out as in Il2Cpp, as primitive types and
+    // enums are, with a size of 1, 2, 4 or 8 bytes, and it must not hold references, which would need the mark for an
+    // incremental collection.
+    private static void ThrowIfNotCompatibleWithInterlocked<T>() where T : IIl2CppType<T>
     {
-        if (location1.IsNull)
-            throw new NullReferenceException();
-        if (T.Size is not (sizeof(byte) or sizeof(ushort) or sizeof(uint) or sizeof(ulong))
-            || UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer<T>()).HasReferences)
+        if (T.Size != Unsafe.SizeOf<T>()
+            || T.Size is not (sizeof(byte) or sizeof(ushort) or sizeof(uint) or sizeof(ulong))
+            || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
-            throw new NotSupportedException($"Interlocked does not support {typeof(T)}: a value type must have a size of 1, 2, 4 or 8 bytes and no references.");
+            throw new NotSupportedException($"Interlocked does not support {typeof(T)}: a value type must be laid out in Il2Cpp as in .NET, with a size of 1, 2, 4 or 8 bytes and no references.");
         }
-        return location1.ToPointer();
-    }
-
-    private static TBits ToBits<T, TBits>(T? value) where T : IIl2CppType<T> where TBits : unmanaged
-    {
-        Span<byte> span = stackalloc byte[Unsafe.SizeOf<TBits>()];
-        T.WriteToSpan(value, span);
-        return MemoryMarshal.Read<TBits>(span);
-    }
-
-    private static T? FromBits<T, TBits>(TBits bits) where T : IIl2CppType<T> where TBits : unmanaged
-    {
-        Span<byte> span = stackalloc byte[Unsafe.SizeOf<TBits>()];
-        MemoryMarshal.Write(span, in bits);
-        return T.ReadFromSpan(span);
     }
 
     // For unstripping the box instruction
