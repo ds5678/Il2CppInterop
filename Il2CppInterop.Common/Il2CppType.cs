@@ -144,7 +144,7 @@ public static class Il2CppType
     }
 
     /// <summary>
-    /// Stores a pointer to an Il2Cpp object, through the write barrier of Il2Cpp's garbage collector when it needs one.
+    /// Stores a pointer to an Il2Cpp object, through the write barrier of Il2Cpp's garbage collector when the game exports it.
     /// </summary>
     /// <remarks>
     /// The location can be in Il2Cpp's heap, such as in a field of an object or in an array (see <see cref="IL2CPP.UsesWriteBarriers"/>).
