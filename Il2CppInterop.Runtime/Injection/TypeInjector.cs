@@ -635,13 +635,16 @@ public static unsafe class TypeInjector
                 fields.Add((fieldType, fieldAttributes, fieldName));
             }
         }
-        // [Il2CppField] is optional for the instance fields of injected value types, as their source generator treats them.
-        // The generator of the interop assemblies marks the fields of unstripped value types, some of which have unmarked storage fields.
-        var isInjectedValueType = type.IsValueType && type.IsDefined(typeof(InjectedTypeAttribute), false);
-        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        // Every instance field of a value type is an Il2Cpp field, with or without [Il2CppField], except a field of a pointer
+        // type: the interop generator stores each pointer field of a value type in one, behind an [Il2CppField] property,
+        // which is registered above.
+        if (type.IsValueType)
         {
-            if (IsIl2CppField(field) || isInjectedValueType)
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
+                if (field.FieldType.IsPointer)
+                    continue;
+
                 var fieldAttribute = field.GetCustomAttribute<Il2CppFieldAttribute>();
                 var fieldName = fieldAttribute?.Name ?? field.Name;
                 var fieldType = field.FieldType;
@@ -948,12 +951,6 @@ public static unsafe class TypeInjector
     {
         // Has Il2CppFieldAttribute
         return property.GetCustomAttribute<Il2CppFieldAttribute>() is not null;
-    }
-
-    private static bool IsIl2CppField(FieldInfo field)
-    {
-        // Has Il2CppFieldAttribute
-        return field.GetCustomAttribute<Il2CppFieldAttribute>() is not null;
     }
 
     private static bool IsIl2CppProperty(PropertyInfo property)
