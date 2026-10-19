@@ -19,6 +19,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
         ref ushort InterfaceCount { get; }
         ref ushort InterfaceOffsetsCount { get; }
         ref byte TypeHierarchyDepth { get; }
+        ref byte MinimumAlignment { get; }
         ref int NativeSize { get; }
         ref uint ActualSize { get; }
         ref ushort MethodCount { get; }

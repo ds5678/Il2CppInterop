@@ -26,6 +26,7 @@ internal static unsafe class GenericTypeInflater
         inflatedClassPointer.InterfaceCount = genericClassPointer.InterfaceCount;
         inflatedClassPointer.InterfaceOffsetsCount = genericClassPointer.InterfaceOffsetsCount;
         inflatedClassPointer.TypeHierarchyDepth = genericClassPointer.TypeHierarchyDepth;
+        inflatedClassPointer.MinimumAlignment = genericClassPointer.MinimumAlignment;
         inflatedClassPointer.NativeSize = genericClassPointer.NativeSize;
         inflatedClassPointer.ActualSize = genericClassPointer.ActualSize;
         inflatedClassPointer.MethodCount = genericClassPointer.MethodCount;

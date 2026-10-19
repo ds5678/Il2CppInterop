@@ -480,7 +480,8 @@ public static unsafe class TypeInjector
             // and the collector only finds references at aligned offsets.
             var hasReferences = classPointer.Parent is not null && UnityVersionHandler.Wrap(classPointer.Parent).HasReferences;
             // As in Il2Cpp, the size is a multiple of the largest alignment of the fields (for a class, at least that of a
-            // pointer), so that the fields in each element of an array are aligned too.
+            // pointer), so that the fields in each element of an array are aligned too. The class records that alignment
+            // (minimumAlignment), which Il2Cpp reads, like this method, to lay out a field of a value type.
             var alignment = type.IsValueType ? 1 : sizeof(Il2CppObject*);
             for (var i = 0; i < classPointer.FieldCount; i++)
             {
@@ -520,8 +521,7 @@ public static unsafe class TypeInjector
                     if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
                     {
                         fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out var valueAlignment);
-                        // Injected value types have no alignment of their own, so they are aligned like a pointer.
-                        fieldAlignment = valueAlignment > 0 ? (int)valueAlignment : sizeof(Il2CppObject*);
+                        fieldAlignment = (int)valueAlignment;
                         hasReferences |= UnityVersionHandler.Wrap((Il2CppClass*)fieldInfoClass).HasReferences;
                     }
                     else
@@ -538,6 +538,7 @@ public static unsafe class TypeInjector
             fieldOffset = (fieldOffset + alignment - 1) / alignment * alignment;
 
             classPointer.HasReferences = hasReferences;
+            classPointer.MinimumAlignment = (byte)alignment;
             classPointer.Fields = il2cppFields;
 
             classPointer.InstanceSize = (uint)fieldOffset;
@@ -867,8 +868,10 @@ public static unsafe class TypeInjector
         il2cppEnum.Image = AssemblyInjector.GetOrCreateImage(imageName).ImagePointer;
         il2cppEnum.Class = il2cppEnum.CastClass = il2cppEnum.ElementClass = elementClass.ClassPointer;
         il2cppEnum.Parent = baseEnum.ClassPointer;
-        il2cppEnum.ActualSize = il2cppEnum.InstanceSize =
-            (uint)(baseEnum.InstanceSize + GetEnumElementSize(elementClass.ByValArg.Type));
+        var elementSize = GetEnumElementSize(elementClass.ByValArg.Type);
+        il2cppEnum.ActualSize = il2cppEnum.InstanceSize = (uint)(baseEnum.InstanceSize + elementSize);
+        // An enum is aligned like its underlying integer type, whose alignment is its size.
+        il2cppEnum.MinimumAlignment = (byte)elementSize;
         il2cppEnum.NativeSize = -1;
 
         il2cppEnum.ValueType = true;

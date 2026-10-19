@@ -101,6 +101,7 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         new ByRefWrapper("ushort", "InterfaceCount", ["interfaces_count"]),
         new ByRefWrapper("ushort", "InterfaceOffsetsCount", ["interface_offsets_count"]),
         new ByRefWrapper("byte", "TypeHierarchyDepth", ["typeHierarchyDepth"]),
+        new ByRefWrapper("byte", "MinimumAlignment", ["minimumAlignment"]),
         new ByRefWrapper("int", "NativeSize", ["native_size"]),
         new ByRefWrapper("uint", "ActualSize", ["actualSize"]),
         new ByRefWrapper("ushort", "MethodCount", ["method_count"]),
