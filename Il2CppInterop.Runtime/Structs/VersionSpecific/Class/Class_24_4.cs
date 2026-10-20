@@ -131,6 +131,7 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
             public ref ushort InterfaceCount => ref _->interfaces_count;
             public ref ushort InterfaceOffsetsCount => ref _->interface_offsets_count;
             public ref byte TypeHierarchyDepth => ref _->typeHierarchyDepth;
+            public ref byte MinimumAlignment => ref _->minimumAlignment;
             public ref int NativeSize => ref _->native_size;
             public ref uint ActualSize => ref _->actualSize;
             public ref ushort MethodCount => ref _->method_count;

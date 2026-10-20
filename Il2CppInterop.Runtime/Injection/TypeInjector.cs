@@ -484,6 +484,13 @@ public static unsafe class TypeInjector
 
             var il2cppFields = (Il2CppFieldInfo*)Marshal.AllocHGlobal(classPointer.FieldCount * UnityVersionHandler.FieldInfoSize());
             var fieldOffset = (int)classPointer.InstanceSize;
+            // Il2Cpp allocates the objects of a class without references so that the garbage collector does not scan them,
+            // and the collector only finds references at aligned offsets.
+            var hasReferences = classPointer.Parent is not null && UnityVersionHandler.Wrap(classPointer.Parent).HasReferences;
+            // As in Il2Cpp, the size is a multiple of the largest alignment of the fields (for a class, at least that of a
+            // pointer), so that the fields in each element of an array are aligned too. The class records that alignment
+            // (minimumAlignment), which Il2Cpp reads, like this method, to lay out a field of a value type.
+            var alignment = type.IsValueType ? 1 : sizeof(Il2CppObject*);
             for (var i = 0; i < classPointer.FieldCount; i++)
             {
                 var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
@@ -518,19 +525,28 @@ public static unsafe class TypeInjector
                 }
                 else
                 {
-                    fieldInfo.Offset = fieldOffset;
+                    int fieldSize, fieldAlignment;
                     if (IL2CPP.il2cpp_class_is_valuetype(fieldInfoClass))
                     {
-                        var fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out _);
-                        fieldOffset += fieldSize;
+                        fieldSize = IL2CPP.il2cpp_class_value_size(fieldInfoClass, out var valueAlignment);
+                        fieldAlignment = (int)valueAlignment;
+                        hasReferences |= UnityVersionHandler.Wrap((Il2CppClass*)fieldInfoClass).HasReferences;
                     }
                     else
                     {
-                        fieldOffset += sizeof(Il2CppObject*);
+                        fieldSize = fieldAlignment = sizeof(Il2CppObject*);
+                        hasReferences = true;
                     }
+                    fieldOffset = (fieldOffset + fieldAlignment - 1) / fieldAlignment * fieldAlignment;
+                    fieldInfo.Offset = fieldOffset;
+                    fieldOffset += fieldSize;
+                    alignment = Math.Max(alignment, fieldAlignment);
                 }
             }
+            fieldOffset = (fieldOffset + alignment - 1) / alignment * alignment;
 
+            classPointer.HasReferences = hasReferences;
+            classPointer.MinimumAlignment = (byte)alignment;
             classPointer.Fields = il2cppFields;
 
             classPointer.InstanceSize = (uint)fieldOffset;
@@ -882,8 +898,10 @@ public static unsafe class TypeInjector
         il2cppEnum.Image = AssemblyInjector.GetOrCreateImage(imageName).ImagePointer;
         il2cppEnum.Class = il2cppEnum.CastClass = il2cppEnum.ElementClass = elementClass.ClassPointer;
         il2cppEnum.Parent = baseEnum.ClassPointer;
-        il2cppEnum.ActualSize = il2cppEnum.InstanceSize =
-            (uint)(baseEnum.InstanceSize + GetEnumElementSize(elementClass.ByValArg.Type));
+        var elementSize = GetEnumElementSize(elementClass.ByValArg.Type);
+        il2cppEnum.ActualSize = il2cppEnum.InstanceSize = (uint)(baseEnum.InstanceSize + elementSize);
+        // An enum is aligned like its underlying integer type, whose alignment is its size.
+        il2cppEnum.MinimumAlignment = (byte)elementSize;
         il2cppEnum.NativeSize = -1;
 
         il2cppEnum.ValueType = true;
