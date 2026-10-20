@@ -21,19 +21,17 @@ public class PredefinedMethodBodyProcessingLayer : Cpp2IlProcessingLayer
         var interlocked = appContext.Il2CppMscorlib.GetTypeByFullName("Il2CppSystem.Threading.Interlocked");
         if (interlocked is not null)
         {
-            var iObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.IObject");
             foreach (var method in interlocked.Methods)
             {
                 if (method.IsInjected || method.GenericParameters.Count != 1)
                     continue;
 
-                // The methods with object support call the game's overload for object, which only the game's build can include.
                 var replacement = method.DefaultName switch
                 {
-                    "CompareExchange" => HasObjectOverload(interlocked, "CompareExchange", 3, iObject)
+                    "CompareExchange" => HasObjectOverload(interlocked, "CompareExchange", 3)
                         ? nameof(GenerationInternals.InterlockedCompareExchangeWithObjectSupport)
                         : nameof(GenerationInternals.InterlockedCompareExchangeWithoutObjectSupport),
-                    "Exchange" => HasObjectOverload(interlocked, "Exchange", 2, iObject)
+                    "Exchange" => HasObjectOverload(interlocked, "Exchange", 2)
                         ? nameof(GenerationInternals.InterlockedExchangeWithObjectSupport)
                         : nameof(GenerationInternals.InterlockedExchangeWithoutObjectSupport),
                     _ => null,
@@ -47,17 +45,17 @@ public class PredefinedMethodBodyProcessingLayer : Cpp2IlProcessingLayer
     /// <summary>
     /// Whether the game's build includes the overload of <paramref name="name"/> for object, such as <c>CompareExchange(ref object, object, object)</c>.
     /// </summary>
-    private static bool HasObjectOverload(TypeAnalysisContext interlocked, string name, int parameterCount, TypeAnalysisContext iObject)
+    private static bool HasObjectOverload(TypeAnalysisContext interlocked, string name, int parameterCount)
     {
         return interlocked.Methods.Any(method => method.DefaultName == name
             && !method.IsInjected
             && !method.IsUnstripped
             && method.GenericParameters.Count == 0
             && method.Parameters.Count == parameterCount
-            && method.ReturnType == iObject
+            && method.ReturnType.KnownType == KnownTypeCode.Il2CppSystem_IObject
             && method.Parameters[0] is { DefaultParameterType: ByRefTypeAnalysisContext, ParameterType: GenericInstanceTypeAnalysisContext { GenericArguments.Count: 1 } byReference }
-            && byReference.GenericArguments[0] == iObject
-            && method.Parameters.Skip(1).All(parameter => parameter.ParameterType == iObject));
+            && byReference.GenericArguments[0].KnownType == KnownTypeCode.Il2CppSystem_IObject
+            && method.Parameters.Skip(1).All(parameter => parameter.ParameterType.KnownType == KnownTypeCode.Il2CppSystem_IObject));
     }
 
     /// <summary>
@@ -79,7 +77,6 @@ public class PredefinedMethodBodyProcessingLayer : Cpp2IlProcessingLayer
         instructions.Add(CilOpCodes.Call, replacement.MakeGenericInstanceMethod([.. implementation.GenericParameters]));
         instructions.Add(CilOpCodes.Ret);
 
-        // A translated body would take precedence, such as the one restored from the class libraries' managed CompareExchange<T>.
         implementation.RemoveExtraData<TranslatedMethodBody>();
         implementation.PutExtraData(new NativeMethodBody()
         {

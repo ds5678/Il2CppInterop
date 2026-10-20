@@ -98,19 +98,10 @@ public static partial class GenerationInternals
         *(nint*)address = (nint)objectPointer;
     }
 
-    // Il2Cpp compiles Interlocked.CompareExchange<T> and Interlocked.Exchange<T> inline at each call, so their generic instances
-    // have no code, and invoking one raises ExecutionEngineException ("Invalid call to method"). The compiler implements the
-    // accessors of field-like events with CompareExchange<T>. The generator replaces their implementations with the methods
-    // with object support if the game's build includes Interlocked's overloads for object, and with those without it otherwise.
-    // For a reference type, the overloads for object mark the location for an incremental collection after the atomic
-    // operation, as Il2Cpp's own code does. A value type without references needs no such mark.
-
     public static unsafe T? InterlockedCompareExchangeWithObjectSupport<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
     {
         if (typeof(T).IsValueType)
             return InterlockedCompareExchangeValue(location1, value, comparand);
-        if (location1.IsNull)
-            throw new NullReferenceException();
         var original = InterlockedCompareExchangeObject(new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value, (Il2CppSystem.IObject?)(object?)comparand);
         return T.Unbox(original);
     }
@@ -126,8 +117,6 @@ public static partial class GenerationInternals
     {
         if (typeof(T).IsValueType)
             return InterlockedExchangeValue(location1, value);
-        if (location1.IsNull)
-            throw new NullReferenceException();
         var original = InterlockedExchangeObject(new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value);
         return T.Unbox(original);
     }
@@ -139,11 +128,10 @@ public static partial class GenerationInternals
         throw new NotSupportedException("The game's build does not include Interlocked.Exchange(ref object, object), which a reference type requires.");
     }
 
-    // The accessors are local functions of methods that are not generic: a local function of a generic method is generic too,
-    // and UnsafeAccessor does not bind a generic accessor to a method that is not generic.
-
     private static Il2CppSystem.IObject? InterlockedCompareExchangeObject(ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value, Il2CppSystem.IObject? comparand)
     {
+        if (location1.IsNull)
+            throw new NullReferenceException();
         return CompareExchange(null, location1, value, comparand);
 
         [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "CompareExchange")]
@@ -152,6 +140,8 @@ public static partial class GenerationInternals
 
     private static Il2CppSystem.IObject? InterlockedExchangeObject(ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value)
     {
+        if (location1.IsNull)
+            throw new NullReferenceException();
         return Exchange(null, location1, value);
 
         [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "Exchange")]
@@ -186,9 +176,9 @@ public static partial class GenerationInternals
         };
     }
 
-    // .NET's Interlocked operates on the value itself, so the value type must be laid out as in Il2Cpp, as primitive types and
-    // enums are, with a size of 1, 2, 4 or 8 bytes, and it must not hold references, which would need the mark for an
-    // incremental collection.
+    /// <summary>
+    /// Ensures that .NET's <see cref="Interlocked"/> can operate on a <typeparamref name="T"/> in Il2Cpp's memory: it must have the same layout in both, a size of 1, 2, 4 or 8 bytes, and no references, which would need Il2Cpp's write barrier.
+    /// </summary>
     private static void ThrowIfNotCompatibleWithInterlocked<T>() where T : IIl2CppType<T>
     {
         if (T.Size != Unsafe.SizeOf<T>()
