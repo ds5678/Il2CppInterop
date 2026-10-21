@@ -149,7 +149,7 @@ public static class Il2CppType
     /// <remarks>
     /// The location can be in Il2Cpp's heap, such as in a field of an object or in an array (see <see cref="IL2CPP.UsesWriteBarriers"/>).
     /// </remarks>
-    public static unsafe void WriteObjectPointer(nint objectPointer, Span<byte> span)
+    public static void WriteObjectPointer(nint objectPointer, Span<byte> span)
     {
         if (!IL2CPP.UsesWriteBarriers)
         {
@@ -157,10 +157,15 @@ public static class Il2CppType
             return;
         }
 
-        ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, IntPtr.Size, nameof(span));
-        fixed (byte* location = span)
+        WriteThroughBarrier(objectPointer, span);
+
+        static unsafe void WriteThroughBarrier(nint objectPointer, Span<byte> span)
         {
-            IL2CPP.il2cpp_gc_wbarrier_set_field(nint.Zero, (nint)location, objectPointer);
+            ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, IntPtr.Size, nameof(span));
+            fixed (byte* location = span)
+            {
+                IL2CPP.il2cpp_gc_wbarrier_set_field(nint.Zero, (nint)location, objectPointer);
+            }
         }
     }
 
