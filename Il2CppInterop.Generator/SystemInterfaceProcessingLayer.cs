@@ -88,7 +88,7 @@ public sealed class SystemInterfaceProcessingLayer : Cpp2IlProcessingLayer
             "Il2CppInterop.SystemInterfaces",
             systemInterface.Name,
             null,
-            TypeAttributes.NotPublic | TypeAttributes.Interface | TypeAttributes.Abstract);
+            TypeAttributes.Public | TypeAttributes.Interface | TypeAttributes.Abstract);
         injectedInterface.CopyGenericParameters(systemInterface, true);
         injectedInterface.InterfaceContexts.Add(systemInterface.MaybeMakeGenericInstanceType(injectedInterface.GenericParameters));
         return injectedInterface;
