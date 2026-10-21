@@ -331,11 +331,13 @@ public static unsafe class TypeInjector
 
             var baseHashToMethod = CreateHashToMethodInfoDictionary(baseType);
             var baseNativeMethodToHash = CreateNativeMethodInfoToHashDictionary(baseClassPointer);
+            var baseSlotToNativeMethod = CreateSlotToNativeMethodInfoDictionary(baseClassPointer);
             for (var slot = 0; slot < baseClassPointer.VTableCount; slot++)
             {
                 var baseVTableEntry = baseClassPointer.VTable[slot];
                 if (overriddenToOverridingMethod.Count > 0
-                    && baseNativeMethodToHash.TryGetValue((nint)baseVTableEntry.method, out var hash)
+                    && (baseNativeMethodToHash.TryGetValue((nint)baseVTableEntry.method, out var hash)
+                        || baseSlotToNativeMethod.TryGetValue(slot, out var slotMethod) && baseNativeMethodToHash.TryGetValue(slotMethod, out hash))
                     && baseHashToMethod.TryGetValue(hash, out var inheritedMethod)
                     && overriddenToOverridingMethod.TryGetValue(inheritedMethod.GetBaseDefinition(), out var overridingMethod))
                 {
@@ -836,6 +838,32 @@ public static unsafe class TypeInjector
             {
                 var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
                 dict.Add(methodInfo.Pointer, GetMethodKey(methodInfo));
+            }
+            if (currentClassPointer.Parent is null)
+                break;
+            currentClassPointer = UnityVersionHandler.Wrap(currentClassPointer.Parent);
+        }
+        return dict;
+    }
+
+    /// <summary>
+    /// Maps each vtable slot of a class and its base classes to the method of the most derived class that has that slot.
+    /// </summary>
+    /// <remarks>
+    /// Il2Cpp gives the vtable entry of an abstract method no method, or its EntryPointNotFound stub, so the method of
+    /// such an entry is found by the slot that the method carries.
+    /// </remarks>
+    private static Dictionary<int, IntPtr> CreateSlotToNativeMethodInfoDictionary(INativeClassStruct classPointer)
+    {
+        var dict = new Dictionary<int, IntPtr>();
+        var currentClassPointer = classPointer;
+        while (true)
+        {
+            for (var i = 0; i < currentClassPointer.MethodCount; i++)
+            {
+                var methodInfo = UnityVersionHandler.Wrap(currentClassPointer.Methods[i]);
+                if ((methodInfo.Flags & Il2CppMethodFlags.METHOD_ATTRIBUTE_VIRTUAL) != 0 && methodInfo.Slot != ushort.MaxValue)
+                    dict.TryAdd(methodInfo.Slot, methodInfo.Pointer);
             }
             if (currentClassPointer.Parent is null)
                 break;
