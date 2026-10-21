@@ -30,6 +30,7 @@ internal readonly record struct NamedSignatureHash
         hash.Append(methodInfo.GetNameSpan());
         hash.Append(NameEnd);
         hash.Append((methodInfo.Flags & Il2CppMethodFlags.METHOD_ATTRIBUTE_STATIC) != 0);
+        // TODO: Hash the generic arity instead, in both constructors.
         hash.Append(methodInfo.IsGeneric);
         hash.Append(methodInfo.ParametersCount);
         AppendTypeName(hash, GetFullName(methodInfo.ReturnType));

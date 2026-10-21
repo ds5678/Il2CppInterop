@@ -305,8 +305,7 @@ public static unsafe class TypeInjector
                     ThrowIfNotEnoughAllocated(index, vtableAllocatedSize, type);
                     var vtableEntry = classPointer.VTable + index;
                     var baseVTableEntry = baseClassPointer.VTable + index;
-                    // A slot whose method has no managed counterpart, such as a generic virtual method, which is never
-                    // injected, keeps the base type's entry.
+                    // Slots of methods that the type does not override, generic virtual methods included, keep the base type's entry.
                     if (baseMap3.TryGetValue((nint)baseVTableEntry->method, out var baseMethodKey)
                         && baseMap2.TryGetValue(baseMethodKey, out var baseMethodInfo)
                         && baseMethodToMethodMap.TryGetValue(baseMethodInfo, out var methodInfo))
