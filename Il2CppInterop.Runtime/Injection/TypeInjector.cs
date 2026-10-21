@@ -1387,7 +1387,8 @@ public static unsafe class TypeInjector
 
     private static IntPtr AllocateNewDefaultValueBlob(Il2CppTypeEnum type)
     {
-        var size = GetEnumElementSize(type);
+        // A compressed 32-bit integer takes up to five bytes.
+        var size = IsCompressedInBlob(type) ? 5 : GetEnumElementSize(type);
         var blob = Marshal.AllocHGlobal(size);
         Logger.Instance.LogTrace("Allocated default value blob at 0x{Blob:X2} of {Size} for {Type}", (long)blob, size, type);
         return blob;
@@ -1435,6 +1436,12 @@ public static unsafe class TypeInjector
                 *(ushort*)blob = (ushort)valueData;
                 break;
 
+            case Il2CppTypeEnum.IL2CPP_TYPE_I4 when IsCompressedInBlob(type):
+                WriteCompressedUInt32(blob, EncodeCompressedInt32((int)valueData));
+                break;
+            case Il2CppTypeEnum.IL2CPP_TYPE_U4 when IsCompressedInBlob(type):
+                WriteCompressedUInt32(blob, (uint)valueData);
+                break;
             case Il2CppTypeEnum.IL2CPP_TYPE_I4:
                 *(int*)blob = (int)valueData;
                 break;
@@ -1452,6 +1459,38 @@ public static unsafe class TypeInjector
             default: throw new ArgumentOutOfRangeException(nameof(type), type, $"The type provided {type} is invalid");
         }
     }
+
+    /// <summary>
+    /// Whether Il2Cpp reads a default value of the type as a compressed integer: 32-bit integers are compressed from
+    /// metadata v29 (BlobReader::GetConstantValueFromBlob).
+    /// </summary>
+    private static bool IsCompressedInBlob(Il2CppTypeEnum type) =>
+        type is Il2CppTypeEnum.IL2CPP_TYPE_I4 or Il2CppTypeEnum.IL2CPP_TYPE_U4 && UnityVersionHandler.IsMetadataV29OrHigher;
+
+    /// <summary>
+    /// Writes a value in the five-byte form of Il2Cpp's compressed integers, which holds any value: 0xF0, then the value
+    /// in little-endian order.
+    /// </summary>
+    private static void WriteCompressedUInt32(IntPtr blob, uint value)
+    {
+        var bytes = (byte*)blob;
+        bytes[0] = 0xF0;
+        bytes[1] = (byte)value;
+        bytes[2] = (byte)(value >> 8);
+        bytes[3] = (byte)(value >> 16);
+        bytes[4] = (byte)(value >> 24);
+    }
+
+    /// <summary>
+    /// Encodes a signed integer as Il2Cpp's ReadCompressedInt32 decodes it: the magnitude shifted left by one, with the sign
+    /// in the lowest bit (a negative value v is stored as -(v + 1)), and int.MinValue as uint.MaxValue.
+    /// </summary>
+    private static uint EncodeCompressedInt32(int value) => value switch
+    {
+        int.MinValue => uint.MaxValue,
+        < 0 => ((uint)(-(value + 1)) << 1) | 1,
+        _ => (uint)value << 1,
+    };
 
     private static bool IsStatic(this PropertyInfo property)
     {
