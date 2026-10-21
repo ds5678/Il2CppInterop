@@ -635,11 +635,9 @@ public static unsafe class TypeInjector
                 fields.Add((fieldType, fieldAttributes, fieldName));
             }
         }
-        // Every instance field of a value type is an Il2Cpp field, with or without [Il2CppField], except a field of a pointer
-        // type: the interop generator stores each pointer field of a value type in one, behind an [Il2CppField] property,
-        // which is registered above.
         if (type.IsValueType)
         {
+            // A pointer field stores the value of an [Il2CppField] property, which is registered above.
             foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
                 if (field.FieldType.IsPointer)
