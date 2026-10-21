@@ -172,8 +172,8 @@ public class InjectedStructTests : SourceGenerationTests
             #pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                     Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), out _);
-                    FieldOffset_0 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "intValue"));
-                    FieldOffset_1 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "stringValue"));
+                    FieldOffset_0 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "intValue")) - 2 * nint.Size;
+                    FieldOffset_1 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "stringValue")) - 2 * nint.Size;
                 }
             }
 
@@ -267,8 +267,8 @@ public class InjectedStructTests : SourceGenerationTests
             #pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                     Size = global::Il2CppInterop.Common.IL2CPP.il2cpp_class_value_size(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), out _);
-                    FieldOffset_0 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "intValue"));
-                    FieldOffset_1 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "stringValue"));
+                    FieldOffset_0 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "intValue")) - 2 * nint.Size;
+                    FieldOffset_1 = global::Il2CppInterop.Runtime.FieldAccess.GetFieldOffset(global::Il2CppInterop.Runtime.FieldAccess.GetFieldInfo(global::Il2CppInterop.Common.Il2CppType.GetClassPointer<Sample>(), "stringValue")) - 2 * nint.Size;
                 }
             }
 

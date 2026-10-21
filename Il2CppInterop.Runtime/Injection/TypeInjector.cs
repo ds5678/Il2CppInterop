@@ -713,10 +713,14 @@ public static unsafe class TypeInjector
                 fields.Add((fieldType, fieldAttributes, fieldName));
             }
         }
-        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        if (type.IsValueType)
         {
-            if (IsIl2CppField(field))
+            // A pointer field stores the value of an [Il2CppField] property, which is registered above.
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
+                if (field.FieldType.IsPointer)
+                    continue;
+
                 var fieldAttribute = field.GetCustomAttribute<Il2CppFieldAttribute>();
                 var fieldName = fieldAttribute?.Name ?? field.Name;
                 var fieldType = field.FieldType;
@@ -1025,12 +1029,6 @@ public static unsafe class TypeInjector
     {
         // Has Il2CppFieldAttribute
         return property.GetCustomAttribute<Il2CppFieldAttribute>() is not null;
-    }
-
-    private static bool IsIl2CppField(FieldInfo field)
-    {
-        // Has Il2CppFieldAttribute
-        return field.GetCustomAttribute<Il2CppFieldAttribute>() is not null;
     }
 
     private static bool IsIl2CppProperty(PropertyInfo property)
