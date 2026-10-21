@@ -21,20 +21,11 @@ internal static class SignatureHashExtensions
 
     public static unsafe void AppendFullName(this XxHash128 hash, Il2CppTypeStruct* type)
     {
-        // Il2Cpp may name a class from its metadata, which reads out of bounds for an injected class, so such types are named here.
-        if (!RefersToInjectedClass(type))
-        {
-            hash.Append(Il2CppSystem.Type.FromTypePointer((nint)type).FullName);
-            return;
-        }
-
+        // Il2Cpp's own names are not used: it may name an injected class from metadata that the class does not have, and its
+        // Type.FullName fails for some generic instances.
         var wrappedType = UnityVersionHandler.Wrap(type);
         switch (wrappedType.Type)
         {
-            case Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE:
-                TokenAllocator.TryGetClassPointer(wrappedType.Data, out var classPointer);
-                AppendClassName(hash, (Il2CppClass*)classPointer);
-                break;
             case Il2CppTypeEnum.IL2CPP_TYPE_SZARRAY:
                 hash.AppendFullName((Il2CppTypeStruct*)wrappedType.Data);
                 hash.Append("[]".AsSpan());
@@ -60,37 +51,15 @@ internal static class SignatureHashExtensions
                 }
                 hash.Append("]".AsSpan());
                 break;
+            case Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE when TokenAllocator.TryGetClassPointer(wrappedType.Data, out var classPointer):
+                AppendClassName(hash, (Il2CppClass*)classPointer);
+                break;
+            default:
+                AppendClassName(hash, (Il2CppClass*)IL2CPP.il2cpp_class_from_type((nint)type));
+                break;
         }
         if (wrappedType.ByRef)
             hash.Append("&".AsSpan());
-    }
-
-    /// <summary>
-    /// Determines whether a type is an injected class or is made from one, such as an array of one or a generic instance
-    /// with one as a type argument.
-    /// </summary>
-    private static unsafe bool RefersToInjectedClass(Il2CppTypeStruct* type)
-    {
-        var wrappedType = UnityVersionHandler.Wrap(type);
-        switch (wrappedType.Type)
-        {
-            case Il2CppTypeEnum.IL2CPP_TYPE_CLASS or Il2CppTypeEnum.IL2CPP_TYPE_VALUETYPE:
-                return TokenAllocator.TryGetClassPointer(wrappedType.Data, out _);
-            case Il2CppTypeEnum.IL2CPP_TYPE_SZARRAY or Il2CppTypeEnum.IL2CPP_TYPE_PTR:
-                return RefersToInjectedClass((Il2CppTypeStruct*)wrappedType.Data);
-            case Il2CppTypeEnum.IL2CPP_TYPE_ARRAY:
-                return RefersToInjectedClass(((Il2CppArrayType*)wrappedType.Data)->etype);
-            case Il2CppTypeEnum.IL2CPP_TYPE_GENERICINST:
-                var typeArguments = GetTypeArguments(wrappedType.Data);
-                for (var i = 0; i < typeArguments->type_argc; i++)
-                {
-                    if (RefersToInjectedClass(typeArguments->type_argv[i]))
-                        return true;
-                }
-                return false;
-            default:
-                return false;
-        }
     }
 
     private static unsafe Il2CppGenericInst* GetTypeArguments(nint genericClass)
