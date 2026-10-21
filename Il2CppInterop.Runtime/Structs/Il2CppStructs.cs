@@ -276,6 +276,17 @@ public unsafe struct Il2CppGenericInst
 }
 
 [StructLayout(LayoutKind.Sequential)]
+public unsafe struct Il2CppArrayType
+{
+    public Il2CppTypeStruct* etype;
+    public byte rank;
+    public byte numsizes;
+    public byte numlobounds;
+    public int* sizes;
+    public int* lobounds;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 public unsafe struct Il2CppGenericContext
 {
     /* The instantiation corresponding to the class generic parameters */
