@@ -131,22 +131,9 @@ public static unsafe class FieldAccess
         return handle.IsAllocated ? handle.Target : null!;
     }
 
-    private static bool HasWriteBarrierSupport()
-    {
-        if (NativeLibrary.TryLoad("GameAssembly", out var handle))
-        {
-            var result = NativeLibrary.TryGetExport(handle, "il2cpp_gc_wbarrier_set_field", out _);
-            NativeLibrary.Free(handle);
-            return result;
-        }
-        return false;
-    }
-
-    private static bool WriteBarrierSupport { get; } = HasWriteBarrierSupport();
-
     private static class FunctionPointerCache<T> where T : IIl2CppType<T>
     {
-        public static readonly delegate*<Object, int, T?, void> SetInstanceFieldValue = WriteBarrierSupport
+        public static readonly delegate*<Object, int, T?, void> SetInstanceFieldValue = IL2CPP.UsesWriteBarriers
             ? &FieldAccess.SetInstanceFieldValue_WriteBarrier
             : &FieldAccess.SetInstanceFieldValue_Pointer;
     }

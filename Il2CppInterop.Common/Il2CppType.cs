@@ -140,7 +140,33 @@ public static class Il2CppType
     public static void WriteReference<T>(T? value, Span<byte> span) where T : IIl2CppType<T>
     {
         var objectPointer = value?.BoxNative() ?? ObjectPointer.Null;
-        WritePointer((nint)objectPointer, span);
+        WriteObjectPointer((nint)objectPointer, span);
+    }
+
+    /// <summary>
+    /// Stores a pointer to an Il2Cpp object, through the write barrier of Il2Cpp's garbage collector when the game exports it.
+    /// </summary>
+    /// <remarks>
+    /// The location can be in Il2Cpp's heap, such as in a field of an object or in an array (see <see cref="IL2CPP.UsesWriteBarriers"/>).
+    /// </remarks>
+    public static void WriteObjectPointer(nint objectPointer, Span<byte> span)
+    {
+        if (!IL2CPP.UsesWriteBarriers)
+        {
+            WritePointer(objectPointer, span);
+            return;
+        }
+
+        WriteThroughBarrier(objectPointer, span);
+
+        static unsafe void WriteThroughBarrier(nint objectPointer, Span<byte> span)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, IntPtr.Size, nameof(span));
+            fixed (byte* location = span)
+            {
+                IL2CPP.il2cpp_gc_wbarrier_set_field(nint.Zero, (nint)location, objectPointer);
+            }
+        }
     }
 
     public static nint ReadPointer(ReadOnlySpan<byte> span)
