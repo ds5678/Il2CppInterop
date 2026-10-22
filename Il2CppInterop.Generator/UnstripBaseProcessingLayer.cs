@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using AsmResolver.DotNet;
+using AsmResolver.PE.DotNet.Cil;
 using Cpp2IL.Core.Api;
 using Cpp2IL.Core.Model.Contexts;
 using Cpp2IL.Core.Model.CustomAttributes;
@@ -332,10 +333,9 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
         }
         foreach (var (type, typeContext) in existingTypes)
         {
-            // We shouldn't inject static fields.
-            // Even though it's not like instance fields where state gets changed,
-            // we can't guarantee that the static fields will be initialized properly.
-            // However, we can still inject constant fields.
+            // A restored static field starts zeroed, since the game's static constructor does not set it.
+            // Fields that the original static constructor sets are left out.
+            HashSet<FieldDefinition>? fieldsSetByStaticConstructor = null;
             foreach (var field in type.Fields)
             {
                 if (!field.IsStatic)
@@ -345,7 +345,11 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
                     continue; // Already present
 
                 if (field.Constant?.InterpretData() is null)
-                    continue; // Skip fields without a constant value
+                {
+                    fieldsSetByStaticConstructor ??= GetFieldsSetByStaticConstructor(type);
+                    if (type.GenericParameters.Count > 0 || field.HasFieldRva || IsThreadStatic(field) || fieldsSetByStaticConstructor.Contains(field))
+                        continue;
+                }
 
                 TryInjectField(field, typeContext, runtimeContext);
             }
@@ -522,6 +526,41 @@ public abstract class UnstripBaseProcessingLayer : Cpp2IlProcessingLayer
             }
             InjectNestedTypes(nestedType, nestedTypeContext, injectedTypes, existingTypes);
         }
+    }
+
+    private static HashSet<FieldDefinition> GetFieldsSetByStaticConstructor(TypeDefinition type)
+    {
+        var fields = new HashSet<FieldDefinition>();
+        var visited = new HashSet<MethodDefinition>();
+        var pending = new Stack<MethodDefinition>();
+        if (type.GetStaticConstructor() is { } staticConstructor)
+            pending.Push(staticConstructor);
+
+        while (pending.TryPop(out var method))
+        {
+            if (!visited.Add(method) || method.CilMethodBody is not { } body)
+                continue;
+
+            foreach (var instruction in body.Instructions)
+            {
+                switch (instruction.Operand)
+                {
+                    case FieldDefinition field when instruction.OpCode.Code is CilCode.Stsfld or CilCode.Ldsflda && field.DeclaringType == type:
+                        fields.Add(field);
+                        break;
+                    case MethodDefinition callee when callee.DeclaringType == type:
+                        pending.Push(callee);
+                        break;
+                }
+            }
+        }
+
+        return fields;
+    }
+
+    private static bool IsThreadStatic(FieldDefinition field)
+    {
+        return field.CustomAttributes.Any(attribute => attribute.Constructor?.DeclaringType?.FullName == "System.ThreadStaticAttribute");
     }
 
     private static bool TryInjectField(FieldDefinition field, TypeAnalysisContext typeContext, RuntimeContext runtimeContext)

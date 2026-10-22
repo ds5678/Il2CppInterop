@@ -23,6 +23,13 @@ internal static class FieldAnalysisContextExtensions
         }
 
         [MaybeNull]
+        public FieldAnalysisContext DataAddressStorage
+        {
+            get => @field.GetExtraData<FieldAnalysisContext>("DataAddressStorage");
+            set => @field.PutExtraData("DataAddressStorage", value);
+        }
+
+        [MaybeNull]
         public FieldAnalysisContext OffsetStorage
         {
             get => @field.GetExtraData<FieldAnalysisContext>("OffsetStorage");
