@@ -232,9 +232,15 @@ public static unsafe class TypeInjector
             var methods = GetIl2CppMethods(type).ToArray();
 
             // The invoker and trampolines pass value types by value, so the injected value types in the signatures need their fields set first.
-            foreach (var valueType in methods.SelectMany(GetMethodTypes).Where(t => t.IsValueType && NeedsFieldsSet.Contains(t)).Distinct())
+            foreach (var method in methods)
             {
-                SetFields(valueType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(valueType)));
+                foreach (var methodType in GetMethodTypes(method))
+                {
+                    if (methodType.IsValueType && NeedsFieldsSet.Contains(methodType))
+                    {
+                        SetFields(methodType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(methodType)));
+                    }
+                }
             }
 
             var methodsOffset = type.IsInterface ? 0 : 1; // empty ctor
