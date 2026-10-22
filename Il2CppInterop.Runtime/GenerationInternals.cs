@@ -1,12 +1,15 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime.Exceptions;
 using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.Structs;
 using Microsoft.Extensions.Logging;
 
@@ -93,6 +96,97 @@ public static partial class GenerationInternals
         ArgumentNullException.ThrowIfNull(address);
         var objectPointer = obj?.BoxNative() ?? ObjectPointer.Null;
         Il2CppType.WriteObjectPointer((nint)objectPointer, new Span<byte>(address, IntPtr.Size));
+    }
+
+    public static T? InterlockedCompareExchangeWithObjectSupport<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
+    {
+        if (typeof(T).IsValueType)
+            return InterlockedCompareExchangeValue(location1, value, comparand);
+        var original = InterlockedCompareExchangeObject(location1.Cast<Il2CppSystem.IObject>(), (Il2CppSystem.IObject?)(object?)value, (Il2CppSystem.IObject?)(object?)comparand);
+        return T.Unbox(original);
+    }
+
+    public static T? InterlockedCompareExchangeWithoutObjectSupport<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
+    {
+        if (typeof(T).IsValueType)
+            return InterlockedCompareExchangeValue(location1, value, comparand);
+        throw new NotSupportedException("The game's build does not include Interlocked.CompareExchange(ref object, object, object), which a reference type requires.");
+    }
+
+    public static T? InterlockedExchangeWithObjectSupport<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
+    {
+        if (typeof(T).IsValueType)
+            return InterlockedExchangeValue(location1, value);
+        var original = InterlockedExchangeObject(location1.Cast<Il2CppSystem.IObject>(), (Il2CppSystem.IObject?)(object?)value);
+        return T.Unbox(original);
+    }
+
+    public static T? InterlockedExchangeWithoutObjectSupport<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
+    {
+        if (typeof(T).IsValueType)
+            return InterlockedExchangeValue(location1, value);
+        throw new NotSupportedException("The game's build does not include Interlocked.Exchange(ref object, object), which a reference type requires.");
+    }
+
+    private static Il2CppSystem.IObject? InterlockedCompareExchangeObject(ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value, Il2CppSystem.IObject? comparand)
+    {
+        if (location1.IsNull)
+            throw new NullReferenceException();
+        return CompareExchange(null, location1, value, comparand);
+
+        [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "CompareExchange")]
+        static extern Il2CppSystem.IObject? CompareExchange([UnsafeAccessorType(Il2CppInterlocked)] object? interlocked, ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value, Il2CppSystem.IObject? comparand);
+    }
+
+    private static Il2CppSystem.IObject? InterlockedExchangeObject(ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value)
+    {
+        if (location1.IsNull)
+            throw new NullReferenceException();
+        return Exchange(null, location1, value);
+
+        [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "Exchange")]
+        static extern Il2CppSystem.IObject? Exchange([UnsafeAccessorType(Il2CppInterlocked)] object? interlocked, ByReference<Il2CppSystem.IObject> location1, Il2CppSystem.IObject? value);
+    }
+
+    private const string Il2CppInterlocked = "Il2CppSystem.Threading.Interlocked, Il2Cppmscorlib";
+
+    private static unsafe T? InterlockedCompareExchangeValue<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
+    {
+        ThrowIfNotCompatibleWithInterlocked<T>();
+        var location = location1.ToPointer();
+        return T.Size switch
+        {
+            sizeof(byte) => Unsafe.BitCast<byte, T>(Interlocked.CompareExchange(ref *(byte*)location, Unsafe.BitCast<T, byte>(value!), Unsafe.BitCast<T, byte>(comparand!))),
+            sizeof(ushort) => Unsafe.BitCast<ushort, T>(Interlocked.CompareExchange(ref *(ushort*)location, Unsafe.BitCast<T, ushort>(value!), Unsafe.BitCast<T, ushort>(comparand!))),
+            sizeof(uint) => Unsafe.BitCast<uint, T>(Interlocked.CompareExchange(ref *(uint*)location, Unsafe.BitCast<T, uint>(value!), Unsafe.BitCast<T, uint>(comparand!))),
+            _ => Unsafe.BitCast<ulong, T>(Interlocked.CompareExchange(ref *(ulong*)location, Unsafe.BitCast<T, ulong>(value!), Unsafe.BitCast<T, ulong>(comparand!))),
+        };
+    }
+
+    private static unsafe T? InterlockedExchangeValue<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
+    {
+        ThrowIfNotCompatibleWithInterlocked<T>();
+        var location = location1.ToPointer();
+        return T.Size switch
+        {
+            sizeof(byte) => Unsafe.BitCast<byte, T>(Interlocked.Exchange(ref *(byte*)location, Unsafe.BitCast<T, byte>(value!))),
+            sizeof(ushort) => Unsafe.BitCast<ushort, T>(Interlocked.Exchange(ref *(ushort*)location, Unsafe.BitCast<T, ushort>(value!))),
+            sizeof(uint) => Unsafe.BitCast<uint, T>(Interlocked.Exchange(ref *(uint*)location, Unsafe.BitCast<T, uint>(value!))),
+            _ => Unsafe.BitCast<ulong, T>(Interlocked.Exchange(ref *(ulong*)location, Unsafe.BitCast<T, ulong>(value!))),
+        };
+    }
+
+    /// <summary>
+    /// Ensures that .NET's <see cref="Interlocked"/> can operate on a <typeparamref name="T"/> in Il2Cpp's memory: it must have the same layout in both, a size of 1, 2, 4 or 8 bytes, and no references, which would need Il2Cpp's write barrier.
+    /// </summary>
+    private static void ThrowIfNotCompatibleWithInterlocked<T>() where T : IIl2CppType<T>
+    {
+        if (T.Size != Unsafe.SizeOf<T>()
+            || T.Size is not (sizeof(byte) or sizeof(ushort) or sizeof(uint) or sizeof(ulong))
+            || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        {
+            throw new NotSupportedException($"Interlocked does not support {typeof(T)}: a value type must be laid out in Il2Cpp as in .NET, with a size of 1, 2, 4 or 8 bytes and no references.");
+        }
     }
 
     // For unstripping the box instruction

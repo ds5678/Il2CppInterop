@@ -33,8 +33,13 @@ public static class NativeBoxing
         if (pointer != ObjectPointer.Null)
         {
             result.hasValue = true;
-            result.value = T.UnboxNative(pointer);
+            result.value = UnboxNative<T>(pointer);
         }
         return result;
+    }
+
+    private static T? UnboxNative<T>(ObjectPointer pointer) where T : IIl2CppType<T>
+    {
+        return T.UnboxNative(pointer);
     }
 }
