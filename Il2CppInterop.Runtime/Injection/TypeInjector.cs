@@ -28,6 +28,9 @@ public static unsafe class TypeInjector
     private static readonly ConcurrentDictionary<IntPtr, IntPtr> s_DefaultValueOverrides = new();
     private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr> _injectedFieldTypes = new();
     private static readonly HashSet<Type> RegisteredTypes = new();
+    // The classes that registration has created or initialized, which SetPendingParentsAndInterfaces reads without running a static constructor.
+    private static readonly Dictionary<Type, nint> KnownClassPointers = new();
+    private static readonly HashSet<Type> NeedsParentAndInterfacesSet = new();
     private static readonly HashSet<Type> NeedsInitialized = new();
     private static readonly HashSet<Type> NeedsMethodsSet = new();
     private static readonly Dictionary<Type, int> NeedsVTableSet = new();
@@ -102,11 +105,13 @@ public static unsafe class TypeInjector
         // This guarantees that any future calls to GetClassPointer will return the class pointer,
         // even if the class is not fully registered yet, which allows us to handle circular dependencies between types.
         RegisteredTypes.Add(type);
+        NeedsParentAndInterfacesSet.Add(type);
         NeedsInitialized.Add(type);
         NeedsMethodsSet.Add(type);
         NeedsVTableSet.Add(type, vtableUpperBound);
         NeedsFieldsSet.Add(type);
         Il2CppType.SetClassPointer(type, (nint)classPointer.ClassPointer);
+        KnownClassPointers[type] = (nint)classPointer.ClassPointer;
         Class_FromName_Hook.AddTypeToLookup(imageName, @namespace, name, (nint)classPointer.ClassPointer);
 
         // Ensure that all other types that this type depends on are at least registered
@@ -119,6 +124,15 @@ public static unsafe class TypeInjector
             foreach (var interfaceType in type.GetInterfaces().Where(IsIl2CppInterface))
             {
                 EnsureNativeClassPointerNotNull(interfaceType);
+            }
+
+            // Il2Cpp sizes the vtable of an array class for the parents and interfaces that its element class has when it
+            // creates the array class, and fills it for those that the element class has when it initializes the array class.
+            // The types of the fields, properties and methods can create the class of an array of this type, so this type gets
+            // its parent and interfaces first.
+            if (NeedsParentAndInterfacesSet.Contains(type))
+            {
+                TrySetParentAndInterfaces(type, registerDependencies: true);
             }
 
             foreach (var (fieldType, _, _) in GetIl2CppFields(type))
@@ -172,6 +186,13 @@ public static unsafe class TypeInjector
 
         static nint GetClassPointerNotNull(Type type)
         {
+            // Creating the class of an array type, or initializing a generic instance, can create the class of an array of a
+            // type whose registration has not reached its parent and interfaces yet, for example while it registers its base type.
+            if (type.IsGenericType)
+            {
+                SetPendingParentsAndInterfaces();
+            }
+
             var classPointer = Il2CppType.GetClassPointer(type);
             if (classPointer is 0)
             {
@@ -184,8 +205,60 @@ public static unsafe class TypeInjector
             {
                 // Ensure that the vtable is initialized for this preexisting type
                 ClassInitializer.Invoke((Il2CppClass*)classPointer);
+                KnownClassPointers[type] = classPointer;
             }
             return classPointer;
+        }
+
+        // Registers no type: Il2Cpp or the interop can be in the middle of creating another class.
+        static void SetPendingParentsAndInterfaces()
+        {
+            if (NeedsParentAndInterfacesSet.Count == 0)
+                return;
+
+            foreach (var type in NeedsParentAndInterfacesSet.ToArray())
+            {
+                if (NeedsParentAndInterfacesSet.Contains(type))
+                {
+                    TrySetParentAndInterfaces(type, registerDependencies: false);
+                }
+            }
+        }
+
+        // Sets the parent, type hierarchy and implemented interfaces of a type that is being registered, after those of its base
+        // type and interfaces, unless the base type or an interface has no class yet and registerDependencies is false.
+        static bool TrySetParentAndInterfaces(Type type, bool registerDependencies)
+        {
+            var interfaceTypes = type.GetInterfaces().Where(IsIl2CppInterface).ToArray();
+            INativeClassStruct? baseClassPointer = null;
+            if (type is not { BaseType: null })
+            {
+                var baseType = type.IsValueType ? typeof(Il2CppSystem.ValueType) : type.BaseType;
+                var baseTypeClassPointer = registerDependencies ? GetClassPointerNotNull(baseType) : KnownClassPointers.GetValueOrDefault(baseType);
+                if (baseTypeClassPointer is 0 || NeedsParentAndInterfacesSet.Contains(baseType) && !TrySetParentAndInterfaces(baseType, registerDependencies))
+                    return false;
+                baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)baseTypeClassPointer);
+                interfaceTypes = interfaceTypes.Where(i => !i.IsAssignableFrom(baseType)).ToArray();
+            }
+
+            // In the layout of Unity 6.6, the interfaces that a class lists include those of its interfaces.
+            foreach (var interfaceType in interfaceTypes)
+            {
+                var interfaceClassPointer = registerDependencies ? GetClassPointerNotNull(interfaceType) : KnownClassPointers.GetValueOrDefault(interfaceType);
+                if (interfaceClassPointer is 0 || NeedsParentAndInterfacesSet.Contains(interfaceType) && !TrySetParentAndInterfaces(interfaceType, registerDependencies))
+                    return false;
+            }
+
+            // Registering the base type or an interface can set this type's parent and interfaces first.
+            if (!NeedsParentAndInterfacesSet.Contains(type))
+                return true;
+
+            var classPointer = UnityVersionHandler.Wrap((Il2CppClass*)KnownClassPointers[type]);
+            classPointer.Parent = baseClassPointer?.ClassPointer;
+            SetTypeHierarchy(classPointer, baseClassPointer);
+            SetInterfaceData(classPointer, baseClassPointer, interfaceTypes, []);
+            NeedsParentAndInterfacesSet.Remove(type);
+            return true;
         }
 
         static void SetClassData(Type type, INativeClassStruct classPointer)
@@ -194,6 +267,9 @@ public static unsafe class TypeInjector
             {
                 SetClassData(type.BaseType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(type.BaseType)));
             }
+
+            if (NeedsParentAndInterfacesSet.Contains(type) && !TrySetParentAndInterfaces(type, registerDependencies: true))
+                throw new InvalidOperationException($"The base type or an interface of {type} has no class in Il2Cpp");
 
             var baseClassPointer = type switch
             {
@@ -208,13 +284,11 @@ public static unsafe class TypeInjector
                 throw new ArgumentException($"Base class {type.BaseType} is sealed, so {type} can't inherit from it");
 
             // Initialize the rest of the class pointer now that it's visible to other types.
-            classPointer.Parent = baseClassPointer?.ClassPointer;
             if (baseClassPointer is not null)
             {
                 classPointer.ActualSize = classPointer.InstanceSize = baseClassPointer.InstanceSize;
                 classPointer.SizeInited = true;
             }
-            SetTypeHierarchy(classPointer, baseClassPointer);
 
             NeedsInitialized.Remove(type);
         }
@@ -601,7 +675,7 @@ public static unsafe class TypeInjector
         {
             implementedInterfaces.Add((nint)baseClassPointer.ImplementedInterfaces[i]);
         }
-        implementedInterfaces.AddRange(newInterfaceTypes.Select(Il2CppType.GetClassPointer));
+        implementedInterfaces.AddRange(newInterfaceTypes.Select(GetKnownClassPointer));
 
         classPointer.InterfaceCount = (ushort)implementedInterfaces.Count;
         classPointer.ImplementedInterfaces = (Il2CppClass**)AllocateClassArray(implementedInterfaces.Count, IntPtr.Size);
@@ -620,6 +694,14 @@ public static unsafe class TypeInjector
                 offset = interfaceOffsets[i].Offset,
             };
         }
+    }
+
+    // The class of an interface that registration has created or initialized, which TrySetParentAndInterfaces passes without
+    // running a static constructor, which can throw again for a type whose registration failed.
+    [RequiresDynamicCode("")]
+    private static nint GetKnownClassPointer(Type type)
+    {
+        return KnownClassPointers.TryGetValue(type, out var classPointer) ? classPointer : Il2CppType.GetClassPointer(type);
     }
 
     /// <summary>
@@ -656,7 +738,7 @@ public static unsafe class TypeInjector
         // Reflection does not tell which interfaces a type declares itself, so the declared ones are those that no other new interface inherits.
         foreach (var interfaceType in newInterfaceTypes.Where(i => !newInterfaceTypes.Any(other => other != i && i.IsAssignableFrom(other))))
         {
-            var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(interfaceType));
+            var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetKnownClassPointer(interfaceType));
             Add((nint)interfaceClassPointer.ClassPointer, 0);
             for (var i = 0; interfaceClassPointer.Interfaces is not null && i < interfaceClassPointer.InterfaceCount; i++)
             {
@@ -669,7 +751,7 @@ public static unsafe class TypeInjector
         }
         foreach (var interfaceType in newInterfaceTypes)
         {
-            Add(Il2CppType.GetClassPointer(interfaceType), 1);
+            Add(GetKnownClassPointer(interfaceType), 1);
         }
 
         classPointer.InterfaceOffsetsCount = (ushort)interfaceOffsets.Count;
