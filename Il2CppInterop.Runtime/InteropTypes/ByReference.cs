@@ -74,6 +74,8 @@ public readonly unsafe struct ByReference<T>(void* pointer) : IIl2CppType<ByRefe
 
     public readonly void* ToPointer() => _pointer;
 
+    public readonly ByReference<TTo> Cast<TTo>() where TTo : IIl2CppType<TTo> => new(_pointer);
+
     private static int ReferenceSize => T.Size;
 
     readonly nint IIl2CppType.ObjectClass => 0; // ByReference types have no class

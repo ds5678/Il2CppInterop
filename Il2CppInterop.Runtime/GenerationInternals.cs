@@ -98,11 +98,11 @@ public static partial class GenerationInternals
         *(nint*)address = (nint)objectPointer;
     }
 
-    public static unsafe T? InterlockedCompareExchangeWithObjectSupport<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
+    public static T? InterlockedCompareExchangeWithObjectSupport<T>(ByReference<T> location1, T? value, T? comparand) where T : IIl2CppType<T>
     {
         if (typeof(T).IsValueType)
             return InterlockedCompareExchangeValue(location1, value, comparand);
-        var original = InterlockedCompareExchangeObject(new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value, (Il2CppSystem.IObject?)(object?)comparand);
+        var original = InterlockedCompareExchangeObject(location1.Cast<Il2CppSystem.IObject>(), (Il2CppSystem.IObject?)(object?)value, (Il2CppSystem.IObject?)(object?)comparand);
         return T.Unbox(original);
     }
 
@@ -113,11 +113,11 @@ public static partial class GenerationInternals
         throw new NotSupportedException("The game's build does not include Interlocked.CompareExchange(ref object, object, object), which a reference type requires.");
     }
 
-    public static unsafe T? InterlockedExchangeWithObjectSupport<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
+    public static T? InterlockedExchangeWithObjectSupport<T>(ByReference<T> location1, T? value) where T : IIl2CppType<T>
     {
         if (typeof(T).IsValueType)
             return InterlockedExchangeValue(location1, value);
-        var original = InterlockedExchangeObject(new ByReference<Il2CppSystem.IObject>(location1.ToPointer()), (Il2CppSystem.IObject?)(object?)value);
+        var original = InterlockedExchangeObject(location1.Cast<Il2CppSystem.IObject>(), (Il2CppSystem.IObject?)(object?)value);
         return T.Unbox(original);
     }
 
