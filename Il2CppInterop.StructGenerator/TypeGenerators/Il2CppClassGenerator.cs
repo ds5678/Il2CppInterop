@@ -116,6 +116,8 @@ internal class Il2CppClassGenerator : VersionSpecificGenerator
         new ByRefWrapper("Il2CppClass*", "DeclaringType", ["declaringType"]),
         new ByRefWrapper("Il2CppClass*", "Class", ["klass"], makeDummyIfNotExist: true),
         new ByRefWrapper("Il2CppFieldInfo*", "Fields", ["fields"]),
+        new ByRefWrapper("void*", "StaticFields", ["static_fields"]),
+        new ByRefWrapper("uint", "StaticFieldsSize", ["static_fields_size"]),
         new ByRefWrapper("Il2CppMethodInfo**", "Methods", ["methods"]),
         new ByRefWrapper("Il2CppClass**", "ImplementedInterfaces", ["implementedInterfaces"], addNotSupportedIfNotExist: true),
         new ByRefWrapper("Il2CppRuntimeInterfaceOffsetPair*", "InterfaceOffsets", ["interfaceOffsets"], addNotSupportedIfNotExist: true),

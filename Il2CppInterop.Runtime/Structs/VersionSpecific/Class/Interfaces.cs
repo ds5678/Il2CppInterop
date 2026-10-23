@@ -34,6 +34,8 @@ namespace Il2CppInterop.Runtime.Structs.VersionSpecific.Class
         unsafe ref Il2CppClass* DeclaringType { get; }
         unsafe ref Il2CppClass* Class { get; }
         unsafe ref Il2CppFieldInfo* Fields { get; }
+        unsafe ref void* StaticFields { get; }
+        ref uint StaticFieldsSize { get; }
         unsafe ref Il2CppMethodInfo** Methods { get; }
         unsafe ref Il2CppClass** ImplementedInterfaces { get; }
         unsafe ref Il2CppRuntimeInterfaceOffsetPair* InterfaceOffsets { get; }
