@@ -207,6 +207,7 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
     private static void EmitStaticIl2CppProperty(IndentedTextWriter writer, MemberModel member)
     {
         var accessPrefix = member.Accessibility is { } a ? a.GetAccessibilityKeyword() + " " : "";
+        writer.WriteLine("#nullable disable");
         writer.WriteLine($"{accessPrefix}static partial {member.Type} {member.Name}");
         writer.WriteLine("{");
         writer.Indent++;
@@ -214,11 +215,13 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         writer.WriteLine($"set => global::Il2CppInterop.Runtime.FieldAccess.SetStaticFieldValue(Il2CppInternals.FieldInfoPtr_{member.Index}, value);");
         writer.Indent--;
         writer.WriteLine("}");
+        writer.WriteLine("#nullable enable");
     }
 
     private static void EmitIl2CppProperty(IndentedTextWriter writer, MemberModel member)
     {
         var accessPrefix = member.Accessibility is { } a ? a.GetAccessibilityKeyword() + " " : "";
+        writer.WriteLine("#nullable disable");
         writer.WriteLine($"{accessPrefix}partial {member.Type} {member.Name}");
         writer.WriteLine("{");
         writer.Indent++;
@@ -226,6 +229,7 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
         writer.WriteLine($"set => global::Il2CppInterop.Runtime.FieldAccess.SetInstanceFieldValue(this, Il2CppInternals.FieldOffset_{member.Index}, value);");
         writer.Indent--;
         writer.WriteLine("}");
+        writer.WriteLine("#nullable enable");
     }
 
     private static void EmitManagedProperty(IndentedTextWriter writer, MemberModel member)
@@ -244,6 +248,7 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
 
         // Public partial property
         var accessPrefix = member.Accessibility is { } a ? a.GetAccessibilityKeyword() + " " : "";
+        writer.WriteLine("#nullable disable");
         writer.WriteLine($"{accessPrefix}partial {member.Type} {member.Name}");
         writer.WriteLine("{");
         writer.Indent++;
@@ -260,6 +265,7 @@ public sealed class InjectedTypeGenerator : IIncrementalGenerator
 
         writer.Indent--;
         writer.WriteLine("}");
+        writer.WriteLine("#nullable enable");
     }
 
     private static void EmitConstructor(IndentedTextWriter writer, TypeModel model)
