@@ -68,6 +68,9 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
             }
         }
 
+        OverrideBaseInterfaceMethods(il2CppSystemValueType, il2CppSystemIValueType, [il2CppSystemObject]);
+        OverrideBaseInterfaceMethods(il2CppSystemEnum, il2CppSystemIEnum, [il2CppSystemValueType, il2CppSystemObject]);
+
         // Add interfaces to types
         foreach (var assembly in appContext.Assemblies)
         {
@@ -197,6 +200,70 @@ public class ObjectInterfaceProcessingLayer : Cpp2IlProcessingLayer
             classMethod.Attributes |= MethodAttributes.Final | MethodAttributes.NewSlot;
         }
         classMethod.Attributes |= MethodAttributes.Virtual | MethodAttributes.HideBySig;
+    }
+
+    /// <summary>
+    /// Makes the methods of the class's interface also override those of the interfaces of its base types, whose methods are new slots,
+    /// so that a call through <c>Il2CppSystem.IObject</c> reaches the class's own override, such as that of <c>ValueType.Equals</c>.
+    /// </summary>
+    private static void OverrideBaseInterfaceMethods(TypeAnalysisContext classType, TypeAnalysisContext interfaceType, TypeAnalysisContext[] baseTypes)
+    {
+        foreach (var classMethod in classType.Methods)
+        {
+            if (classMethod.InterfaceRedirectMethod is not { } interfaceMethod
+                || !classMethod.DefaultAttributes.HasFlag(MethodAttributes.Virtual)
+                || classMethod.DefaultAttributes.HasFlag(MethodAttributes.NewSlot))
+            {
+                continue;
+            }
+
+            foreach (var baseType in baseTypes)
+            {
+                var baseInterfaceMethod = baseType.Methods
+                    .FirstOrDefault(m => m.DefaultName == classMethod.DefaultName && HasSameParameters(m, classMethod))
+                    ?.InterfaceRedirectMethod;
+                if (baseInterfaceMethod is not null)
+                {
+                    AddForwardingOverride(interfaceType, baseInterfaceMethod, interfaceMethod);
+                }
+            }
+        }
+    }
+
+    private static bool HasSameParameters(MethodAnalysisContext first, MethodAnalysisContext second)
+    {
+        return first.Parameters.Count == second.Parameters.Count
+            && first.Parameters.Zip(second.Parameters).All(pair => pair.First.ParameterType == pair.Second.ParameterType);
+    }
+
+    /// <summary>Overrides the method of the base interface with one that calls the method of the interface.</summary>
+    private static void AddForwardingOverride(TypeAnalysisContext interfaceType, MethodAnalysisContext baseInterfaceMethod, MethodAnalysisContext interfaceMethod)
+    {
+        var overrideImplementation = new InjectedMethodAnalysisContext(
+            interfaceType,
+            $"{baseInterfaceMethod.DeclaringType!.FullName}.{baseInterfaceMethod.Name}",
+            interfaceMethod.ReturnType,
+            MethodAttributes.Private | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.Final,
+            interfaceMethod.Parameters.Select(p => p.ParameterType).ToArray(),
+            interfaceMethod.Parameters.Select(p => p.Name).ToArray(),
+            interfaceMethod.Parameters.Select(p => p.Attributes).ToArray())
+        {
+            IsInjected = true,
+        };
+        interfaceType.Methods.Add(overrideImplementation);
+        overrideImplementation.Overrides.Add(baseInterfaceMethod);
+
+        List<Instruction> instructions =
+        [
+            new Instruction(CilOpCodes.Ldarg_0),
+            ..overrideImplementation.Parameters.Select(parameter => new Instruction(CilOpCodes.Ldarg, parameter)),
+            new Instruction(CilOpCodes.Callvirt, interfaceMethod),
+            new Instruction(CilOpCodes.Ret),
+        ];
+        overrideImplementation.PutExtraData(new NativeMethodBody()
+        {
+            Instructions = instructions,
+        });
     }
 
     private static void ImplementStaticConstructor(TypeAnalysisContext classType, TypeAnalysisContext interfaceType)
