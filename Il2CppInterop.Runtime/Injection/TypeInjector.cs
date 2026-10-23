@@ -30,6 +30,7 @@ public static unsafe class TypeInjector
     private static readonly ConcurrentDictionary<(Type type, FieldAttributes attrs), IntPtr> _injectedFieldTypes = new();
     private static readonly HashSet<Type> RegisteredTypes = new();
     private static readonly HashSet<Type> NeedsInitialized = new();
+    private static readonly HashSet<Type> NeedsMethodsSet = new();
     private static readonly Dictionary<Type, int> NeedsVTableSet = new();
     private static readonly HashSet<Type> NeedsFieldsSet = new();
     private static readonly ConcurrentDictionary<InvokerSignatureHash, Delegate> InvokerCache = new();
@@ -103,6 +104,7 @@ public static unsafe class TypeInjector
         // even if the class is not fully registered yet, which allows us to handle circular dependencies between types.
         RegisteredTypes.Add(type);
         NeedsInitialized.Add(type);
+        NeedsMethodsSet.Add(type);
         NeedsVTableSet.Add(type, vtableUpperBound);
         NeedsFieldsSet.Add(type);
         Il2CppType.SetClassPointer(type, (nint)classPointer.ClassPointer);
@@ -146,14 +148,19 @@ public static unsafe class TypeInjector
             SetClassData(type, classPointer);
         }
 
-        if (NeedsVTableSet.ContainsKey(type))
-        {
-            SetVTableAndInterfaces(type, classPointer, vtableUpperBound);
-        }
-
         if (NeedsFieldsSet.Contains(type))
         {
             SetFields(type, classPointer);
+        }
+
+        if (NeedsMethodsSet.Contains(type))
+        {
+            SetMethods(type, classPointer);
+        }
+
+        if (NeedsVTableSet.ContainsKey(type))
+        {
+            SetVTableAndInterfaces(type, classPointer, vtableUpperBound);
         }
 
         static void EnsureNativeClassPointerNotNull(Type type)
@@ -210,9 +217,32 @@ public static unsafe class TypeInjector
             }
             SetTypeHierarchy(classPointer, baseClassPointer);
 
+            NeedsInitialized.Remove(type);
+        }
+
+        static void SetMethods(Type type, INativeClassStruct classPointer)
+        {
+            if (NeedsInitialized.Contains(type))
+            {
+                SetClassData(type, classPointer);
+            }
+
             //var properties = GetIl2CppProperties(type).ToArray();
 
             var methods = GetIl2CppMethods(type).ToArray();
+
+            // The invoker and trampolines pass value types by value, so the injected value types in the signatures need their fields set first.
+            foreach (var method in methods)
+            {
+                foreach (var methodType in GetMethodTypes(method))
+                {
+                    if (methodType.IsValueType && NeedsFieldsSet.Contains(methodType))
+                    {
+                        SetFields(methodType, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(methodType)));
+                    }
+                }
+            }
+
             var methodsOffset = type.IsInterface ? 0 : 1; // empty ctor
             var methodCount = methodsOffset + methods.Length;
 
@@ -231,14 +261,14 @@ public static unsafe class TypeInjector
                 methodPointerArray[i + methodsOffset] = ConvertMethodInfo(methodInfo, classPointer);
             }
 
-            NeedsInitialized.Remove(type);
+            NeedsMethodsSet.Remove(type);
         }
 
         static void SetVTableAndInterfaces(Type type, INativeClassStruct classPointer, int vtableAllocatedSize)
         {
-            if (NeedsInitialized.Contains(type))
+            if (NeedsMethodsSet.Contains(type))
             {
-                SetClassData(type, classPointer);
+                SetMethods(type, classPointer);
             }
             Type[] interfaceTypesNotImplementedByBaseType;
             INativeClassStruct? baseClassPointer;
