@@ -1039,20 +1039,20 @@ public static unsafe class TypeInjector
         static int CountSlots(Type type)
         {
             var baseType = type.IsValueType ? typeof(Il2CppSystem.ValueType) : type.BaseType;
-            var count = baseType is null ? 0
-                : IsInjectedType(baseType) ? CountSlots(baseType)
-                : UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(baseType)).VTableCount;
+            var count = baseType is null
+                ? 0
+                : IsPreexistingType(baseType)
+                    ? UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(baseType)).VTableCount
+                    : CountSlots(baseType);
             count += GetIl2CppMethods(type).Count();
             foreach (var interfaceType in type.GetInterfaces().Where(IsIl2CppInterface))
             {
-                count += IsInjectedType(interfaceType)
-                    ? GetIl2CppMethods(interfaceType).Count()
-                    : UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(interfaceType)).MethodCount;
+                count += IsPreexistingType(interfaceType)
+                    ? UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(interfaceType)).MethodCount
+                    : GetIl2CppMethods(interfaceType).Count();
             }
             return count;
         }
-
-        static bool IsInjectedType(Type type) => RegisteredTypes.Contains(type) || type.IsDefined(typeof(InjectedTypeAttribute), false);
     }
 
     [RequiresUnreferencedCode("")]
