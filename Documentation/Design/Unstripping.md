@@ -90,3 +90,7 @@ Null checking and bounds checking are handled in the array helper methods.
 ## Numeric op codes
 
 These are untyped, so some rudimentary analysis is needed to determine the type.
+
+## Static Fields
+
+A static field that the game's build removed from an existing class has no storage in Il2Cpp. The initialization class allocates storage for it: elements of an `Il2CppSystem.Object` array, which a GC handle keeps alive and which the garbage collector scans for references. The value starts zeroed. Fields that the original static constructor sets, directly or through the class's own methods, are left out, since the game's static constructor does not set them. So are thread-static fields, fields with RVA data and the fields of generic types.

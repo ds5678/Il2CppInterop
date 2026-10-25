@@ -43,6 +43,8 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
         var byReference_Constructor = byReference.GetMethodByName(".ctor");
         var byReferenceStatic = appContext.ResolveTypeOrThrow(typeof(ByReference));
         var byReferenceStatic_GetReferenceAtOffset = byReferenceStatic.GetMethodByName(nameof(ByReference.GetReferenceAtOffset));
+        var byReferenceStatic_GetValue = byReferenceStatic.GetMethodByName(nameof(ByReference.GetValue));
+        var byReferenceStatic_SetValue1 = byReferenceStatic.GetMethodByName(nameof(ByReference.SetValue1));
 
         var il2CppSystemObject = appContext.Il2CppMscorlib.GetTypeByFullNameOrThrow("Il2CppSystem.Object");
         var il2CppSystemObject_get_Pointer = il2CppSystemObject.GetMethodByName($"get_{nameof(Object.Pointer)}");
@@ -120,7 +122,7 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
 
                         field.FieldAddressAccessor = getFieldAddress;
                     }
-                    else if (field.IsStatic && getStaticFieldAddress is not null)
+                    else if (field.IsStatic && (getStaticFieldAddress is not null || field.DataAddressStorage is not null))
                     {
                         var name = GetNonConflictingName($"GetFieldAddress_{field.Name}", existingNames);
                         var getFieldAddress = new InjectedMethodAnalysisContext(
@@ -134,11 +136,18 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                         };
                         type.Methods.Add(getFieldAddress);
 
+                        IReadOnlyList<Instruction>? dataAddressInstructions = field.DataAddressStorage is { } dataAddressStorage
+                            ? [
+                                new Instruction(CilOpCodes.Ldsfld, dataAddressStorage),
+                                new Instruction(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([field.FieldType], [])),
+                                new Instruction(CilOpCodes.Ret)
+                            ]
+                            : null;
                         getFieldAddress.PutExtraData(new NativeMethodBody()
                         {
-                            Instructions = [
+                            Instructions = dataAddressInstructions ?? [
                                 new Instruction(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage()),
-                                new Instruction(CilOpCodes.Call, getStaticFieldAddress.MakeGenericInstanceMethod([field.FieldType])),
+                                new Instruction(CilOpCodes.Call, getStaticFieldAddress!.MakeGenericInstanceMethod([field.FieldType])),
                                 new Instruction(CilOpCodes.Ret)
                             ],
                         });
@@ -194,7 +203,14 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                     // get accessor body
                     {
                         var instructions = new List<Instruction>();
-                        if (field.IsStatic)
+                        if (field.DataAddressStorage is { } dataAddressStorage)
+                        {
+                            instructions.Add(CilOpCodes.Ldsfld, dataAddressStorage);
+                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([field.FieldType], []));
+                            instructions.Add(CilOpCodes.Call, byReferenceStatic_GetValue.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
+                        }
+                        else if (field.IsStatic)
                         {
                             instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
                             instructions.Add(CilOpCodes.Call, getStaticFieldValue.MakeGenericInstanceMethod([field.FieldType]));
@@ -238,7 +254,15 @@ public class FieldAccessorProcessingLayer : Cpp2IlProcessingLayer
                     // set accessor body
                     {
                         var instructions = new List<Instruction>();
-                        if (field.IsStatic)
+                        if (field.DataAddressStorage is { } dataAddressStorage)
+                        {
+                            instructions.Add(CilOpCodes.Ldsfld, dataAddressStorage);
+                            instructions.Add(CilOpCodes.Newobj, byReference_Constructor.MakeConcreteGeneric([field.FieldType], []));
+                            instructions.Add(CilOpCodes.Ldarg, setMethod.Parameters[0]);
+                            instructions.Add(CilOpCodes.Call, byReferenceStatic_SetValue1.MakeGenericInstanceMethod([field.FieldType]));
+                            instructions.Add(CilOpCodes.Ret);
+                        }
+                        else if (field.IsStatic)
                         {
                             instructions.Add(CilOpCodes.Ldsfld, field.GetInstantiatedFieldInfoAddressStorage());
                             instructions.Add(CilOpCodes.Ldarg, setMethod.Parameters[0]);

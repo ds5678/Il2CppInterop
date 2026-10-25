@@ -43,6 +43,7 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
         var il2CppRuntimeClassInit = generationInternalsType.GetMethodByName(nameof(GenerationInternals.Il2CppRuntimeClassInit));
         var getIl2CppGenericInstanceMethod = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppGenericInstanceMethod));
         var getIl2CppValueSize = generationInternalsType.GetMethodByName(nameof(GenerationInternals.GetIl2CppValueSize));
+        var allocateStaticFieldStorage = generationInternalsType.GetMethodByName(nameof(GenerationInternals.AllocateStaticFieldStorage));
 
         var typeInjector = appContext.ResolveTypeOrThrow(typeof(TypeInjector));
         var registerTypeInIl2Cpp = typeInjector.Methods.Single(m =>
@@ -213,7 +214,21 @@ public class InitializationClassProcessingLayer : Cpp2IlProcessingLayer
                             continue;
 
                         if (field.IsUnstripped && !type.IsUnstripped)
+                        {
+                            // A static field that the game's build removed from the class has no storage in Il2Cpp.
+                            if (field.ConstantValue is null)
+                            {
+                                var dataAddressStore = initializationType.InjectFieldContext(
+                                    $"FieldData_{index}",
+                                    appContext.SystemTypes.SystemIntPtrType,
+                                    FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly);
+                                field.DataAddressStorage = dataAddressStore;
+
+                                instructions.Add(new Instruction(CilOpCodes.Call, allocateStaticFieldStorage.MakeGenericInstanceMethod(field.FieldType)));
+                                instructions.Add(new Instruction(CilOpCodes.Stsfld, dataAddressStore));
+                            }
                             continue;
+                        }
 
                         field.InitializationClassIndex = index;
 
