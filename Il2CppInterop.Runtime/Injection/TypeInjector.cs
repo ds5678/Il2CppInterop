@@ -1061,18 +1061,21 @@ public static unsafe class TypeInjector
             var baseType = type.IsValueType ? typeof(Il2CppSystem.ValueType) : type.BaseType;
             var count = baseType is null
                 ? 0
-                : IsPreexistingType(baseType)
+                : IsGameType(baseType)
                     ? UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(baseType)).VTableCount
                     : CountSlots(baseType);
             count += GetIl2CppMethods(type).Count();
             foreach (var interfaceType in type.GetInterfaces().Where(IsIl2CppInterface))
             {
-                count += IsPreexistingType(interfaceType)
+                count += IsGameType(interfaceType)
                     ? UnityVersionHandler.Wrap((Il2CppClass*)Il2CppType.GetClassPointer(interfaceType)).MethodCount
                     : GetIl2CppMethods(interfaceType).Count();
             }
             return count;
         }
+
+        // A type outside the interop assemblies is never part of the game, and getting its class to tell would register it.
+        static bool IsGameType(Type type) => type.Assembly.IsDefined(typeof(Il2CppAssemblyAttribute), false) && IsPreexistingType(type);
     }
 
     [RequiresUnreferencedCode("")]
