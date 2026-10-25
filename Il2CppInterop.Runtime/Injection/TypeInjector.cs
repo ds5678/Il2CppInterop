@@ -735,15 +735,34 @@ public static unsafe class TypeInjector
                 if (interfaceMethod.Slot == ushort.MaxValue)
                     continue;
 
-                var managedInterfaceMethod = interfaceNativeMethodToHash.TryGetValue((nint)interfaceMethod.MethodInfoPointer, out var hash) && interfaceHashToMethod.TryGetValue(hash, out var method)
-                    ? method
-                    : FindByNameAndParameterCount(interfaceType, interfaceMethod);
-                var mapIndex = managedInterfaceMethod is null ? -1 : Array.IndexOf(interfaceMap.InterfaceMethods, managedInterfaceMethod);
+                MethodInfo? managedInterfaceMethod;
+                int foundCount;
+                if (interfaceNativeMethodToHash.TryGetValue((nint)interfaceMethod.MethodInfoPointer, out var hash) && interfaceHashToMethod.TryGetValue(hash, out var method))
+                {
+                    managedInterfaceMethod = method;
+                    foundCount = 1;
+                }
+                else
+                {
+                    managedInterfaceMethod = FindByNameAndParameterCount(interfaceType, interfaceMethod, out foundCount);
+                }
+
+                if (managedInterfaceMethod is null)
+                {
+                    if (onlyMethodsDeclaredByType)
+                        continue;
+                    else if (foundCount == 0)
+                        throw new InvalidOperationException($"No method of {interfaceType} matches {Marshal.PtrToStringUTF8(interfaceMethod.Name)} with {interfaceMethod.ParametersCount} parameters");
+                    else
+                        throw new InvalidOperationException($"Multiple methods of {interfaceType} match {Marshal.PtrToStringUTF8(interfaceMethod.Name)} with {interfaceMethod.ParametersCount} parameters");
+                }
+
+                var mapIndex = Array.IndexOf(interfaceMap.InterfaceMethods, managedInterfaceMethod);
                 if (mapIndex < 0)
                 {
                     if (onlyMethodsDeclaredByType)
                         continue;
-                    throw new InvalidOperationException($"No implementation of {interfaceType}.{Marshal.PtrToStringUTF8(interfaceMethod.Name)} was found in {type}");
+                    throw new InvalidOperationException($"{managedInterfaceMethod} was not found in interfaceMap.InterfaceMethods for {type}");
                 }
 
                 var implementingMethod = interfaceMap.TargetMethods[mapIndex];
@@ -761,10 +780,11 @@ public static unsafe class TypeInjector
             throw new InvalidOperationException($"{method.DeclaringType}.{method.Name} is called by Il2Cpp, so it must have the {nameof(Il2CppMethodAttribute)}");
         }
 
-        private static MethodInfo? FindByNameAndParameterCount(Type interfaceType, INativeMethodInfoStruct interfaceMethod)
+        private static MethodInfo? FindByNameAndParameterCount(Type interfaceType, INativeMethodInfoStruct interfaceMethod, out int foundCount)
         {
             var name = Marshal.PtrToStringUTF8(interfaceMethod.Name);
             var candidates = interfaceType.GetMethods().Where(m => m.Name == name && m.GetParameters().Length == interfaceMethod.ParametersCount).ToArray();
+            foundCount = candidates.Length;
             return candidates.Length == 1 ? candidates[0] : null;
         }
     }
