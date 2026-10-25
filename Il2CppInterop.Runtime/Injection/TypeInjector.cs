@@ -269,19 +269,40 @@ public static unsafe class TypeInjector
             {
                 SetMethods(type, classPointer);
             }
-
             var interfaceTypes = type.GetInterfaces().Where(IsIl2CppInterface).ToArray();
-
+            Type[] interfaceTypesNotImplementedByBaseType;
+            INativeClassStruct? baseClassPointer;
+            Type? baseType;
+            List<(nint InterfaceClassPointer, int Offset)> interfaceOffsets;
             if (type is { BaseType: null })
             {
-                foreach (var @interface in interfaceTypes)
+                baseClassPointer = null;
+                baseType = null;
+                interfaceTypesNotImplementedByBaseType = interfaceTypes;
+                interfaceOffsets = [];
+            }
+            else
+            {
+                baseType = type.IsValueType ? typeof(Il2CppSystem.ValueType) : type.BaseType;
+                interfaceTypesNotImplementedByBaseType = interfaceTypes.Where(i => !i.IsAssignableFrom(baseType)).ToArray();
+                baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(baseType));
+                if (NeedsVTableSet.TryGetValue(baseType, out var baseTypeVTableMaxSize))
                 {
-                    if (NeedsVTableSet.TryGetValue(@interface, out var interfaceVTableMaxSize))
-                    {
-                        SetVTableAndInterfaces(@interface, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(@interface)), interfaceVTableMaxSize);
-                    }
+                    SetVTableAndInterfaces(baseType, baseClassPointer, baseTypeVTableMaxSize);
                 }
+                interfaceOffsets = GetInterfaceOffsets(baseClassPointer);
+            }
+            foreach (var @interface in interfaceTypesNotImplementedByBaseType)
+            {
+                if (NeedsVTableSet.TryGetValue(@interface, out var interfaceVTableMaxSize))
+                {
+                    var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(@interface));
+                    SetVTableAndInterfaces(@interface, interfaceClassPointer, interfaceVTableMaxSize);
+                }
+            }
 
+            if (baseClassPointer is null)
+            {
                 // The slots of an interface's methods are relative to its block in the vtable of a class that implements it.
                 var interfaceSlot = 0;
                 for (var i = 0; i < classPointer.MethodCount; i++)
@@ -292,98 +313,77 @@ public static unsafe class TypeInjector
                         method.Slot = (ushort)interfaceSlot++;
                     }
                 }
-
-                SetInterfaceData(classPointer, null, interfaceTypes, []);
-                classPointer.IsVtableInitialized = true;
-                NeedsVTableSet.Remove(type);
-                return;
             }
-
-            var baseType = type.IsValueType ? typeof(Il2CppSystem.ValueType) : type.BaseType;
-            var baseClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(baseType));
-            if (NeedsVTableSet.TryGetValue(baseType, out var baseTypeVTableMaxSize))
+            else
             {
-                SetVTableAndInterfaces(baseType, baseClassPointer, baseTypeVTableMaxSize);
-            }
+                Debug.Assert(baseType is not null);
+                var vtable = new VTableBuilder(type, classPointer, vtableAllocatedSize);
+                var declaredMethods = GetIl2CppMethods(type).ToArray();
 
-            var interfaceTypesNotImplementedByBaseType = interfaceTypes.Where(i => !i.IsAssignableFrom(baseType)).ToArray();
-            foreach (var @interface in interfaceTypesNotImplementedByBaseType)
-            {
-                if (NeedsVTableSet.TryGetValue(@interface, out var interfaceVTableMaxSize))
+                var overriddenToOverridingMethod = new Dictionary<MethodInfo, MethodInfo>();
+                foreach (var method in declaredMethods)
                 {
-                    var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(@interface));
-                    SetVTableAndInterfaces(@interface, interfaceClassPointer, interfaceVTableMaxSize);
+                    var baseDefinition = method.GetBaseDefinition();
+                    if (baseDefinition != method)
+                    {
+                        overriddenToOverridingMethod.TryAdd(baseDefinition, method);
+                    }
                 }
-            }
 
-            var vtable = new VTableBuilder(type, classPointer, vtableAllocatedSize);
-            var declaredMethods = GetIl2CppMethods(type).ToArray();
-
-            var overriddenToOverridingMethod = new Dictionary<MethodInfo, MethodInfo>();
-            foreach (var method in declaredMethods)
-            {
-                var baseDefinition = method.GetBaseDefinition();
-                if (baseDefinition != method)
+                var baseHashToMethod = CreateHashToMethodInfoDictionary(baseType);
+                var baseNativeMethodToHash = CreateNativeMethodInfoToHashDictionary(baseClassPointer);
+                var baseSlotToNativeMethod = CreateSlotToNativeMethodInfoDictionary(baseClassPointer);
+                for (var slot = 0; slot < baseClassPointer.VTableCount; slot++)
                 {
-                    overriddenToOverridingMethod.TryAdd(baseDefinition, method);
+                    var baseVTableEntry = baseClassPointer.VTable[slot];
+                    if (overriddenToOverridingMethod.Count > 0
+                        && (baseNativeMethodToHash.TryGetValue((nint)baseVTableEntry.method, out var hash) || (baseSlotToNativeMethod.TryGetValue(slot, out var slotMethod) && baseNativeMethodToHash.TryGetValue(slotMethod, out hash)))
+                        && baseHashToMethod.TryGetValue(hash, out var inheritedMethod)
+                        && overriddenToOverridingMethod.TryGetValue(inheritedMethod.GetBaseDefinition(), out var overridingMethod))
+                    {
+                        vtable.SetVirtualMethod(slot, overridingMethod);
+                    }
+                    else
+                    {
+                        vtable.Set(slot, baseVTableEntry);
+                    }
                 }
-            }
 
-            var baseHashToMethod = CreateHashToMethodInfoDictionary(baseType);
-            var baseNativeMethodToHash = CreateNativeMethodInfoToHashDictionary(baseClassPointer);
-            var baseSlotToNativeMethod = CreateSlotToNativeMethodInfoDictionary(baseClassPointer);
-            for (var slot = 0; slot < baseClassPointer.VTableCount; slot++)
-            {
-                var baseVTableEntry = baseClassPointer.VTable[slot];
-                if (overriddenToOverridingMethod.Count > 0
-                    && (baseNativeMethodToHash.TryGetValue((nint)baseVTableEntry.method, out var hash)
-                        || baseSlotToNativeMethod.TryGetValue(slot, out var slotMethod) && baseNativeMethodToHash.TryGetValue(slotMethod, out hash))
-                    && baseHashToMethod.TryGetValue(hash, out var inheritedMethod)
-                    && overriddenToOverridingMethod.TryGetValue(inheritedMethod.GetBaseDefinition(), out var overridingMethod))
+                var index = (int)baseClassPointer.VTableCount;
+
+                // Virtual methods declared in this class
+                foreach (var methodInfo in declaredMethods)
                 {
-                    vtable.SetVirtualMethod(slot, overridingMethod);
+                    if ((methodInfo.IsVirtual || methodInfo.IsAbstract) && !methodInfo.IsFinal && methodInfo.GetBaseDefinition() == methodInfo)
+                    {
+                        vtable.SetVirtualMethod(index, methodInfo);
+                        index++;
+                    }
                 }
-                else
+
+                var pointersToInterfaces = interfaceTypes.ToDictionary(Il2CppType.GetClassPointer);
+                foreach (var (interfaceClassPointer, interfaceOffset) in interfaceOffsets)
                 {
-                    vtable.Set(slot, baseVTableEntry);
+                    if (pointersToInterfaces.TryGetValue(interfaceClassPointer, out var interfaceType))
+                    {
+                        vtable.SetInterfaceMethods(interfaceType, UnityVersionHandler.Wrap((Il2CppClass*)interfaceClassPointer), interfaceOffset, onlyMethodsDeclaredByType: true);
+                    }
                 }
-            }
 
-            var index = (int)baseClassPointer.VTableCount;
-
-            // Virtual methods declared in this class
-            foreach (var method in declaredMethods)
-            {
-                if ((method.IsVirtual || method.IsAbstract) && !method.IsFinal && method.GetBaseDefinition() == method)
+                foreach (var interfaceType in interfaceTypesNotImplementedByBaseType)
                 {
-                    vtable.SetVirtualMethod(index, method);
-                    index++;
+                    var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(interfaceType));
+                    var interfaceSlotCount = GetInterfaceSlotCount(interfaceClassPointer);
+                    if (interfaceSlotCount == 0)
+                        continue;
+
+                    interfaceOffsets.Add(((nint)interfaceClassPointer.ClassPointer, index));
+                    vtable.SetInterfaceMethods(interfaceType, interfaceClassPointer, index, onlyMethodsDeclaredByType: false);
+                    index += interfaceSlotCount;
                 }
+
+                classPointer.VTableCount = (ushort)index;
             }
-
-            var pointersToInterfaces = interfaceTypes.ToDictionary(Il2CppType.GetClassPointer);
-            var interfaceOffsets = GetInterfaceOffsets(baseClassPointer);
-            foreach (var (interfaceClassPointer, interfaceOffset) in interfaceOffsets)
-            {
-                if (pointersToInterfaces.TryGetValue(interfaceClassPointer, out var interfaceType))
-                {
-                    vtable.SetInterfaceMethods(interfaceType, UnityVersionHandler.Wrap((Il2CppClass*)interfaceClassPointer), interfaceOffset, onlyMethodsDeclaredByType: true);
-                }
-            }
-
-            foreach (var interfaceType in interfaceTypesNotImplementedByBaseType)
-            {
-                var interfaceClassPointer = UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(interfaceType));
-                var interfaceSlotCount = GetInterfaceSlotCount(interfaceClassPointer);
-                if (interfaceSlotCount == 0)
-                    continue;
-
-                interfaceOffsets.Add(((nint)interfaceClassPointer.ClassPointer, index));
-                vtable.SetInterfaceMethods(interfaceType, interfaceClassPointer, index, onlyMethodsDeclaredByType: false);
-                index += interfaceSlotCount;
-            }
-
-            classPointer.VTableCount = (ushort)index;
             SetInterfaceData(classPointer, baseClassPointer, interfaceTypesNotImplementedByBaseType, interfaceOffsets);
             classPointer.IsVtableInitialized = true;
             NeedsVTableSet.Remove(type);
