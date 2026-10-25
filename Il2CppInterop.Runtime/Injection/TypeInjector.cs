@@ -12,8 +12,10 @@ using Il2CppInterop.Common.Attributes;
 using Il2CppInterop.Runtime.Extensions;
 using Il2CppInterop.Runtime.Injection.Hooks;
 using Il2CppInterop.Runtime.InteropTypes;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppInterop.Runtime.Structs;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.Class;
+using Il2CppInterop.Runtime.Structs.VersionSpecific.FieldInfo;
 using Il2CppInterop.Runtime.Structs.VersionSpecific.MethodInfo;
 using Microsoft.Extensions.Logging;
 
@@ -173,7 +175,14 @@ public static unsafe class TypeInjector
 
         static nint GetClassPointerNotNull(Type type)
         {
+            SetFieldsOfTypeArguments(type);
             var classPointer = Il2CppType.GetClassPointer(type);
+            if (classPointer is 0 && IsArrayType(type))
+            {
+                // The static constructor of the array type is running and registering its element type, which refers to the array type.
+                classPointer = IL2CPP.il2cpp_array_class_get(GetClassPointerNotNull(type.GetGenericArguments()[0]), GetArrayRank(type));
+                Il2CppType.SetClassPointer(type, classPointer);
+            }
             if (classPointer is 0)
             {
                 Logger.Instance.LogWarning("The static constructor of {Type} is malformed and did not call RegisterTypeInIl2Cpp. Registering it now.", type.FullName);
@@ -188,6 +197,33 @@ public static unsafe class TypeInjector
             }
             return classPointer;
         }
+
+        // Il2Cpp sizes the elements of an array class when it creates the class, so a value type that is still being
+        // registered is laid out before an array of it.
+        static void SetFieldsOfTypeArguments(Type type)
+        {
+            if (!IsArrayType(type))
+                return;
+            do
+                type = type.GetGenericArguments()[0];
+            while (IsArrayType(type));
+            if (type.IsValueType && NeedsFieldsSet.Contains(type))
+                SetFields(type, UnityVersionHandler.Wrap((Il2CppClass*)GetClassPointerNotNull(type)));
+        }
+
+        static bool IsArrayType(Type type) => type.IsGenericType && typeof(Il2CppArrayBase).IsAssignableFrom(type);
+
+        static bool IsGenericReferenceType(Type type) => !type.IsValueType && type.IsConstructedGenericType;
+
+        static uint GetArrayRank(Type arrayType) => arrayType.GetGenericTypeDefinition() switch
+        {
+            var definition when definition == typeof(Il2CppArrayRank1<>) => 1,
+            var definition when definition == typeof(Il2CppArrayRank2<>) => 2,
+            var definition when definition == typeof(Il2CppArrayRank3<>) => 3,
+            var definition when definition == typeof(Il2CppArrayRank4<>) => 4,
+            var definition when definition == typeof(Il2CppArrayRank5<>) => 5,
+            _ => throw new NotSupportedException($"{arrayType} is not an array type of a known rank."),
+        };
 
         static void SetClassData(Type type, INativeClassStruct classPointer)
         {
@@ -525,33 +561,22 @@ public static unsafe class TypeInjector
             // (minimumAlignment), which Il2Cpp reads, like this method, to lay out a field of a value type.
             var alignment = type.IsValueType ? 1 : sizeof(Il2CppObject*);
             var staticFieldIndices = new List<int>();
+            var laterFieldIndices = new List<int>();
             for (var i = 0; i < classPointer.FieldCount; i++)
             {
                 var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
 
-                var fieldInfoClass = Il2CppType.GetClassPointer(fieldType);
-                if (fieldInfoClass == IntPtr.Zero)
-                    throw new Exception($"Type {fieldType} in {type}.{fieldName} doesn't exist in Il2Cpp");
-                if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
-                {
-                    var classType =
-                        UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(fieldInfoClass));
-
-                    var duplicatedType = UnityVersionHandler.NewType();
-                    duplicatedType.Data = classType.Data;
-                    duplicatedType.Attrs = (ushort)fieldAttributes;
-                    duplicatedType.Type = classType.Type;
-                    duplicatedType.ByRef = classType.ByRef;
-                    duplicatedType.Pinned = classType.Pinned;
-
-                    _injectedFieldTypes[(fieldType, fieldAttributes)] = duplicatedType.Pointer;
-                    fieldTypePtr = duplicatedType.Pointer;
-                }
-
                 var fieldInfo = UnityVersionHandler.Wrap(il2cppFields + i * UnityVersionHandler.FieldInfoSize());
                 fieldInfo.Name = Marshal.StringToCoTaskMemUTF8(fieldName);
                 fieldInfo.Parent = classPointer.ClassPointer;
-                fieldInfo.Type = (Il2CppTypeStruct*)fieldTypePtr;
+
+                // The class of an array or generic class over this type, or over another value type that waits for its layout,
+                // is got once this type is laid out. Until then, the field is an object for Il2Cpp, which can read the fields of
+                // this type meanwhile: to lay out List<T>.Enumerator in the static constructor of List<T>, for example.
+                var later = IsGenericReferenceType(fieldType);
+                if (later)
+                    laterFieldIndices.Add(i);
+                var fieldInfoClass = SetFieldType(fieldInfo, type, later ? typeof(Il2CppSystem.Object) : fieldType, fieldAttributes, fieldName);
 
                 if (fieldAttributes.HasFlag(FieldAttributes.Static))
                 {
@@ -587,10 +612,42 @@ public static unsafe class TypeInjector
 
             NeedsFieldsSet.Remove(type);
 
+            foreach (var i in laterFieldIndices)
+            {
+                var (fieldType, fieldAttributes, fieldName) = fieldsToInject[i];
+                SetFieldType(UnityVersionHandler.Wrap(il2cppFields + i * UnityVersionHandler.FieldInfoSize()), type, fieldType, fieldAttributes, fieldName);
+            }
+
             if (staticFieldIndices.Count > 0)
             {
                 SetStaticFields(classPointer, il2cppFields, fieldsToInject, staticFieldIndices);
             }
+        }
+
+        static nint SetFieldType(INativeFieldInfoStruct fieldInfo, Type type, Type fieldType, FieldAttributes fieldAttributes, string fieldName)
+        {
+            // GetClassPointerNotNull lays out the element type of an array first, which can be another value type that is still
+            // being registered.
+            var fieldInfoClass = IsGenericReferenceType(fieldType) ? GetClassPointerNotNull(fieldType) : Il2CppType.GetClassPointer(fieldType);
+            if (fieldInfoClass == IntPtr.Zero)
+                throw new Exception($"Type {fieldType} in {type}.{fieldName} doesn't exist in Il2Cpp");
+            if (!_injectedFieldTypes.TryGetValue((fieldType, fieldAttributes), out var fieldTypePtr))
+            {
+                var classType =
+                    UnityVersionHandler.Wrap((Il2CppTypeStruct*)IL2CPP.il2cpp_class_get_type(fieldInfoClass));
+
+                var duplicatedType = UnityVersionHandler.NewType();
+                duplicatedType.Data = classType.Data;
+                duplicatedType.Attrs = (ushort)fieldAttributes;
+                duplicatedType.Type = classType.Type;
+                duplicatedType.ByRef = classType.ByRef;
+                duplicatedType.Pinned = classType.Pinned;
+
+                _injectedFieldTypes[(fieldType, fieldAttributes)] = duplicatedType.Pointer;
+                fieldTypePtr = duplicatedType.Pointer;
+            }
+            fieldInfo.Type = (Il2CppTypeStruct*)fieldTypePtr;
+            return fieldInfoClass;
         }
 
         // Laid out after the instance fields, as in Il2Cpp, so that a static field of an injected value type, even the class's own, has its final size.
