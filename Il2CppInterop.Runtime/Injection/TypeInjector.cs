@@ -177,6 +177,12 @@ public static unsafe class TypeInjector
         {
             SetFieldsOfTypeArguments(type);
             var classPointer = Il2CppType.GetClassPointer(type);
+            if (classPointer is 0 && IsArrayType(type))
+            {
+                // The static constructor of the array type is running and registering its element type, which refers to the array type.
+                classPointer = IL2CPP.il2cpp_array_class_get(GetClassPointerNotNull(type.GetGenericArguments()[0]), GetArrayRank(type));
+                Il2CppType.SetClassPointer(type, classPointer);
+            }
             if (classPointer is 0)
             {
                 Logger.Instance.LogWarning("The static constructor of {Type} is malformed and did not call RegisterTypeInIl2Cpp. Registering it now.", type.FullName);
@@ -208,6 +214,16 @@ public static unsafe class TypeInjector
         static bool IsArrayType(Type type) => type.IsGenericType && typeof(Il2CppArrayBase).IsAssignableFrom(type);
 
         static bool IsGenericReferenceType(Type type) => !type.IsValueType && type.IsConstructedGenericType;
+
+        static uint GetArrayRank(Type arrayType) => arrayType.GetGenericTypeDefinition() switch
+        {
+            var definition when definition == typeof(Il2CppArrayRank1<>) => 1,
+            var definition when definition == typeof(Il2CppArrayRank2<>) => 2,
+            var definition when definition == typeof(Il2CppArrayRank3<>) => 3,
+            var definition when definition == typeof(Il2CppArrayRank4<>) => 4,
+            var definition when definition == typeof(Il2CppArrayRank5<>) => 5,
+            _ => throw new NotSupportedException($"{arrayType} is not an array type of a known rank."),
+        };
 
         static void SetClassData(Type type, INativeClassStruct classPointer)
         {
